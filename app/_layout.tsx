@@ -52,7 +52,7 @@ export default function RootLayout() {
   };
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, animation: "none" }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="login/index" />
     </Stack>
