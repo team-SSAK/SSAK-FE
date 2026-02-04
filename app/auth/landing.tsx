@@ -105,9 +105,11 @@ export default function Landing() {
         </Text>
       </View>
       <View className="self-stretch flex flex-row gap-7 justify-center items-center mb-[50px]">
-        <Text className="text-gray-600 font-medium underline leading-6">
-          비밀번호 찾기
-        </Text>
+        <TouchableOpacity onPress={() => router.push("/auth/foundpwemail")}>
+          <Text className="text-gray-600 font-medium underline leading-6">
+            비밀번호 찾기
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push("/auth/registeremail")}>
           <Text className="text-green-500 font-medium underline leading-6">
             회원가입
