@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   TextInput as RNTextInput,
@@ -18,7 +19,7 @@ interface IDInputProps {
 
 function IDInput({ placeholder, onChangeText, value }: IDInputProps) {
   return (
-    <View className="self-stretch p-4 bg-gray-100 rounded-lg justify-start items-center">
+    <View className="self-stretch p-4 bg-gray-100 rounded-lg justify-center items-start">
       <RNTextInput
         placeholder={placeholder}
         placeholderTextColor="#6B7280" // gray-500
@@ -107,9 +108,11 @@ export default function Landing() {
         <Text className="text-gray-600 font-medium underline leading-6">
           비밀번호 찾기
         </Text>
-        <Text className="text-green-500 font-medium underline leading-6">
-          회원가입
-        </Text>
+        <TouchableOpacity onPress={() => router.push("/auth/registeremail")}>
+          <Text className="text-green-500 font-medium underline leading-6">
+            회원가입
+          </Text>
+        </TouchableOpacity>
       </View>
       <View className="self-stretch flex flex-row gap-3 justify-center items-center">
         <View className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow-[3px_3px_4.300000190734863px_0px_rgba(0,0,0,0.02)] outline outline-1 outline-offset-[-1px] outline-zinc-100 justify-center items-center">
