@@ -1,5 +1,3 @@
-import PopUp from "@/components/PopUp";
-import StepIndicator from "@/components/stepindicator";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -11,6 +9,8 @@ import {
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
+import PopUp from "../../components/popup";
+import StepIndicator from "../../components/stepindicator";
 
 interface PWInputProps {
   placeholder: string;

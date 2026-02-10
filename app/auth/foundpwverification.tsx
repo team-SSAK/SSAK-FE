@@ -1,9 +1,9 @@
-import TextInput from "@/components/input/textinput";
-import StepIndicator from "@/components/stepindicator";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import TextInput from "../../components/input/textinput";
+import StepIndicator from "../../components/stepindicator";
 
 export default function FoundPWVerification() {
   const [verificationCode, setVerificationCode] = useState("");

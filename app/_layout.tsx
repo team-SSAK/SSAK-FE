@@ -1,11 +1,14 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Text } from "react-native";
 import "./global.css";
 
 export default function RootLayout() {
+  const queryClient = useMemo(() => new QueryClient(), []);
+
   // 앱 초기화 동안 스플래시가 자동으로 숨겨지지 않도록 설정
   useEffect(() => {
     let mounted = true;
@@ -52,9 +55,11 @@ export default function RootLayout() {
   };
 
   return (
-    <Stack screenOptions={{ headerShown: false, animation: "none" }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="login/index" />
-    </Stack>
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false, animation: "none" }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login/index" />
+      </Stack>
+    </QueryClientProvider>
   );
 }

@@ -9,10 +9,20 @@ import {
 import type { LoginResponse } from "./types";
 
 const API_BASE =
-  (Constants as any)?.manifest?.extra?.API_BASE_URL ??
-  "https://api.example.com";
+  (process.env.API_BASE_URL as string | undefined) ??
+  (Constants as any)?.manifest?.extra?.API_BASE_URL;
+
+if (!API_BASE) {
+  console.warn(
+    "[API] API_BASE_URL is not configured. Check .env or app.json extra.",
+  );
+}
 
 const client = axios.create({ baseURL: API_BASE, timeout: 15000 });
+
+// Enable API logging when API_LOG=true in env or in development (__DEV__)
+const SHOULD_LOG =
+  process.env.API_LOG === "true" || (typeof __DEV__ !== "undefined" && __DEV__);
 
 // Request interceptor: add access token if available
 client.interceptors.request.use(async (config) => {
@@ -22,12 +32,12 @@ client.interceptors.request.use(async (config) => {
 });
 
 // Queue for failed requests while refreshing
-let isRefreshing e;
-let failedQueue: Array<{
+let isRefreshing = false;
+let failedQueue: {
   resolve: (value?: any) => void;
   reject: (err: any) => void;
- []config: AxiosRequestConfig;
-}> = [];
+  config: AxiosRequestConfig;
+}[] = [];
 
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach((p) => {
@@ -45,8 +55,31 @@ const processQueue = (error: any, token: string | null = null) => {
 const refreshClient = axios.create({ baseURL: API_BASE, timeout: 15000 });
 
 client.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (SHOULD_LOG) {
+      console.debug("[API] response", {
+        url: response.config?.url,
+        method: response.config?.method,
+        status: response.status,
+        data: response.data,
+      });
+    }
+
+    return response;
+  },
   async (error: AxiosError & { config?: AxiosRequestConfig }) => {
+    if (SHOULD_LOG) {
+      console.error("[API] error", {
+        url: error.config?.url || "no-config",
+        method: error.config?.method || "no-config",
+        status: error.response?.status || "no-response",
+        data: error.response?.data || error.message,
+        baseURL: API_BASE,
+        errorCode: error.code,
+        errorMessage: error.message,
+      });
+    }
+
     const originalConfig = error.config;
     if (
       error.response?.status === 401 &&
