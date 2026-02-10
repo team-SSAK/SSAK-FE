@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
@@ -9,6 +10,8 @@ import {
   View,
 } from "react-native";
 
+import client from "../../src/lib/api/client";
+
 import Apple from "../../assets/images/Apple.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
@@ -19,6 +22,17 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 const GOOGLE_OAUTH_URL = `${API_BASE_URL}/oauth2/authorization/google`;
 const KAKAO_OAUTH_URL = `${API_BASE_URL}/oauth2/authorization/kakao`;
+/* ============================================== */
+
+/* ================= Login API ================== */
+interface LoginRequest {
+  userEmail: string;
+  userPw: string;
+}
+
+const login = async (request: LoginRequest): Promise<void> => {
+  await client.post("/api/auth/login", request);
+};
 /* ============================================== */
 
 interface IDInputProps {
@@ -36,6 +50,7 @@ function IDInput({ placeholder, onChangeText, value }: IDInputProps) {
         className="text-gray-900 font-medium leading-6"
         onChangeText={onChangeText}
         value={value}
+        autoCapitalize="none"
       />
     </View>
   );
@@ -74,8 +89,33 @@ function PWInput({ placeholder, onChangeText, value }: PWInputProps) {
 export default function Landing() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isLoginEnabled = email.length > 8 && password.length > 8;
+
+  /* ============ Login Mutation ============ */
+  const { mutate: loginMutate, isPending } = useMutation({
+    mutationFn: (payload: LoginRequest) => login(payload),
+    onSuccess: () => {
+      router.replace("/"); // 로그인 성공 후 메인
+    },
+    onError: (err: any) => {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "로그인에 실패했습니다.";
+      setErrorMsg(msg);
+    },
+  });
+  /* ======================================== */
+
+  const onLogin = () => {
+    setErrorMsg(null);
+    loginMutate({
+      userEmail: email,
+      userPw: password,
+    });
+  };
 
   /* ============ OAuth Handlers ============ */
   const openOAuth = async (url: string) => {
@@ -101,7 +141,7 @@ export default function Landing() {
         <Text className="text-green-400 text-sm font-medium leading-6">
           싹 비우고, 싹 틔우다
         </Text>
-        <Text className="text-green-500 text-7xl font-normal font-Jalnan_2 leading-[79.10px]">
+        <Text className="text-green-500 text-7xl font-normal font-Jalnan_2">
           싹
         </Text>
       </View>
@@ -112,29 +152,28 @@ export default function Landing() {
           onChangeText={setEmail}
           value={email}
         />
-        <Text className="w-full text-right text-gray-500 text-sm font-medium">
-          {email.length}/8
-        </Text>
-
         <PWInput
           placeholder="비밀번호를 입력해주세요"
           onChangeText={setPassword}
           value={password}
         />
-        <Text className="w-full text-right text-gray-500 text-sm font-medium">
-          {password.length}/8
-        </Text>
+        {errorMsg && (
+          <Text className="text-red-600 text-sm mt-1">{errorMsg}</Text>
+        )}
       </View>
 
-      <View
+      {/* 로그인 버튼 */}
+      <TouchableOpacity
+        disabled={!isLoginEnabled || isPending}
+        onPress={onLogin}
         className={`self-stretch p-4 rounded-xl justify-center my-[18px] ${
           isLoginEnabled ? "bg-[#45B310]" : "bg-gray-500"
         }`}
       >
         <Text className="text-center text-white text-lg font-medium">
-          로그인하기
+          {isPending ? "로그인 중..." : "로그인하기"}
         </Text>
-      </View>
+      </TouchableOpacity>
 
       <View className="self-stretch flex flex-row gap-7 justify-center items-center mb-[50px]">
         <TouchableOpacity onPress={() => router.push("/auth/foundpwemail")}>
@@ -149,23 +188,20 @@ export default function Landing() {
 
       {/* OAuth Buttons */}
       <View className="self-stretch flex flex-row gap-3 justify-center items-center">
-        {/* Google */}
         <TouchableOpacity
           onPress={onGoogleLogin}
-          className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow outline outline-1 outline-zinc-100 justify-center items-center"
+          className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow flex justify-center items-center"
         >
           <Google width={16} height={16} />
         </TouchableOpacity>
 
-        {/* Apple (아직 미구현) */}
-        <View className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow outline outline-1 outline-zinc-100 justify-center items-center">
+        <View className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow flex justify-center items-center">
           <Apple width={16} height={16} />
         </View>
 
-        {/* Kakao */}
         <TouchableOpacity
           onPress={onKakaoLogin}
-          className="w-28 h-12 px-7 py-3 bg-yellow-400 rounded-3xl shadow justify-center items-center"
+          className="w-28 h-12 px-7 py-3 bg-yellow-400 rounded-3xl shadow flex justify-center items-center"
         >
           <Text className="text-zinc-900 text-sm font-semibold">KaKao</Text>
         </TouchableOpacity>
