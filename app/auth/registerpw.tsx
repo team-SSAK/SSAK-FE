@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   TextInput as RNTextInput,
@@ -77,10 +77,17 @@ export default function RegisterPW() {
     if (password !== confirmPassword) {
       setShowPopup(true);
     } else {
-      // 다음 화면으로 이동
-      router.push("/auth/registername");
+      router.push({
+        pathname: "/auth/registername",
+        params: {
+          email,
+          password,
+        },
+      });
     }
   };
+
+  const { email } = useLocalSearchParams<{ email: string }>();
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">

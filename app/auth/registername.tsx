@@ -1,6 +1,6 @@
 import TextInput from "@/components/input/textinput";
 import StepIndicator from "@/components/stepindicator";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
@@ -9,6 +9,11 @@ export default function RegisterName() {
   const [name, setName] = useState("");
 
   const isButtonEnabled = name.length > 0;
+
+  const { email, password } = useLocalSearchParams<{
+    email: string;
+    password: string;
+  }>();
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -52,7 +57,16 @@ export default function RegisterName() {
             backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
             opacity: isButtonEnabled ? 1 : 0.5,
           }}
-          onPress={() => router.push("/auth/registerdone")}
+          onPress={() =>
+            router.push({
+              pathname: "/auth/registerdone",
+              params: {
+                email,
+                password,
+                name,
+              },
+            })
+          }
         >
           <Text className="text-white text-lg font-medium">다음</Text>
         </TouchableOpacity>

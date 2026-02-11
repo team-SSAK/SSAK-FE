@@ -1,9 +1,10 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronRight from "../../assets/images/chevron-right.svg";
 import RadioButton from "../../assets/images/radio-button.svg";
 import TickCircle from "../../assets/images/tick-circle.svg";
+import { useSignup } from "../../src/hooks/useSignup";
 
 interface CheckboxProps {
   label: string;
@@ -36,6 +37,24 @@ function Checkbox({ label, checked, onPress }: CheckboxProps) {
 }
 
 export default function RegisterDone() {
+  const params = useLocalSearchParams();
+
+  const email = typeof params.email === "string" ? params.email : "";
+  const password = typeof params.password === "string" ? params.password : "";
+  const name = typeof params.name === "string" ? params.name : "";
+
+  /* -----------------------------
+     잘못된 접근 방어
+  ----------------------------- */
+  useEffect(() => {
+    if (!email || !password || !name) {
+      router.replace("/auth/landing");
+    }
+  }, []);
+
+  /* -----------------------------
+     약관 상태
+  ----------------------------- */
   const [agreeAll, setAgreeAll] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeLocation, setAgreeLocation] = useState(false);
@@ -53,8 +72,37 @@ export default function RegisterDone() {
     setAgreeAll(privacy && location && marketing);
   };
 
+  /* -----------------------------
+     signup 훅
+  ----------------------------- */
+  const { mutate: signupMutate, isPending } = useSignup();
+
+  const isRequiredAgreed = agreePrivacy && agreeLocation;
+
+  const handleSignup = () => {
+    if (!isRequiredAgreed) return;
+
+    signupMutate(
+      {
+        userEmail: email,
+        userPw: password,
+        userNm: name,
+        marketAgreeYn: agreeMarketing,
+      },
+      {
+        onSuccess: () => {
+          router.replace("/auth/landing");
+        },
+        onError: (err: any) => {
+          console.log("Signup error:", err);
+        },
+      },
+    );
+  };
+
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
+      {/* 상단 환영 영역 */}
       <View className="flex flex-col mt-[84px]">
         <View className="flex flex-col gap-3 justify-center items-center">
           <Text className="text-green-400 text-sm font-medium leading-6">
@@ -64,11 +112,13 @@ export default function RegisterDone() {
             싹
           </Text>
         </View>
-        <Text className="self-stretch text-center text-gray-700 text-lg font-medium leading-7">
-          이화연님 환영합니다!
+
+        <Text className="self-stretch text-center text-gray-700 text-lg font-medium leading-7 mt-4">
+          {name ? `${name}님 환영합니다!` : "환영합니다!"}
         </Text>
       </View>
 
+      {/* 약관 영역 */}
       <View className="flex flex-col">
         <View className="flex flex-col gap-4">
           <Checkbox
@@ -110,10 +160,21 @@ export default function RegisterDone() {
 
         <View className="h-[34px]" />
 
-        <TouchableOpacity onPress={() => router.push("/auth/landing")}>
-          <View className="self-stretch p-3 rounded-xl justify-center items-center bg-[#45B310]">
+        {/* 가입 버튼 */}
+        <TouchableOpacity
+          disabled={!isRequiredAgreed || isPending}
+          onPress={handleSignup}
+        >
+          <View
+            className="self-stretch p-3 rounded-xl justify-center items-center"
+            style={{
+              backgroundColor:
+                isRequiredAgreed && !isPending ? "#45B310" : "#94A3B8",
+              opacity: isRequiredAgreed && !isPending ? 1 : 0.6,
+            }}
+          >
             <Text className="text-center text-white text-lg font-medium leading-7">
-              홈으로 이동
+              {isPending ? "가입 중..." : "가입 완료"}
             </Text>
           </View>
         </TouchableOpacity>

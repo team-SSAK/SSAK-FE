@@ -3,9 +3,11 @@ import client from "../../lib/api/client";
 /**
  * 로그인 요청 payload
  */
-export interface LoginRequest {
+export interface SignupRequest {
   userEmail: string;
   userPw: string;
+  userNm: string;
+  marketAgreeYn: boolean;
 }
 
 /**
@@ -17,6 +19,6 @@ export interface LoginRequest {
  *   "userPw": "password1234"
  * }
  */
-export const login = async (request: LoginRequest): Promise<void> => {
-  await client.post("/api/auth/login", request);
+export const signup = async (request: LoginRequest): Promise<void> => {
+  await client.post("/api/auth/signup", request);
 };

@@ -91,7 +91,7 @@ export default function Landing() {
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const isLoginEnabled = email.length > 8 && password.length > 8;
+  const isLoginEnabled = email.length > 7 && password.length > 7;
 
   /* ============ Login Mutation ============ */
   const { mutate: loginMutate, isPending } = useMutation({
