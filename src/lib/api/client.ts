@@ -18,21 +18,45 @@ if (!API_BASE) {
   );
 }
 
-const client = axios.create({ baseURL: API_BASE, timeout: 15000 });
+const client = axios.create({
+  baseURL: API_BASE,
+  timeout: 15000,
+});
 
-// Enable API logging when API_LOG=true in env or in development (__DEV__)
 const SHOULD_LOG =
   process.env.API_LOG === "true" || (typeof __DEV__ !== "undefined" && __DEV__);
 
-// Request interceptor: add access token if available
+////////////////////////////////////////////////////////////////////////////////
+// REQUEST INTERCEPTOR
+////////////////////////////////////////////////////////////////////////////////
+
 client.interceptors.request.use(async (config) => {
   const token = await getAccessToken();
-  if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
+
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (SHOULD_LOG) {
+    console.log("================================");
+    console.log("API REQUEST");
+    console.log("URL:", `${config.baseURL}${config.url}`);
+    console.log("Method:", config.method);
+    console.log("Headers:", config.headers);
+    console.log("Params:", config.params);
+    console.log("Body:", config.data);
+    console.log("================================");
+  }
+
   return config;
 });
 
-// Queue for failed requests while refreshing
+////////////////////////////////////////////////////////////////////////////////
+// REFRESH LOGIC
+////////////////////////////////////////////////////////////////////////////////
+
 let isRefreshing = false;
+
 let failedQueue: {
   resolve: (value?: any) => void;
   reject: (err: any) => void;
@@ -41,46 +65,55 @@ let failedQueue: {
 
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach((p) => {
-    if (error) p.reject(error);
-    else {
-      if (token && p.config.headers)
+    if (error) {
+      p.reject(error);
+    } else {
+      if (token && p.config.headers) {
         p.config.headers.Authorization = `Bearer ${token}`;
+      }
       p.resolve(client(p.config));
     }
   });
   failedQueue = [];
 };
 
-// Use a separate axios instance for refresh to avoid interceptor loops
-const refreshClient = axios.create({ baseURL: API_BASE, timeout: 15000 });
+const refreshClient = axios.create({
+  baseURL: API_BASE,
+  timeout: 15000,
+});
+
+////////////////////////////////////////////////////////////////////////////////
+// RESPONSE INTERCEPTOR
+////////////////////////////////////////////////////////////////////////////////
 
 client.interceptors.response.use(
   (response) => {
     if (SHOULD_LOG) {
-      console.debug("[API] response", {
-        url: response.config?.url,
-        method: response.config?.method,
-        status: response.status,
-        data: response.data,
-      });
+      console.log("================================");
+      console.log("API RESPONSE");
+      console.log("URL:", response.config?.url);
+      console.log("Status:", response.status);
+      console.log("Data:", response.data);
+      console.log("================================");
     }
 
     return response;
   },
   async (error: AxiosError & { config?: AxiosRequestConfig }) => {
     if (SHOULD_LOG) {
-      console.error("[API] error", {
-        url: error.config?.url || "no-config",
-        method: error.config?.method || "no-config",
-        status: error.response?.status || "no-response",
-        data: error.response?.data || error.message,
-        baseURL: API_BASE,
-        errorCode: error.code,
-        errorMessage: error.message,
-      });
+      console.log("================================");
+      console.log("API ERROR");
+      console.log("URL:", error.config?.url);
+      console.log("Method:", error.config?.method);
+      console.log("Status:", error.response?.status);
+      console.log("Response Data:", error.response?.data);
+      console.log("Error Message:", error.message);
+      console.log("Base URL:", API_BASE);
+      console.log("================================");
     }
 
     const originalConfig = error.config;
+
     if (
       error.response?.status === 401 &&
       originalConfig &&
@@ -102,8 +135,12 @@ client.interceptors.response.use(
         const r = await refreshClient.post<LoginResponse>("/auth/refresh", {
           refreshToken,
         });
+
         await setAccessToken(r.data.accessToken);
-        if (r.data.refreshToken) await setRefreshToken(r.data.refreshToken);
+
+        if (r.data.refreshToken) {
+          await setRefreshToken(r.data.refreshToken);
+        }
 
         processQueue(null, r.data.accessToken);
         return client(originalConfig);

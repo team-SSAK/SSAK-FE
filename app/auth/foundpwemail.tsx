@@ -35,7 +35,7 @@ export default function FoundPWEmail() {
     sendEmail(
       {
         email,
-        type: "PASSWORD-RESET", // 비밀번호 찾기용
+        type: "PASSWORD_RESET", // 비밀번호 찾기용
       },
       {
         onSuccess: () => {
