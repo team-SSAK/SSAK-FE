@@ -141,11 +141,13 @@ export default function Main() {
               님
             </Text>
           </View>
-          <View className="px-4 py-[3px] bg-gray-100 rounded-full">
-            <Text className="text-gray-500 text-xs font-semibold leading-5">
-              수정
-            </Text>
-          </View>
+          <TouchableOpacity onPress={() => router.push("/mypage/editprofile")}>
+            <View className="px-4 py-[3px] bg-gray-100 rounded-full">
+              <Text className="text-gray-500 text-xs font-semibold leading-5">
+                수정
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* 포인트 */}
