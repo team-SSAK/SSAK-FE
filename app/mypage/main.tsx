@@ -150,17 +150,19 @@ export default function Main() {
 
         {/* 포인트 */}
         <View className="mb-[38px]">
-          <View className="px-4 py-3.5 bg-green-300 rounded-xl">
-            <Text className="text-white text-sm font-medium leading-6">
-              내 포인트
-            </Text>
-            <View className="flex-row items-center gap-0.5">
-              <Text className="text-white text-xl font-semibold leading-8">
-                342352P
+          <TouchableOpacity onPress={() => router.push("/mypage/point")}>
+            <View className="px-4 py-3.5 bg-green-300 rounded-xl">
+              <Text className="text-white text-sm font-medium leading-6">
+                내 포인트
               </Text>
-              <ChevronRightW />
+              <View className="flex-row items-center gap-0.5">
+                <Text className="text-white text-xl font-semibold leading-8">
+                  342352P
+                </Text>
+                <ChevronRightW />
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* 쿠폰 */}
@@ -220,7 +222,9 @@ export default function Main() {
             <Text className="text-gray-800 text-lg font-semibold leading-7">
               내 식당
             </Text>
-            <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
+            <TouchableOpacity
+              onPress={() => router.push("/mypage/`restaurant`")}
+            >
               <ChevronRightG />
             </TouchableOpacity>
           </View>
