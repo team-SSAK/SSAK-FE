@@ -97,7 +97,7 @@ export default function Landing() {
   const { mutate: loginMutate, isPending } = useMutation({
     mutationFn: (payload: LoginRequest) => login(payload),
     onSuccess: () => {
-      router.replace("/"); // 로그인 성공 후 메인
+      router.replace("/mypage/main"); // 로그인 성공 후 마이페이지 메인
     },
     onError: (err: any) => {
       const msg =
