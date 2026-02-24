@@ -220,7 +220,9 @@ export default function Main() {
             <Text className="text-gray-800 text-lg font-semibold leading-7">
               내 식당
             </Text>
-            <ChevronRightG />
+            <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
+              <ChevronRightG />
+            </TouchableOpacity>
           </View>
 
           <ScrollView
