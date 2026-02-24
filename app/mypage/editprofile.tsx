@@ -8,7 +8,7 @@ import TextInput from "../../components/input/textinput";
 
 const MAX_LENGTH = 8;
 
-export default function FoundPWEmail() {
+export default function EditProfile() {
   const [inputValue, setInputValue] = useState("");
   const isButtonEnabled =
     inputValue.length >= 1 && inputValue.length <= MAX_LENGTH;

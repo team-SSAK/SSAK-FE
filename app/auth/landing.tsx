@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Platform,
   TextInput as RNTextInput,
@@ -86,10 +86,78 @@ function PWInput({ placeholder, onChangeText, value }: PWInputProps) {
   );
 }
 
+interface LandingPopupProps {
+  visible?: boolean;
+  title?: string;
+  description?: string;
+  buttonText?: string;
+  onConfirm?: () => void;
+}
+
+export function LandingPopup({
+  visible = false,
+  title = "탈퇴 완료",
+  description = "회원 탈퇴가 완료되었습니다",
+  buttonText = "확인",
+  onConfirm,
+}: LandingPopupProps) {
+  if (!visible) return null;
+
+  return (
+    <View className="absolute inset-0 justify-center items-center bg-black/50 px-6">
+      <View className="w-72 p-5 bg-white rounded-[20px] flex flex-col justify-center items-center gap-4">
+        {/* 텍스트 영역 */}
+        <View className="self-stretch flex flex-col gap-1">
+          <Text className="text-slate-900 text-lg font-semibold leading-7">
+            {title}
+          </Text>
+          <Text className="text-slate-500 text-sm font-medium leading-6">
+            {description}
+          </Text>
+        </View>
+
+        {/* 버튼 */}
+        <View className="self-stretch flex-row items-center gap-2">
+          <TouchableOpacity
+            className="flex-1 h-10 px-2 py-2 bg-lime-600 rounded-[10px] justify-center items-center"
+            onPress={onConfirm}
+          >
+            <Text className="text-white text-base font-medium leading-6">
+              {buttonText}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function Landing() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
+
+  const { showPopup, type } = useLocalSearchParams();
+
+  useEffect(() => {
+    if (showPopup === "true") {
+      setShowDeletePopup(true);
+    }
+  }, [showPopup]);
+
+  const popupProps =
+    type === "password"
+      ? {
+          title: "비밀번호 변경 완료",
+          description: "변경된 비밀번호로 로그인 해주세요",
+          buttonText: "완료",
+        }
+      : {
+          title: "탈퇴 완료",
+          description: "회원 탈퇴가 완료되었습니다",
+          buttonText: "확인",
+        };
 
   const isLoginEnabled = email.length > 7 && password.length > 7;
 
@@ -206,6 +274,12 @@ export default function Landing() {
           <Text className="text-zinc-900 text-sm font-semibold">KaKao</Text>
         </TouchableOpacity>
       </View>
+
+      <LandingPopup
+        visible={showDeletePopup}
+        {...popupProps}
+        onConfirm={() => setShowDeletePopup(false)}
+      />
     </View>
   );
 }

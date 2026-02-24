@@ -127,7 +127,9 @@ export default function Main() {
           <Text className="text-green-500 text-lg font-bold leading-7">
             SSAK
           </Text>
-          <Setting width={24} height={24} />
+          <TouchableOpacity onPress={() => router.push("/mypage/setting")}>
+            <Setting width={24} height={24} />
+          </TouchableOpacity>
         </View>
 
         {/* 프로필 */}
@@ -224,9 +226,7 @@ export default function Main() {
             <Text className="text-gray-800 text-lg font-semibold leading-7">
               내 식당
             </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/mypage/`restaurant`")}
-            >
+            <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
               <ChevronRightG />
             </TouchableOpacity>
           </View>
