@@ -1,7 +1,10 @@
-import { ScrollView, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Avatar from "../../assets/images/avatar.svg";
 import ChevronRightG from "../../assets/images/chevron-right-gray.svg";
 import ChevronRightW from "../../assets/images/chevron-right-white.svg";
+import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
 import Home from "../../assets/images/home.svg";
 import Setting from "../../assets/images/setting.svg";
@@ -14,6 +17,7 @@ interface CouponCardProps {
   price?: string;
   selected?: boolean;
   image?: React.ReactNode;
+  onToggle?: () => void;
 }
 
 const CouponCard = ({
@@ -22,14 +26,15 @@ const CouponCard = ({
   price = "200P",
   selected = false,
   image,
+  onToggle,
 }: CouponCardProps) => {
   return (
     <View className="flex-col gap-2.5">
       <View className="w-40 h-40 p-1 rounded-md bg-slate-100 justify-end items-end">
         {image ?? null}
-        <View className="m-3.5">
-          <Heart />
-        </View>
+        <TouchableOpacity className="m-3.5" onPress={onToggle}>
+          {selected ? <HeartFilled /> : <Heart />}
+        </TouchableOpacity>
       </View>
 
       <View className="w-40">
@@ -108,6 +113,9 @@ function BottomNav() {
 }
 
 export default function Main() {
+  const router = useRouter();
+  const [selectedCoupons, setSelectedCoupons] = useState([false, false, false]);
+
   return (
     <View className="flex-1 bg-white">
       {/* 🔹 스크롤 영역 */}
@@ -161,7 +169,9 @@ export default function Main() {
             <Text className="text-gray-800 text-lg font-semibold leading-7">
               내 쿠폰
             </Text>
-            <ChevronRightG />
+            <TouchableOpacity onPress={() => router.push("/mypage/coupon")}>
+              <ChevronRightG />
+            </TouchableOpacity>
           </View>
 
           <ScrollView
@@ -169,9 +179,36 @@ export default function Main() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 10 }}
           >
-            <CouponCard />
-            <CouponCard />
-            <CouponCard />
+            <CouponCard
+              selected={selectedCoupons[0]}
+              onToggle={() =>
+                setSelectedCoupons((prev) => {
+                  const newArr = [...prev];
+                  newArr[0] = !newArr[0];
+                  return newArr;
+                })
+              }
+            />
+            <CouponCard
+              selected={selectedCoupons[1]}
+              onToggle={() =>
+                setSelectedCoupons((prev) => {
+                  const newArr = [...prev];
+                  newArr[1] = !newArr[1];
+                  return newArr;
+                })
+              }
+            />
+            <CouponCard
+              selected={selectedCoupons[2]}
+              onToggle={() =>
+                setSelectedCoupons((prev) => {
+                  const newArr = [...prev];
+                  newArr[2] = !newArr[2];
+                  return newArr;
+                })
+              }
+            />
           </ScrollView>
         </View>
 
