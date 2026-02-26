@@ -1,4 +1,5 @@
 import client from "../../lib/api/client";
+import { setAccessToken, setRefreshToken } from "../../utils/storage";
 
 /**
  * 로그인 요청 payload
@@ -10,13 +11,18 @@ export interface LoginRequest {
 
 /**
  * 로그인 API
- *
- * Example request:
- * {
- *   "userEmail": "test@example.com",
- *   "userPw": "password1234"
- * }
  */
-export const login = async (request: LoginRequest): Promise<void> => {
-  await client.post("/api/auth/login", request);
+export const login = async (request: LoginRequest) => {
+  const res = await client.post("/api/auth/login", request);
+
+  const accessToken = res.data.accessToken;
+  const refreshToken = res.data.refreshToken;
+
+  await setAccessToken(accessToken);
+
+  if (refreshToken) {
+    await setRefreshToken(refreshToken);
+  }
+
+  return res.data;
 };

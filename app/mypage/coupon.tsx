@@ -1,9 +1,10 @@
 import { router } from "expo-router";
-import { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
+import { getCoupons } from "../../src/services/mypage/coupons.service";
 
 interface CouponCardProps {
   storeName?: string;
@@ -11,7 +12,7 @@ interface CouponCardProps {
   price?: string;
   selected?: boolean;
   used?: boolean;
-  image?: React.ReactNode;
+  image?: string;
   onToggle?: () => void;
 }
 
@@ -27,7 +28,13 @@ const CouponCard = ({
   return (
     <View className="flex-col gap-2.5 w-full">
       <View className="w-full aspect-square p-1 rounded-md bg-slate-100 justify-end items-end">
-        {image ?? null}
+        {image ? (
+          <Image
+            source={{ uri: image }}
+            className="absolute inset-0 w-full h-full rounded-md"
+            resizeMode="cover"
+          />
+        ) : null}
 
         {used && (
           <View className="absolute inset-0 rounded-md bg-white/40 justify-center items-center">
@@ -105,6 +112,7 @@ interface CouponItem {
   storeName: string;
   title: string;
   price: string;
+  image?: string;
 }
 
 const COUPONS: CouponItem[] = [
@@ -114,6 +122,7 @@ const COUPONS: CouponItem[] = [
     storeName: "GS25",
     title: "GS25 새콤달콤 포도맛 15% 할인 쿠폰",
     price: "200P",
+    image: "https://via.placeholder.com/150",
   },
   {
     id: 1,
@@ -121,6 +130,7 @@ const COUPONS: CouponItem[] = [
     storeName: "CU",
     title: "CU 아메리카노 20% 할인 쿠폰",
     price: "150P",
+    image: "https://via.placeholder.com/150",
   },
   {
     id: 2,
@@ -128,6 +138,7 @@ const COUPONS: CouponItem[] = [
     storeName: "스타벅스",
     title: "스타벅스 카라멜 마키아토 10% 할인 쿠폰",
     price: "300P",
+    image: "https://via.placeholder.com/150",
   },
   {
     id: 3,
@@ -135,6 +146,7 @@ const COUPONS: CouponItem[] = [
     storeName: "맥도날드",
     title: "맥도날드 빅맥 세트 15% 할인 쿠폰",
     price: "500P",
+    image: "https://via.placeholder.com/150",
   },
   {
     id: 4,
@@ -142,6 +154,7 @@ const COUPONS: CouponItem[] = [
     storeName: "올리브영",
     title: "올리브영 스킨케어 10% 할인 쿠폰",
     price: "100P",
+    image: "https://via.placeholder.com/150",
   },
   {
     id: 5,
@@ -149,6 +162,7 @@ const COUPONS: CouponItem[] = [
     storeName: "배달의민족",
     title: "배달의민족 치킨 3,000원 할인 쿠폰",
     price: "400P",
+    image: "https://via.placeholder.com/150",
   },
 ];
 
@@ -163,17 +177,56 @@ export default function Coupon() {
   const [selectedCoupons, setSelectedCoupons] = useState<
     Record<number, boolean>
   >({});
+  const [coupons, setCoupons] = useState<CouponItem[]>([]);
+  const [allCoupons, setAllCoupons] = useState<CouponItem[]>([]); // fallback
+
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        if (activeTab === "사용 가능") {
+          const data = await getCoupons("ISSUED");
+          console.log("API 응답:", data);
+          const transformed = data.map((item: any) => ({
+            id: item.couponHistId,
+            used: false,
+            storeName: item.couponStore,
+            title: item.couponNm,
+            price: item.couponPoint + "P",
+            image: item.couponImgUrl,
+          }));
+          setCoupons(transformed);
+          setAllCoupons(transformed);
+        } else if (activeTab === "사용 완료") {
+          const data = await getCoupons("USED");
+          console.log("API 응답:", data);
+          const transformed = data.map((item: any) => ({
+            id: item.couponHistId,
+            used: true,
+            storeName: item.couponStore,
+            title: item.couponNm,
+            price: item.couponPoint + "P",
+            image: item.couponImgUrl,
+          }));
+          setCoupons(transformed);
+          setAllCoupons(transformed);
+        } else if (activeTab === "찜한 쿠폰") {
+          // 찜한 쿠폰은 선택된 쿠폰들
+          setCoupons(
+            allCoupons.filter((coupon) => !!selectedCoupons[coupon.id]),
+          );
+        }
+      } catch (error) {
+        console.error("쿠폰 로딩 실패:", error);
+        setCoupons([]);
+      }
+    };
+
+    fetchCoupons();
+  }, [activeTab, selectedCoupons, allCoupons]);
 
   const toggle = (id: number) => {
     setSelectedCoupons((prev) => ({ ...prev, [id]: !prev[id] }));
   };
-
-  const filteredCoupons = COUPONS.filter((coupon) => {
-    if (activeTab === "사용 가능") return !coupon.used;
-    if (activeTab === "사용 완료") return coupon.used;
-    if (activeTab === "찜한 쿠폰") return !!selectedCoupons[coupon.id];
-    return true;
-  });
 
   return (
     <View className="flex-1 bg-white px-4 py-[56px]">
@@ -191,7 +244,7 @@ export default function Coupon() {
       <ScrollView
         contentContainerStyle={{ paddingVertical: 42, paddingBottom: 140 }}
       >
-        {filteredCoupons.length === 0 ? (
+        {coupons.length === 0 ? (
           <View className="items-center justify-center py-20">
             <Text className="text-slate-300 text-base font-semibold">
               {EMPTY_MESSAGES[activeTab]}
@@ -199,7 +252,7 @@ export default function Coupon() {
           </View>
         ) : (
           <View className="flex-row flex-wrap gap-x-[14px] gap-y-[18px]">
-            {filteredCoupons.map((coupon) => (
+            {coupons.map((coupon) => (
               <View key={coupon.id} className="w-[calc(50%-7px)]">
                 <CouponCard
                   storeName={coupon.storeName}
@@ -207,6 +260,7 @@ export default function Coupon() {
                   price={coupon.price}
                   used={coupon.used}
                   selected={!!selectedCoupons[coupon.id]}
+                  image={coupon.image}
                   onToggle={() => toggle(coupon.id)}
                 />
               </View>

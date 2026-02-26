@@ -1,9 +1,23 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
+
+import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
+
+//////////////////////////////////////////////////////
+// 타입
+//////////////////////////////////////////////////////
+
+interface RestaurantWishResponse {
+  restaurantWishId: number;
+  restaurantId: number;
+  restaurantName: string;
+  restaurantLocation: string;
+  restaurantImgUrl: string;
+}
 
 interface ResCardProps {
   name?: string;
@@ -13,16 +27,20 @@ interface ResCardProps {
   onToggle?: () => void;
 }
 
+//////////////////////////////////////////////////////
+// 카드 컴포넌트
+//////////////////////////////////////////////////////
+
 function ResCard({
-  name = "이화여자대학교 EHOUSE",
-  address = "서울특별시 서초구 반포대로 118",
+  name,
+  address,
   image,
-  selected = false,
+  selected = true,
   onToggle,
 }: ResCardProps) {
   return (
-    <View className="self-stretch p-4 bg-slate-100 rounded-[10px] flex-col justify-start items-start">
-      <View className="self-stretch flex-row justify-start items-start gap-4">
+    <View className="self-stretch p-4 bg-slate-100 rounded-[10px] flex-col">
+      <View className="flex-row gap-4">
         {image ? (
           <Image
             source={{ uri: image }}
@@ -33,25 +51,22 @@ function ResCard({
           <View className="w-20 h-20 rounded-lg bg-slate-200" />
         )}
 
-        <View className="flex-1 self-stretch flex-col justify-start items-start gap-0.5">
+        <View className="flex-1 flex-col gap-0.5">
           <Text
-            className="self-stretch text-slate-900 text-base font-semibold leading-6"
+            className="text-slate-900 text-base font-semibold"
             numberOfLines={1}
           >
             {name}
           </Text>
           <Text
-            className="self-stretch text-slate-400 text-xs font-semibold leading-5"
+            className="text-slate-400 text-xs font-semibold"
             numberOfLines={2}
           >
             {address}
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={onToggle}
-          className="w-7 h-7 justify-start items-end"
-        >
+        <TouchableOpacity onPress={onToggle} className="w-7 h-7 items-end">
           {selected ? <HeartFilled /> : <Heart />}
         </TouchableOpacity>
       </View>
@@ -59,43 +74,51 @@ function ResCard({
   );
 }
 
-interface RestaurantItem {
-  id: number;
-  name: string;
-  address: string;
-  image?: string;
-}
+//////////////////////////////////////////////////////
+// 빈 메시지
+//////////////////////////////////////////////////////
 
-const RESTAURANTS: RestaurantItem[] = [
-  {
-    id: 0,
-    name: "이화여자대학교 EHOUSE",
-    address: "서울특별시 서초구 반포대로 118",
-  },
-  {
-    id: 1,
-    name: "스타벅스 신촌점",
-    address: "서울특별시 서대문구 신촌로 83",
-  },
-  {
-    id: 2,
-    name: "맥도날드 홍대입구점",
-    address: "서울특별시 마포구 양화로 188",
-  },
-  {
-    id: 3,
-    name: "올리브영 강남본점",
-    address: "서울특별시 강남구 강남대로 396",
-  },
-];
+const EMPTY_MESSAGES = {
+  restaurant: "즐겨찾기한 식당이 없습니다.",
+};
+
+//////////////////////////////////////////////////////
+// 페이지
+//////////////////////////////////////////////////////
 
 export default function Restaurant() {
+  const { data } = useRestaurantWish();
+
+  const restaurants = useMemo(() => {
+    if (!Array.isArray(data)) return [];
+
+    return data.map((item: RestaurantWishResponse) => ({
+      id: item.restaurantId,
+      name: item.restaurantName,
+      address: item.restaurantLocation,
+      image: item.restaurantImgUrl,
+    }));
+  }, [data]);
+
+  // 기본값: 전부 채워진 하트
   const [selectedRestaurants, setSelectedRestaurants] = useState<
     Record<number, boolean>
   >({});
 
+  useEffect(() => {
+    if (restaurants.length > 0) {
+      const initialState = Object.fromEntries(
+        restaurants.map((r) => [r.id, true]),
+      );
+      setSelectedRestaurants(initialState);
+    }
+  }, [restaurants]);
+
   const toggle = (id: number) => {
-    setSelectedRestaurants((prev) => ({ ...prev, [id]: !prev[id] }));
+    setSelectedRestaurants((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
   };
 
   return (
@@ -108,7 +131,7 @@ export default function Restaurant() {
         <Text className="text-gray-800 text-xl font-semibold">내 식당</Text>
       </View>
 
-      {/* 스크롤 */}
+      {/* 내용 */}
       <ScrollView
         contentContainerStyle={{
           paddingVertical: 20,
@@ -116,19 +139,27 @@ export default function Restaurant() {
           gap: 6,
         }}
       >
-        {RESTAURANTS.map((restaurant) => (
-          <ResCard
-            key={restaurant.id}
-            name={restaurant.name}
-            address={restaurant.address}
-            image={restaurant.image}
-            selected={!!selectedRestaurants[restaurant.id]}
-            onToggle={() => toggle(restaurant.id)}
-          />
-        ))}
+        {restaurants.length === 0 ? (
+          <View className="flex-1 items-center justify-center mt-20">
+            <Text className="text-slate-300 text-base font-semibold">
+              {EMPTY_MESSAGES.restaurant}
+            </Text>
+          </View>
+        ) : (
+          restaurants.map((restaurant) => (
+            <ResCard
+              key={restaurant.id}
+              name={restaurant.name}
+              address={restaurant.address}
+              image={restaurant.image}
+              selected={!!selectedRestaurants[restaurant.id]}
+              onToggle={() => toggle(restaurant.id)}
+            />
+          ))
+        )}
       </ScrollView>
 
-      {/* 하단 그라디언트 오버레이 */}
+      {/* 하단 그라디언트 */}
       <View className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none">
         <View className="flex-1 bg-gradient-to-b from-white/0 to-white/90" />
       </View>

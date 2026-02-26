@@ -11,6 +11,11 @@ import {
 } from "react-native";
 
 import client from "../../src/lib/api/client";
+import {
+  getAccessToken,
+  setAccessToken,
+  setRefreshToken,
+} from "../../src/utils/storage";
 
 import Apple from "../../assets/images/Apple.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
@@ -30,8 +35,17 @@ interface LoginRequest {
   userPw: string;
 }
 
-const login = async (request: LoginRequest): Promise<void> => {
-  await client.post("/api/auth/login", request);
+const login = async (request: LoginRequest) => {
+  const res = await client.post("/api/auth/login", request);
+
+  const accessToken = res.data.accessToken;
+  const refreshToken = res.data.refreshToken;
+
+  // 토큰 저장
+  if (accessToken) await setAccessToken(accessToken);
+  if (refreshToken) await setRefreshToken(refreshToken);
+
+  return res.data;
 };
 /* ============================================== */
 
@@ -86,59 +100,13 @@ function PWInput({ placeholder, onChangeText, value }: PWInputProps) {
   );
 }
 
-interface LandingPopupProps {
-  visible?: boolean;
-  title?: string;
-  description?: string;
-  buttonText?: string;
-  onConfirm?: () => void;
-}
-
-export function LandingPopup({
-  visible = false,
-  title = "탈퇴 완료",
-  description = "회원 탈퇴가 완료되었습니다",
-  buttonText = "확인",
-  onConfirm,
-}: LandingPopupProps) {
-  if (!visible) return null;
-
-  return (
-    <View className="absolute inset-0 justify-center items-center bg-black/50 px-6">
-      <View className="w-72 p-5 bg-white rounded-[20px] flex flex-col justify-center items-center gap-4">
-        {/* 텍스트 영역 */}
-        <View className="self-stretch flex flex-col gap-1">
-          <Text className="text-slate-900 text-lg font-semibold leading-7">
-            {title}
-          </Text>
-          <Text className="text-slate-500 text-sm font-medium leading-6">
-            {description}
-          </Text>
-        </View>
-
-        {/* 버튼 */}
-        <View className="self-stretch flex-row items-center gap-2">
-          <TouchableOpacity
-            className="flex-1 h-10 px-2 py-2 bg-lime-600 rounded-[10px] justify-center items-center"
-            onPress={onConfirm}
-          >
-            <Text className="text-white text-base font-medium leading-6">
-              {buttonText}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export default function Landing() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
 
-  const { showPopup, type } = useLocalSearchParams();
+  const { showPopup } = useLocalSearchParams();
 
   useEffect(() => {
     if (showPopup === "true") {
@@ -146,27 +114,20 @@ export default function Landing() {
     }
   }, [showPopup]);
 
-  const popupProps =
-    type === "password"
-      ? {
-          title: "비밀번호 변경 완료",
-          description: "변경된 비밀번호로 로그인 해주세요",
-          buttonText: "완료",
-        }
-      : {
-          title: "탈퇴 완료",
-          description: "회원 탈퇴가 완료되었습니다",
-          buttonText: "확인",
-        };
-
   const isLoginEnabled = email.length > 7 && password.length > 7;
 
   /* ============ Login Mutation ============ */
   const { mutate: loginMutate, isPending } = useMutation({
     mutationFn: (payload: LoginRequest) => login(payload),
-    onSuccess: () => {
-      router.replace("/mypage/main"); // 로그인 성공 후 마이페이지 메인
+
+    // 로그인 성공 후 토큰 확인 + 이동
+    onSuccess: async () => {
+      const token = await getAccessToken();
+      console.log("저장된 토큰:", token);
+
+      router.replace("/mypage/main");
     },
+
     onError: (err: any) => {
       const msg =
         err?.response?.data?.message ||
@@ -209,9 +170,7 @@ export default function Landing() {
         <Text className="text-green-400 text-sm font-medium leading-6">
           싹 비우고, 싹 틔우다
         </Text>
-        <Text className="text-green-500 text-7xl font-normal font-Jalnan_2">
-          싹
-        </Text>
+        <Text className="text-green-500 text-7xl font-normal">싹</Text>
       </View>
 
       <View className="flex flex-col gap-2.5">
@@ -274,12 +233,6 @@ export default function Landing() {
           <Text className="text-zinc-900 text-sm font-semibold">KaKao</Text>
         </TouchableOpacity>
       </View>
-
-      <LandingPopup
-        visible={showDeletePopup}
-        {...popupProps}
-        onConfirm={() => setShowDeletePopup(false)}
-      />
     </View>
   );
 }
