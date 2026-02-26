@@ -187,7 +187,7 @@ export default function Main() {
 
   const [selectedCoupons, setSelectedCoupons] = useState<boolean[]>([]);
 
-  const { nickname } = useMe();
+  const { me } = useMe();
   const { point } = usePoint();
   const { coupons } = useCoupons("ISSUED");
 
@@ -229,7 +229,7 @@ export default function Main() {
           <Avatar />
           <View className="flex-1 flex-row items-end gap-0.5">
             <Text className="text-2xl font-semibold text-black">
-              {nickname || ""}
+              {me?.userNm ?? ""}
             </Text>
             <Text className="text-base font-semibold text-black">님</Text>
           </View>

@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Modal, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronRightG from "../../assets/images/chevron-right-darkgray.svg";
+import { useLogout } from "../../src/hooks/useLogout";
+import { useMe } from "../../src/hooks/useMe";
 
 function Popup({
   title = "로그아웃",
@@ -57,6 +59,10 @@ function Popup({
 export default function Setting() {
   const [logoutVisible, setLogoutVisible] = useState(false);
 
+  const { me, isLoading } = useMe();
+
+  const { mutate: logout, isPending } = useLogout();
+
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
       <View className="flex flex-col">
@@ -76,7 +82,7 @@ export default function Setting() {
               이메일
             </Text>
             <Text className="text-gray-700 font-medium leading-6">
-              jiye5758@ewhain.net
+              {isLoading ? "로딩 중..." : (me?.userEmail ?? "")}
             </Text>
           </View>
           {/*알림 설정*/}
@@ -128,8 +134,18 @@ export default function Setting() {
         description="로그아웃 하시겠습니까?"
         onCancel={() => setLogoutVisible(false)}
         onConfirm={() => {
-          setLogoutVisible(false);
-          // 로그아웃 로직
+          logout(undefined, {
+            onSuccess: () => {
+              setLogoutVisible(false);
+
+              // 로그인 화면으로 이동
+              router.replace("/auth/landing");
+            },
+            onError: (error) => {
+              console.error("로그아웃 실패:", error);
+              setLogoutVisible(false);
+            },
+          });
         }}
       />
     </View>

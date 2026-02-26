@@ -5,7 +5,7 @@ import client from "../../lib/api/client";
  */
 export type EmailAuthReason = string;
 
-export interface LoginRequest {
+export interface VerifyRequest {
   email: string;
   code: string;
   type: EmailAuthReason;
@@ -21,6 +21,6 @@ export interface LoginRequest {
  *  "type": "SIGNUP"
  *}
  */
-export const verify = async (request: LoginRequest): Promise<void> => {
+export const verify = async (request: VerifyRequest): Promise<void> => {
   await client.post("/api/email/verify", request);
 };

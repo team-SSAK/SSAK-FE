@@ -1,20 +1,41 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import { getWithdrawal } from "../../src/services/mypage/withdrawal.service";
+
+interface WithdrawalReason {
+  wdReasonId: string;
+  wdReasonContent: string;
+}
 
 export default function DeleteAccount() {
-  const [selectedReasons, setSelectedReasons] = useState([
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-  ]);
-  const [loading, setLoading] = useState(false);
+  const [reasons, setReasons] = useState<WithdrawalReason[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const isButtonEnabled = selectedReasons.some(Boolean);
+  useEffect(() => {
+    const fetchReasons = async () => {
+      try {
+        const res = await getWithdrawal();
+        setReasons(res);
+      } catch (e) {
+        console.log("탈퇴 사유 조회 실패", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReasons();
+  }, []);
+
+  const toggleReason = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
+  const isButtonEnabled = selectedIds.length > 0;
 
   const handleNext = () => {
     setLoading(true);
@@ -26,7 +47,7 @@ export default function DeleteAccount() {
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
       <View className="flex flex-col">
         <View className="py-4 flex-row gap-2 justify-start items-center mb-5">
-          <TouchableOpacity onPress={() => router.push("/auth/landing")}>
+          <TouchableOpacity onPress={() => router.back()}>
             <ChevronLeft />
           </TouchableOpacity>
         </View>
@@ -38,120 +59,31 @@ export default function DeleteAccount() {
         <View className="h-7" />
 
         <View className="flex-col justify-start items-start gap-[22px]">
-          <TouchableOpacity
-            onPress={() =>
-              setSelectedReasons((prev) => {
-                const newArr = [...prev];
-                newArr[0] = !newArr[0];
-                return newArr;
-              })
-            }
-            className="flex-row gap-3 justify-start items-center"
-          >
-            {selectedReasons[0] ? (
-              <View className="w-5 h-5 bg-white rounded-full border-[6px] border-green-400" />
-            ) : (
-              <View className="w-5 h-5 bg-white rounded-full border border-gray-400" />
-            )}
-            <Text className="text-center justify-start text-gray-800 font-medium leading-6">
-              쿠폰 가격이 너무 비싸요
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() =>
-              setSelectedReasons((prev) => {
-                const newArr = [...prev];
-                newArr[1] = !newArr[1];
-                return newArr;
-              })
-            }
-            className="flex-row gap-3 justify-start items-center"
-          >
-            {selectedReasons[1] ? (
-              <View className="w-5 h-5 bg-white rounded-full border-[6px] border-green-400" />
-            ) : (
-              <View className="w-5 h-5 bg-white rounded-full border border-gray-400" />
-            )}
-            <Text className="text-center justify-start text-gray-800 font-medium leading-6">
-              쿠폰 상품이 마음에 들지 않아요
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() =>
-              setSelectedReasons((prev) => {
-                const newArr = [...prev];
-                newArr[2] = !newArr[2];
-                return newArr;
-              })
-            }
-            className="flex-row gap-3 justify-start items-center"
-          >
-            {selectedReasons[2] ? (
-              <View className="w-5 h-5 bg-white rounded-full border-[6px] border-green-400" />
-            ) : (
-              <View className="w-5 h-5 bg-white rounded-full border border-gray-400" />
-            )}
-            <Text className="text-center justify-start text-gray-800 font-medium leading-6">
-              시스템 오류가 자주 발생해요
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() =>
-              setSelectedReasons((prev) => {
-                const newArr = [...prev];
-                newArr[3] = !newArr[3];
-                return newArr;
-              })
-            }
-            className="flex-row gap-3 justify-start items-center"
-          >
-            {selectedReasons[3] ? (
-              <View className="w-5 h-5 bg-white rounded-full border-[6px] border-green-400" />
-            ) : (
-              <View className="w-5 h-5 bg-white rounded-full border border-gray-400" />
-            )}
-            <Text className="text-center justify-start text-gray-800 font-medium leading-6">
-              잔반 인증 방식이 번거로워요
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() =>
-              setSelectedReasons((prev) => {
-                const newArr = [...prev];
-                newArr[4] = !newArr[4];
-                return newArr;
-              })
-            }
-            className="flex-row gap-3 justify-start items-center"
-          >
-            {selectedReasons[4] ? (
-              <View className="w-5 h-5 bg-white rounded-full border-[6px] border-green-400" />
-            ) : (
-              <View className="w-5 h-5 bg-white rounded-full border border-gray-400" />
-            )}
-            <Text className="text-center justify-start text-gray-800 font-medium leading-6">
-              자주 이용하지 않아요
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() =>
-              setSelectedReasons((prev) => {
-                const newArr = [...prev];
-                newArr[5] = !newArr[5];
-                return newArr;
-              })
-            }
-            className="flex-row gap-3 justify-start items-center"
-          >
-            {selectedReasons[5] ? (
-              <View className="w-5 h-5 bg-white rounded-full border-[6px] border-green-400" />
-            ) : (
-              <View className="w-5 h-5 bg-white rounded-full border border-gray-400" />
-            )}
-            <Text className="text-center justify-start text-gray-800 font-medium leading-6">
-              기타
-            </Text>
-          </TouchableOpacity>
+          {loading ? (
+            <ActivityIndicator />
+          ) : (
+            reasons.map((reason) => {
+              const selected = selectedIds.includes(reason.wdReasonId);
+
+              return (
+                <TouchableOpacity
+                  key={reason.wdReasonId}
+                  onPress={() => toggleReason(reason.wdReasonId)}
+                  className="flex-row gap-3 justify-start items-center"
+                >
+                  {selected ? (
+                    <View className="w-5 h-5 bg-white rounded-full border-[6px] border-green-400" />
+                  ) : (
+                    <View className="w-5 h-5 bg-white rounded-full border border-gray-400" />
+                  )}
+
+                  <Text className="text-gray-800 font-medium leading-6">
+                    {reason.wdReasonContent}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
       </View>
       <View className="w-full flex-row gap-2.5 px-4 py-2.5">

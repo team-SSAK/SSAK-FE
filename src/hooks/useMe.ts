@@ -1,22 +1,30 @@
 import { useEffect, useState } from "react";
 import { getMe } from "../services/mypage/me.service";
 
+interface Me {
+  userNm: string;
+  userEmail: string;
+}
+
 export function useMe() {
-  const [nickname, setNickname] = useState("");
+  const [me, setMe] = useState<Me | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchMe = async () => {
       try {
-        const me = await getMe();
-        setNickname(me.userNm);
+        const res = await getMe();
+        setMe(res);
       } catch (e) {
         console.log("유저 조회 실패", e);
-        setNickname("");
+        setMe(null);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchMe();
   }, []);
 
-  return { nickname };
+  return { me, isLoading };
 }
