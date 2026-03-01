@@ -17,6 +17,7 @@ import {
   setRefreshToken,
 } from "../../src/utils/storage";
 
+import PopUp from "@/components/popup";
 import Apple from "../../assets/images/Apple.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
@@ -106,13 +107,20 @@ export default function Landing() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
 
-  const { showPopup } = useLocalSearchParams();
+  const { showPopup, type } = useLocalSearchParams();
 
   useEffect(() => {
-    if (showPopup === "true") {
+    const popupValue = Array.isArray(showPopup) ? showPopup[0] : showPopup;
+
+    if (popupValue === "true") {
       setShowDeletePopup(true);
     }
   }, [showPopup]);
+
+  const isDelete = type === "delete";
+
+  const popupTitle = isDelete ? "탈퇴 완료" : "알림";
+  const popupMessage = isDelete ? "회원탈퇴가 완료되었습니다." : "";
 
   const isLoginEnabled = email.length > 7 && password.length > 7;
 
@@ -165,74 +173,85 @@ export default function Landing() {
   /* ======================================== */
 
   return (
-    <View className="flex-1 bg-[#ffffff] justify-center p-4">
-      <View className="flex flex-col gap-3 justify-center items-center mb-[64.5px]">
-        <Text className="text-green-400 text-sm font-medium leading-6">
-          싹 비우고, 싹 틔우다
-        </Text>
-        <Text className="text-green-500 text-7xl font-normal">싹</Text>
-      </View>
-
-      <View className="flex flex-col gap-2.5">
-        <IDInput
-          placeholder="이메일을 입력해주세요"
-          onChangeText={setEmail}
-          value={email}
+    <>
+      {showDeletePopup && (
+        <PopUp
+          title={popupTitle}
+          message={popupMessage}
+          onClose={() => setShowDeletePopup(false)}
         />
-        <PWInput
-          placeholder="비밀번호를 입력해주세요"
-          onChangeText={setPassword}
-          value={password}
-        />
-        {errorMsg && (
-          <Text className="text-red-600 text-sm mt-1">{errorMsg}</Text>
-        )}
-      </View>
-
-      {/* 로그인 버튼 */}
-      <TouchableOpacity
-        disabled={!isLoginEnabled || isPending}
-        onPress={onLogin}
-        className={`self-stretch p-4 rounded-xl justify-center my-[18px] ${
-          isLoginEnabled ? "bg-[#45B310]" : "bg-gray-500"
-        }`}
-      >
-        <Text className="text-center text-white text-lg font-medium">
-          {isPending ? "로그인 중..." : "로그인하기"}
-        </Text>
-      </TouchableOpacity>
-
-      <View className="self-stretch flex flex-row gap-7 justify-center items-center mb-[50px]">
-        <TouchableOpacity onPress={() => router.push("/auth/foundpwemail")}>
-          <Text className="text-gray-600 font-medium underline">
-            비밀번호 찾기
+      )}
+      <View className="flex-1 bg-[#ffffff] justify-center p-4">
+        <View className="flex flex-col gap-3 justify-center items-center mb-[64.5px]">
+          <Text className="text-green-400 text-sm font-medium leading-6">
+            싹 비우고, 싹 틔우다
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/auth/registeremail")}>
-          <Text className="text-green-500 font-medium underline">회원가입</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* OAuth Buttons */}
-      <View className="self-stretch flex flex-row gap-3 justify-center items-center">
-        <TouchableOpacity
-          onPress={onGoogleLogin}
-          className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow flex justify-center items-center"
-        >
-          <Google width={16} height={16} />
-        </TouchableOpacity>
-
-        <View className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow flex justify-center items-center">
-          <Apple width={16} height={16} />
+          <Text className="text-green-500 text-7xl font-normal">싹</Text>
         </View>
 
+        <View className="flex flex-col gap-2.5">
+          <IDInput
+            placeholder="이메일을 입력해주세요"
+            onChangeText={setEmail}
+            value={email}
+          />
+          <PWInput
+            placeholder="비밀번호를 입력해주세요"
+            onChangeText={setPassword}
+            value={password}
+          />
+          {errorMsg && (
+            <Text className="text-red-600 text-sm mt-1">{errorMsg}</Text>
+          )}
+        </View>
+
+        {/* 로그인 버튼 */}
         <TouchableOpacity
-          onPress={onKakaoLogin}
-          className="w-28 h-12 px-7 py-3 bg-yellow-400 rounded-3xl shadow flex justify-center items-center"
+          disabled={!isLoginEnabled || isPending}
+          onPress={onLogin}
+          className={`self-stretch p-4 rounded-xl justify-center my-[18px] ${
+            isLoginEnabled ? "bg-[#45B310]" : "bg-gray-500"
+          }`}
         >
-          <Text className="text-zinc-900 text-sm font-semibold">KaKao</Text>
+          <Text className="text-center text-white text-lg font-medium">
+            {isPending ? "로그인 중..." : "로그인하기"}
+          </Text>
         </TouchableOpacity>
+
+        <View className="self-stretch flex flex-row gap-7 justify-center items-center mb-[50px]">
+          <TouchableOpacity onPress={() => router.push("/auth/foundpwemail")}>
+            <Text className="text-gray-600 font-medium underline">
+              비밀번호 찾기
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/auth/registeremail")}>
+            <Text className="text-green-500 font-medium underline">
+              회원가입
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* OAuth Buttons */}
+        <View className="self-stretch flex flex-row gap-3 justify-center items-center">
+          <TouchableOpacity
+            onPress={onGoogleLogin}
+            className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow flex justify-center items-center"
+          >
+            <Google width={16} height={16} />
+          </TouchableOpacity>
+
+          <View className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow flex justify-center items-center">
+            <Apple width={16} height={16} />
+          </View>
+
+          <TouchableOpacity
+            onPress={onKakaoLogin}
+            className="w-28 h-12 px-7 py-3 bg-yellow-400 rounded-3xl shadow flex justify-center items-center"
+          >
+            <Text className="text-zinc-900 text-sm font-semibold">KaKao</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </>
   );
 }

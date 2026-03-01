@@ -2,17 +2,21 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
-import { getWithdrawal } from "../../src/services/mypage/withdrawal.service";
+import {
+  getWithdrawal,
+  postWithdrawal,
+} from "../../src/services/mypage/withdrawal.service";
 
 interface WithdrawalReason {
   wdReasonId: string;
   wdReasonContent: string;
 }
 
-export default function DeleteAccount() {
+export default function DeleteReason() {
   const [reasons, setReasons] = useState<WithdrawalReason[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchReasons = async () => {
@@ -30,23 +34,35 @@ export default function DeleteAccount() {
   }, []);
 
   const toggleReason = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-    );
+    setSelectedId(id); // 단일 선택
   };
 
-  const isButtonEnabled = selectedIds.length > 0;
+  const isButtonEnabled = !!selectedId;
 
-  const handleNext = () => {
-    setLoading(true);
-    router.push("/auth/landing?showPopup=true&type=delete");
-    setLoading(false);
+  const handleNext = async () => {
+    if (!selectedId) return;
+
+    try {
+      setSubmitting(true);
+
+      // 선택된 사유 객체 찾기
+      const selectedReason = reasons.find((r) => r.wdReasonId === selectedId);
+
+      await postWithdrawal(selectedId, selectedReason?.wdReasonContent ?? "");
+
+      router.replace("/auth/landing?showPopup=true&type=delete");
+    } catch (e) {
+      console.log("탈퇴 실패", e);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
-      <View className="flex flex-col">
-        <View className="py-4 flex-row gap-2 justify-start items-center mb-5">
+    <View className="flex-1 bg-white justify-between px-4 py-[56px]">
+      <View>
+        {/* 헤더 */}
+        <View className="py-4 flex-row gap-2 items-center mb-5">
           <TouchableOpacity onPress={() => router.back()}>
             <ChevronLeft />
           </TouchableOpacity>
@@ -58,18 +74,18 @@ export default function DeleteAccount() {
 
         <View className="h-7" />
 
-        <View className="flex-col justify-start items-start gap-[22px]">
+        <View className="gap-[22px]">
           {loading ? (
             <ActivityIndicator />
           ) : (
             reasons.map((reason) => {
-              const selected = selectedIds.includes(reason.wdReasonId);
+              const selected = selectedId === reason.wdReasonId;
 
               return (
                 <TouchableOpacity
                   key={reason.wdReasonId}
                   onPress={() => toggleReason(reason.wdReasonId)}
-                  className="flex-row gap-3 justify-start items-center"
+                  className="flex-row gap-3 items-center"
                 >
                   {selected ? (
                     <View className="w-5 h-5 bg-white rounded-full border-[6px] border-green-400" />
@@ -86,7 +102,9 @@ export default function DeleteAccount() {
           )}
         </View>
       </View>
-      <View className="w-full flex-row gap-2.5 px-4 py-2.5">
+
+      {/* 하단 버튼 */}
+      <View className="flex-row gap-2.5">
         <TouchableOpacity
           onPress={() => router.back()}
           className="h-12 px-9 rounded-xl bg-slate-100 items-center justify-center"
@@ -95,7 +113,7 @@ export default function DeleteAccount() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          disabled={!isButtonEnabled}
+          disabled={!isButtonEnabled || submitting}
           onPress={handleNext}
           className="flex-1 h-12 rounded-xl items-center justify-center"
           style={{
@@ -103,7 +121,7 @@ export default function DeleteAccount() {
             opacity: isButtonEnabled ? 1 : 0.5,
           }}
         >
-          {loading ? (
+          {submitting ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
             <Text className="text-white text-lg font-medium">탈퇴하기</Text>
