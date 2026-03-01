@@ -225,14 +225,25 @@ export default function Main() {
         </View>
 
         {/* 프로필 */}
-        <View className="flex-row items-center gap-3.5 mt-2.5 mb-[18px]">
+        <View className="flex-row items-center mt-2.5 mb-[18px]">
           <Avatar />
-          <View className="flex-1 flex-row items-end gap-0.5">
+
+          <View className="flex-1 flex-row items-end gap-0.5 ml-3.5">
             <Text className="text-2xl font-semibold text-black">
               {me?.userNm ?? ""}
             </Text>
             <Text className="text-base font-semibold text-black">님</Text>
           </View>
+
+          {/* 수정 버튼 */}
+          <TouchableOpacity
+            onPress={() => router.push("/mypage/editprofile")}
+            className="px-4 py-[3px] bg-slate-100 rounded-[999px] justify-center items-center"
+          >
+            <Text className="text-slate-400 text-xs font-semibold leading-5">
+              수정
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* 포인트 */}
