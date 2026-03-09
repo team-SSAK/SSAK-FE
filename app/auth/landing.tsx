@@ -10,12 +10,16 @@ import {
   View,
 } from "react-native";
 
-import client from "../../src/lib/api/client";
-
 import Apple from "../../assets/images/Apple.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
 import Google from "../../assets/images/google.svg";
+import client from "../../src/lib/api/client";
+import {
+  getAccessToken,
+  setAccessToken,
+  setRefreshToken,
+} from "../../src/utils/storage";
 
 /* ================= OAuth URLs ================= */
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -30,8 +34,17 @@ interface LoginRequest {
   userPw: string;
 }
 
-const login = async (request: LoginRequest): Promise<void> => {
-  await client.post("/api/auth/login", request);
+const login = async (request: LoginRequest) => {
+  const res = await client.post("/api/auth/login", request);
+
+  const accessToken = res.data.accessToken;
+  const refreshToken = res.data.refreshToken;
+
+  // 토큰 저장
+  if (accessToken) await setAccessToken(accessToken);
+  if (refreshToken) await setRefreshToken(refreshToken);
+
+  return res.data;
 };
 /* ============================================== */
 
@@ -96,9 +109,15 @@ export default function Landing() {
   /* ============ Login Mutation ============ */
   const { mutate: loginMutate, isPending } = useMutation({
     mutationFn: (payload: LoginRequest) => login(payload),
-    onSuccess: () => {
-      router.replace("/mypage/main"); // 로그인 성공 후 마이페이지 메인
+
+    // 로그인 성공 후 토큰 확인 + 이동
+    onSuccess: async () => {
+      const token = await getAccessToken();
+      console.log("저장된 토큰:", token);
+
+      router.replace("/mypage/main");
     },
+
     onError: (err: any) => {
       const msg =
         err?.response?.data?.message ||
@@ -141,9 +160,7 @@ export default function Landing() {
         <Text className="text-green-400 text-sm font-medium leading-6">
           싹 비우고, 싹 틔우다
         </Text>
-        <Text className="text-green-500 text-7xl font-normal font-Jalnan_2">
-          싹
-        </Text>
+        <Text className="text-green-500 text-7xl font-normal">싹</Text>
       </View>
 
       <View className="flex flex-col gap-2.5">

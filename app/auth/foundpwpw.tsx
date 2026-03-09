@@ -102,7 +102,7 @@ export default function FoundPWPW() {
         newPassword: password,
       });
 
-      router.replace("/auth/landing");
+      router.replace("/auth/landing?showPopup=true&type=password");
     } catch (err: any) {
       const message =
         err?.response?.data?.message || "비밀번호 재설정에 실패했습니다.";

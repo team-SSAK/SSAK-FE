@@ -19,6 +19,6 @@ export interface SignupRequest {
  *   "userPw": "password1234"
  * }
  */
-export const signup = async (request: LoginRequest): Promise<void> => {
+export const signup = async (request: SignupRequest): Promise<void> => {
   await client.post("/api/auth/signup", request);
 };
