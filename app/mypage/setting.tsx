@@ -105,7 +105,10 @@ export default function Setting() {
               <ChevronRightG />
             </TouchableOpacity>
             {/*FAQ*/}
-            <TouchableOpacity className="flex flex-row px-4 py-3.5 border-b border-white inline-flex justify-between items-center gap-2.5">
+            <TouchableOpacity
+              onPress={() => router.push("/mypage/faq")}
+              className="flex flex-row px-4 py-3.5 border-b border-white inline-flex justify-between items-center gap-2.5"
+            >
               <Text className="text-gray-700 font-medium leading-6">FAQ</Text>
               <ChevronRightG />
             </TouchableOpacity>
