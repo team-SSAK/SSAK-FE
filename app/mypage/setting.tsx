@@ -95,18 +95,29 @@ export default function Setting() {
             </Text>
             <ChevronRightG />
           </TouchableOpacity>
-          {/*이용약관*/}
-          <TouchableOpacity className="flex flex-row justify-between py-3.5 px-[19] bg-gray-50 rounded-lg">
-            <Text className="text-gray-700 font-medium leading-6">
-              이용약관
-            </Text>
-            <ChevronRightG />
-          </TouchableOpacity>
-          {/*FAQ*/}
-          <TouchableOpacity className="flex flex-row justify-between py-3.5 px-[19] bg-gray-50 rounded-lg">
-            <Text className="text-gray-700 font-medium leading-6">FAQ</Text>
-            <ChevronRightG />
-          </TouchableOpacity>
+
+          <View className="bg-gray-50 rounded-lg overflow-hidden">
+            {/*이용약관*/}
+            <TouchableOpacity className="flex flex-row px-4 py-3.5 border-b border-white inline-flex justify-between items-center gap-2.5">
+              <Text className="text-gray-700 font-medium leading-6">
+                이용약관
+              </Text>
+              <ChevronRightG />
+            </TouchableOpacity>
+            {/*FAQ*/}
+            <TouchableOpacity className="flex flex-row px-4 py-3.5 border-b border-white inline-flex justify-between items-center gap-2.5">
+              <Text className="text-gray-700 font-medium leading-6">FAQ</Text>
+              <ChevronRightG />
+            </TouchableOpacity>
+            {/*1:1 문의하기*/}
+            <TouchableOpacity className="flex flex-row px-4 py-3.5 inline-flex justify-between items-center gap-2.5">
+              <Text className="text-gray-700 font-medium leading-6">
+                1:1 문의하기
+              </Text>
+              <ChevronRightG />
+            </TouchableOpacity>
+          </View>
+
           {/*로그아웃*/}
           <TouchableOpacity
             onPress={() => setLogoutVisible(true)}

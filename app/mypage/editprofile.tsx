@@ -1,12 +1,21 @@
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Image,
+  Modal,
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Avatar from "../../assets/images/avatar.svg";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import EditBtn from "../../assets/images/editbtn.svg";
 import TextInput from "../../components/input/textinput";
 
-import { patchMe } from "@/src/services/mypage/me.service";
+import { useMe } from "@/src/hooks/useMe";
 
 function Popup({
   title = "변경사항 미저장",
@@ -62,28 +71,120 @@ function Popup({
 const MAX_LENGTH = 8;
 
 export default function EditProfile() {
+  const { me, isLoading, updateMe } = useMe();
+
   const [inputValue, setInputValue] = useState("");
-  const [initialValue] = useState(""); // 추후 서버 닉네임으로 교체 가능
+  const [initialValue, setInitialValue] = useState("");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [initialProfileImage, setInitialProfileImage] = useState<string | null>(
+    null,
+  );
+  const [pickedWebFile, setPickedWebFile] = useState<File | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
+  useEffect(() => {
+    if (hasInitialized || !me) {
+      return;
+    }
+
+    const nickname = me.userNm ?? "";
+    const image = me.userProfileImg ?? null;
+    setInputValue(nickname);
+    setInitialValue(nickname);
+    setProfileImage(image);
+    setInitialProfileImage(image);
+    setHasInitialized(true);
+  }, [hasInitialized, me]);
+
+  const hasChanges =
+    inputValue !== initialValue || profileImage !== initialProfileImage;
+
   const isButtonEnabled =
-    inputValue.length >= 1 && inputValue.length <= MAX_LENGTH;
+    inputValue.length >= 1 &&
+    inputValue.length <= MAX_LENGTH &&
+    hasChanges &&
+    !isLoading &&
+    !isSubmitting;
 
   const handleChangeText = (text: string) => {
     setInputValue(text);
   };
 
+  const pickImage = async () => {
+    try {
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.granted === false) {
+        Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0] as ImagePicker.ImagePickerAsset & {
+          file?: File;
+        };
+        setProfileImage(asset.uri);
+        setPickedWebFile(asset.file ?? null);
+      }
+    } catch (error) {
+      console.error("이미지 선택 실패:", error);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
-      await patchMe(inputValue);
+      setIsSubmitting(true);
+
+      let imageFile: any = undefined;
+
+      if (profileImage && profileImage !== initialProfileImage) {
+        const filename = profileImage.split("/").pop() || "profile.jpg";
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : "image/jpeg";
+
+        if (Platform.OS === "web" && pickedWebFile) {
+          imageFile = pickedWebFile;
+        } else {
+          imageFile = {
+            uri: profileImage,
+            type,
+            name: filename,
+          } as any;
+        }
+      }
+
+      const ok = await updateMe(
+        inputValue !== initialValue ? inputValue : undefined,
+        imageFile,
+      );
+
+      if (!ok) {
+        console.error("프로필 수정 실패");
+        return;
+      }
+
+      setInitialValue(inputValue);
+      setInitialProfileImage(profileImage);
       router.replace("/mypage/main");
     } catch (error) {
-      console.error("닉네임 수정 실패", error);
+      console.error("프로필 수정 실패", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleBackPress = () => {
-    if (inputValue !== initialValue && inputValue.length > 0) {
+    if (hasChanges) {
       setIsModalVisible(true);
     } else {
       router.back();
@@ -106,8 +207,19 @@ export default function EditProfile() {
         {/* 프로필 이미지 */}
         <View className="justify-center items-center mb-[11px]">
           <View className="relative w-40 h-40">
-            <Avatar width={160} height={160} />
-            <TouchableOpacity className="absolute bottom-0 right-0">
+            {profileImage ? (
+              <Image
+                source={{ uri: profileImage }}
+                className="w-40 h-40 rounded-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <Avatar width={160} height={160} />
+            )}
+            <TouchableOpacity
+              className="absolute bottom-0 right-0"
+              onPress={pickImage}
+            >
               <EditBtn />
             </TouchableOpacity>
           </View>
@@ -138,7 +250,9 @@ export default function EditProfile() {
           isButtonEnabled ? "bg-[#45B310]" : "bg-slate-300"
         }`}
       >
-        <Text className="text-white text-lg font-medium leading-7">완료</Text>
+        <Text className="text-white text-lg font-medium leading-7">
+          {isSubmitting ? "저장 중..." : "완료"}
+        </Text>
       </TouchableOpacity>
 
       {/* Popup */}

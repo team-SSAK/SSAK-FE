@@ -4,7 +4,10 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
-import { getCoupons } from "../../src/services/mypage/coupons.service";
+import {
+  getCoupons,
+  postCouponWish,
+} from "../../src/services/mypage/coupons.service";
 
 interface CouponCardProps {
   storeName?: string;
@@ -115,7 +118,8 @@ interface CouponItem {
   image?: string;
 }
 
-const COUPONS: CouponItem[] = [
+{
+  /*const COUPONS: CouponItem[] = [
   {
     id: 0,
     used: false,
@@ -164,7 +168,8 @@ const COUPONS: CouponItem[] = [
     price: "400P",
     image: "https://via.placeholder.com/150",
   },
-];
+];*/
+}
 
 const EMPTY_MESSAGES: Record<TabType, string> = {
   "사용 가능": "사용 가능한 쿠폰이 없습니다",
@@ -224,8 +229,18 @@ export default function Coupon() {
     fetchCoupons();
   }, [activeTab, selectedCoupons, allCoupons]);
 
-  const toggle = (id: number) => {
-    setSelectedCoupons((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggle = async (id: number) => {
+    const isCurrentlySelected = !!selectedCoupons[id];
+
+    try {
+      // 서버가 토글 방식이므로 추가/해제 모두 같은 API 호출
+      await postCouponWish(id);
+
+      // 성공 시 로컬 상태 토글
+      setSelectedCoupons((prev) => ({ ...prev, [id]: !isCurrentlySelected }));
+    } catch (error) {
+      console.error("쿠폰 찜하기/해제 실패:", error);
+    }
   };
 
   return (

@@ -17,3 +17,26 @@ export const getCoupons = async (option: CouponOption) => {
 
   return res.data;
 };
+
+/**
+ * 쿠폰 찜하기 API
+ *
+ * POST /api/coupons/my/wish
+ */
+export const postCouponWish = async (couponId: number) => {
+  const res = await client.post("/api/coupons/my/wish", {
+    wishCouponId: couponId,
+  });
+
+  return res.data;
+};
+
+/**
+ * 쿠폰 찜하기 조회 API
+ *
+ * GET /api/coupons/my/wish
+ */
+export const getCouponWishes = async () => {
+  const res = await client.get("/api/coupons/my/wish");
+  return res.data;
+};

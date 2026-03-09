@@ -4,7 +4,7 @@ import ChevronLeft from "../../assets/images/chevron-left.svg";
 
 import { useState } from "react";
 
-import { usePoint } from "@/src/hooks/usePoint";
+import { usePoint, usePoints } from "@/src/hooks/usePoint";
 
 interface FilterChipProps {
   label: string;
@@ -33,6 +33,19 @@ function FilterChip({ label, selected = false, onPress }: FilterChipProps) {
 
 type FilterType = "전체" | "적립" | "사용";
 const FILTERS: FilterType[] = ["전체", "적립", "사용"];
+
+const getDateKey = (pointTime: string | null): string | null => {
+  if (typeof pointTime !== "string") {
+    return null;
+  }
+
+  const date = new Date(pointTime);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toDateString();
+};
 
 interface FilterChipGroupProps {
   defaultFilter?: FilterType;
@@ -73,9 +86,9 @@ function FilterChipGroup({
 interface PointHistoryItemProps {
   pointAmount: number;
   pointDesc: string;
-  pointType: "SAVE" | "USE";
-  pointTime: string;
-  showDate: boolean; // ✅ 추가
+  pointType: "SAVE" | "USE" | "REFUND";
+  pointTime: string | null;
+  showDate: boolean;
 }
 
 function PointHistoryItem({
@@ -85,15 +98,20 @@ function PointHistoryItem({
   pointTime,
   showDate,
 }: PointHistoryItemProps) {
-  const date = new Date(pointTime);
+  const hasValidTime =
+    typeof pointTime === "string" &&
+    !Number.isNaN(new Date(pointTime).getTime());
+  const date = hasValidTime ? new Date(pointTime as string) : null;
 
-  const formattedDate = `${date.getMonth() + 1}.${date.getDate()}`;
-  const formattedTime = `${date.getHours().toString().padStart(2, "0")}:${date
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}`;
+  const formattedDate = date ? `${date.getMonth() + 1}.${date.getDate()}` : "";
+  const formattedTime = date
+    ? `${date.getHours().toString().padStart(2, "0")}:${date
+        .getMinutes()
+        .toString()
+        .padStart(2, "0")}`
+    : "시간 정보 없음";
 
-  const isSave = pointType === "SAVE";
+  const isPlus = pointType === "SAVE" || pointType === "REFUND";
 
   return (
     <View className="flex-row justify-between p-4 border-b border-gray-100">
@@ -116,10 +134,10 @@ function PointHistoryItem({
       <View className="flex-col items-end">
         <Text
           className={`text-lg font-semibold leading-7 ${
-            isSave ? "text-green-400" : "tex-gray-800"
+            isPlus ? "text-green-400" : "text-gray-800"
           }`}
         >
-          {isSave ? "+" : "-"}
+          {isPlus ? "+" : "-"}
           {pointAmount}P
         </Text>
       </View>
@@ -129,36 +147,16 @@ function PointHistoryItem({
 
 export default function Point() {
   const { point } = usePoint();
+  const { points, loading, isError } = usePoints();
   const [activeFilter, setActiveFilter] = useState<FilterType>("전체");
 
-  // mock 데이터 (API 대신 사용)
-  const MOCK_POINT_HISTORIES = [
-    {
-      pointHistId: 1,
-      pointAmount: 500,
-      pointDesc: "신규 가입 축하 포인트",
-      pointType: "SAVE",
-      pointTime: "2026-02-14T15:25:52",
-    },
-    {
-      pointHistId: 2,
-      pointAmount: 100,
-      pointDesc: "잔반 인증 완료 90%",
-      pointType: "SAVE",
-      pointTime: "2026-02-14T14:30:00",
-    },
-    {
-      pointHistId: 3,
-      pointAmount: 300,
-      pointDesc: "쿠폰 사용",
-      pointType: "USE",
-      pointTime: "2026-02-16T18:10:12",
-    },
-  ];
-  const filteredData = MOCK_POINT_HISTORIES.filter((item) => {
+  const filteredData = points.filter((item) => {
     if (activeFilter === "전체") return true;
-    if (activeFilter === "적립") return item.pointType === "SAVE";
+    if (activeFilter === "적립") {
+      return item.pointType === "SAVE" || item.pointType === "REFUND";
+    }
     if (activeFilter === "사용") return item.pointType === "USE";
+    return true;
   });
   return (
     <View className="flex-1 bg-white px-4 py-[56px]">
@@ -184,23 +182,38 @@ export default function Point() {
         onChange={(filter) => setActiveFilter(filter)}
       />
 
-      {/* (추후 포인트 내역 들어갈 자리) */}
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
-        {filteredData.map((item, index) => {
-          const currentDate = new Date(item.pointTime).toDateString();
-          const prevDate =
-            index > 0
-              ? new Date(filteredData[index - 1].pointTime).toDateString()
-              : null;
+        {loading && (
+          <Text className="text-gray-500 text-sm font-medium px-4 py-3">
+            포인트 내역을 불러오는 중...
+          </Text>
+        )}
 
-          const showDate = currentDate !== prevDate;
+        {!loading && isError && (
+          <Text className="text-red-500 text-sm font-medium px-4 py-3">
+            포인트 내역 조회에 실패했습니다.
+          </Text>
+        )}
+
+        {!loading && !isError && filteredData.length === 0 && (
+          <Text className="text-gray-500 text-sm font-medium px-4 py-3">
+            포인트 내역이 없습니다.
+          </Text>
+        )}
+
+        {filteredData.map((item, index) => {
+          const currentDate = getDateKey(item.pointTime);
+          const prevDate =
+            index > 0 ? getDateKey(filteredData[index - 1].pointTime) : null;
+
+          const showDate = currentDate !== null && currentDate !== prevDate;
 
           return (
             <PointHistoryItem
               key={item.pointHistId}
               pointAmount={item.pointAmount}
               pointDesc={item.pointDesc}
-              pointType={item.pointType as "SAVE" | "USE"}
+              pointType={item.pointType}
               pointTime={item.pointTime}
               showDate={showDate}
             />

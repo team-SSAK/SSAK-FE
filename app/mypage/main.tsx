@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 import Avatar from "../../assets/images/avatar.svg";
@@ -7,15 +7,15 @@ import ChevronRightG from "../../assets/images/chevron-right-gray.svg";
 import ChevronRightW from "../../assets/images/chevron-right-white.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
-import Home from "../../assets/images/home.svg";
 import Setting from "../../assets/images/setting.svg";
-import Star from "../../assets/images/star.svg";
-import User from "../../assets/images/user.svg";
+
+import { BottomNav } from "../../components/bottomnav";
 
 import { useCoupons } from "@/src/hooks/useCoupons";
 import { useMe } from "../../src/hooks/useMe";
 import { usePoint } from "../../src/hooks/usePoint";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
+import { postCouponWish } from "../../src/services/mypage/coupons.service";
 
 //////////////////////////////////////////////////////
 // 타입
@@ -159,25 +159,6 @@ const ResBanner = ({
 // 하단 네비
 //////////////////////////////////////////////////////
 
-function BottomNav() {
-  return (
-    <View className="absolute bottom-0 left-0 right-0 h-20 pb-4 bg-white flex-row justify-around items-center shadow-[0_-1px_10px_rgba(198,198,198,0.25)]">
-      <View className="items-center">
-        <Home width={24} height={24} />
-        <Text className="text-gray-500 text-xs">홈</Text>
-      </View>
-      <View className="items-center">
-        <Star width={24} height={24} />
-        <Text className="text-gray-500 text-xs">스토어</Text>
-      </View>
-      <View className="items-center">
-        <User width={24} height={24} />
-        <Text className="text-gray-500 text-xs">마이페이지</Text>
-      </View>
-    </View>
-  );
-}
-
 //////////////////////////////////////////////////////
 // 메인 페이지
 //////////////////////////////////////////////////////
@@ -185,7 +166,9 @@ function BottomNav() {
 export default function Main() {
   const router = useRouter();
 
-  const [selectedCoupons, setSelectedCoupons] = useState<boolean[]>([]);
+  const [selectedCoupons, setSelectedCoupons] = useState<
+    Record<number, boolean>
+  >({});
 
   const { me } = useMe();
   const { point } = usePoint();
@@ -203,9 +186,22 @@ export default function Main() {
       }))
     : [];
 
-  useEffect(() => {
-    setSelectedCoupons(new Array(coupons.length).fill(false));
-  }, [coupons]);
+  const toggleCouponWish = async (id: number) => {
+    const isCurrentlySelected = !!selectedCoupons[id];
+
+    if (!isCurrentlySelected) {
+      // 찜하기 추가
+      try {
+        await postCouponWish(id);
+        setSelectedCoupons((prev) => ({ ...prev, [id]: true }));
+      } catch (error) {
+        console.error("쿠폰 찜하기 실패:", error);
+      }
+    } else {
+      // 찜하기 해제 (로컬에서만 처리)
+      setSelectedCoupons((prev) => ({ ...prev, [id]: false }));
+    }
+  };
 
   //////////////////////////////////////////////////////
   // UI
@@ -275,19 +271,15 @@ export default function Main() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 15 }}
           >
-            {coupons.map((coupon, index) => (
+            {coupons.map((coupon) => (
               <CouponCard
                 key={coupon.id}
                 storeName={coupon.storeName}
                 title={coupon.title}
                 price={coupon.price}
                 image={coupon.image}
-                selected={selectedCoupons[index]}
-                onToggle={() => {
-                  const updated = [...selectedCoupons];
-                  updated[index] = !updated[index];
-                  setSelectedCoupons(updated);
-                }}
+                selected={!!selectedCoupons[coupon.id]}
+                onToggle={() => toggleCouponWish(coupon.id)}
               />
             ))}
           </ScrollView>

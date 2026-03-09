@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { CouponOption, getCoupons } from "../services/mypage/coupons.service";
+import {
+  CouponOption,
+  getCoupons,
+  getCouponWishes,
+  postCouponWish,
+} from "../services/mypage/coupons.service";
 
 interface CouponApiResponse {
   couponHistId: number;
@@ -49,5 +54,73 @@ export function useCoupons(status: CouponOption = "ISSUED") {
     fetchCoupons();
   }, [status]);
 
-  return { coupons, loading };
+  const addWish = async (couponId: number) => {
+    try {
+      await postCouponWish(couponId);
+      return true;
+    } catch (e) {
+      console.log("쿠폰 찜하기 실패", e);
+      return false;
+    }
+  };
+
+  return { coupons, loading, addWish };
+}
+
+export function useCouponWishes() {
+  const [wishCoupons, setWishCoupons] = useState<CouponItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWishCoupons = async () => {
+      try {
+        const data = await getCouponWishes();
+        const list = Array.isArray(data) ? data : (data?.data ?? []);
+
+        const transformed: CouponItem[] = list.map(
+          (item: CouponApiResponse) => ({
+            id: item.couponHistId,
+            storeName: item.couponStore,
+            title: item.couponNm,
+            price: item.couponPoint + "P",
+            image: item.couponImgUrl,
+          }),
+        );
+
+        setWishCoupons(transformed);
+      } catch (e) {
+        console.log("찜한 쿠폰 조회 실패", e);
+        setWishCoupons([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWishCoupons();
+  }, []);
+
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const data = await getCouponWishes();
+      const list = Array.isArray(data) ? data : (data?.data ?? []);
+
+      const transformed: CouponItem[] = list.map((item: CouponApiResponse) => ({
+        id: item.couponHistId,
+        storeName: item.couponStore,
+        title: item.couponNm,
+        price: item.couponPoint + "P",
+        image: item.couponImgUrl,
+      }));
+
+      setWishCoupons(transformed);
+    } catch (e) {
+      console.log("찜한 쿠폰 조회 실패", e);
+      setWishCoupons([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { wishCoupons, loading, refresh };
 }
