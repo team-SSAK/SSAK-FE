@@ -289,7 +289,8 @@ export default function Main() {
             <Text className="text-gray-800 text-lg font-semibold">
               공지사항
             </Text>
-            <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
+
+            <TouchableOpacity onPress={() => router.push("/home/anouncement")}>
               <ChevronRightG />
             </TouchableOpacity>
           </View>
