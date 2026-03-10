@@ -213,7 +213,7 @@ export default function Main() {
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
       >
         {/* 헤더 */}
-        <View className="py-4 flex-row justify-between items-center">
+        <View className="pt-[56px] pb-4 flex-row justify-between items-center">
           <Text className="text-green-500 text-lg font-bold">SSAK</Text>
           <TouchableOpacity onPress={() => router.push("/mypage/setting")}>
             <Setting width={24} height={24} />

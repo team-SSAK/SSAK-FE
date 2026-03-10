@@ -1,10 +1,11 @@
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 const ACCESS_TOKEN_KEY = "ACCESS_TOKEN";
 const REFRESH_TOKEN_KEY = "REFRESH_TOKEN";
 
-// Web에서는 localStorage 사용, 네이티브에서는 SecureStore 사용
-const isWeb = typeof window !== "undefined";
+// Expo Go/RN 환경에서는 window가 있어도 web이 아닐 수 있으므로 Platform 기준으로 분기한다.
+const isWeb = Platform.OS === "web";
 
 const getItem = async (key: string): Promise<string | null> => {
   if (isWeb) {
