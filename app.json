@@ -38,17 +38,26 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "extra": {
+      "API_BASE_URL": "https://seederslab.n-e.kr",
       "router": {},
       "eas": {
         "projectId": "024db753-edda-4bcc-a4aa-15300a356693"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/024db753-edda-4bcc-a4aa-15300a356693"
     }
   }
 }
