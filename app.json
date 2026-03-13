@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ssak",
-    "slug": "ssak",
+    "slug": "ssak-expo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -50,7 +50,7 @@
       "API_BASE_URL": "https://seederslab.n-e.kr",
       "router": {},
       "eas": {
-        "projectId": "024db753-edda-4bcc-a4aa-15300a356693"
+        "projectId": "86ff2d6a-3bd6-40cc-8382-e6beaec4fe58"
       }
     },
     "runtimeVersion": {
@@ -58,6 +58,7 @@
     },
     "updates": {
       "url": "https://u.expo.dev/024db753-edda-4bcc-a4aa-15300a356693"
-    }
+    },
+    "owner": "ssak-expo"
   }
 }

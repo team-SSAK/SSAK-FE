@@ -215,7 +215,7 @@ export default function Main() {
         <View className="gap-3">
           <View className="flex-row justify-between">
             <Text className="text-gray-800 text-lg font-semibold">내 식당</Text>
-            <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
+            <TouchableOpacity onPress={() => router.push("/home/restaurant")}>
               <ChevronRightG />
             </TouchableOpacity>
           </View>
