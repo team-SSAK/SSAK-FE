@@ -9,6 +9,7 @@ import {
 import type { LoginResponse } from "./types";
 
 const API_BASE =
+  (process.env.EXPO_PUBLIC_API_BASE_URL as string | undefined) ??
   (process.env.API_BASE_URL as string | undefined) ??
   (Constants as any)?.manifest?.extra?.API_BASE_URL;
 

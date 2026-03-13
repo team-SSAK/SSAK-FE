@@ -131,26 +131,20 @@ const ResBanner = ({
 }) => {
   return (
     <View className="w-60 px-4 py-4 bg-slate-100 rounded-2xl gap-3">
-      {image ? (
-        <Image
-          source={{ uri: image }}
-          className="w-full h-28 rounded-lg"
-          resizeMode="cover"
-        />
-      ) : (
-        <View className="w-full h-28 rounded-lg bg-slate-200" />
-      )}
-
       <Text
         className="text-slate-800 text-base font-semibold"
         numberOfLines={1}
       >
         {name}
       </Text>
-
-      <Text className="text-slate-400 text-xs font-medium" numberOfLines={1}>
-        {address}
-      </Text>
+      <View>
+        <Text className="text-gray-800 text-xs font-semibold leading-5">
+          중식
+        </Text>
+        <Text className="text-gray-500 text-xs font-medium" numberOfLines={1}>
+          제육볶음, 쌀밥, 미역국 김치찌개, 요구르트
+        </Text>
+      </View>
     </View>
   );
 };
@@ -213,7 +207,7 @@ export default function Main() {
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
       >
         {/* 헤더 */}
-        <View className="py-4 flex-row justify-between items-center">
+        <View className="pt-[56px] pb-4 flex-row justify-between items-center">
           <Text className="text-green-500 text-lg font-bold">SSAK</Text>
           <TouchableOpacity onPress={() => router.push("/mypage/setting")}>
             <Setting width={24} height={24} />

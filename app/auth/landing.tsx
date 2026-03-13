@@ -115,7 +115,7 @@ export default function Landing() {
       const token = await getAccessToken();
       console.log("저장된 토큰:", token);
 
-      router.replace("/mypage/main");
+      router.replace("/home/home");
     },
 
     onError: (err: any) => {

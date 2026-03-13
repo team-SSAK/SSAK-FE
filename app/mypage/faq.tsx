@@ -4,7 +4,7 @@ import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronDown from "../../assets/images/chevron-down.svg";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronUp from "../../assets/images/chevron-up.svg";
-import Search from "../../assets/images/search.svg";
+import SearchInput from "../../components/searchinput";
 
 type FAQItem = {
   id: string;
@@ -192,7 +192,7 @@ export default function FAQ() {
 
   return (
     <View className="flex-1 bg-[#ffffff] py-[56px]">
-      <View className="py-4 flex-row gap-2 justify-start items-center mb-1">
+      <View className="px-4 py-4 flex-row gap-2 justify-start items-center mb-1">
         <TouchableOpacity onPress={() => router.back()}>
           <ChevronLeft />
         </TouchableOpacity>
@@ -201,11 +201,8 @@ export default function FAQ() {
         </Text>
       </View>
 
-      <View className="flex flex-row px-2.5 py-2 bg-gray-50 rounded-xl justify-between items-center m-2.5 mb-6">
-        <Text className="text-gray-500 font-medium leading-6">
-          궁금한 점을 검색해보세요.
-        </Text>
-        <Search />
+      <View className="m-2.5 mb-6">
+        <SearchInput placeholder="궁금한 점을 검색해보세요." />
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
