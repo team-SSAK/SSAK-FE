@@ -27,6 +27,7 @@ interface ResCardProps {
   image?: string;
   selected?: boolean;
   onToggle?: () => void;
+  onPress?: () => void;
 }
 
 //////////////////////////////////////////////////////
@@ -39,34 +40,41 @@ function ResCard({
   image,
   selected = true,
   onToggle,
+  onPress,
 }: ResCardProps) {
   return (
     <View className="self-stretch p-4 bg-slate-100 rounded-[10px] flex-col">
       <View className="flex-row gap-4">
-        {image ? (
-          <Image
-            source={{ uri: image }}
-            className="w-20 h-20 rounded-lg"
-            resizeMode="cover"
-          />
-        ) : (
-          <View className="w-20 h-20 rounded-lg bg-slate-200" />
-        )}
+        <TouchableOpacity
+          onPress={onPress}
+          className="flex-1 flex-row gap-4"
+          activeOpacity={0.8}
+        >
+          {image ? (
+            <Image
+              source={{ uri: image }}
+              className="w-20 h-20 rounded-lg"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-20 h-20 rounded-lg bg-slate-200" />
+          )}
 
-        <View className="flex-1 flex-col gap-0.5">
-          <Text
-            className="text-slate-900 text-base font-semibold"
-            numberOfLines={1}
-          >
-            {name}
-          </Text>
-          <Text
-            className="text-slate-400 text-xs font-semibold"
-            numberOfLines={2}
-          >
-            {address}
-          </Text>
-        </View>
+          <View className="flex-1 flex-col gap-0.5">
+            <Text
+              className="text-slate-900 text-base font-semibold"
+              numberOfLines={1}
+            >
+              {name}
+            </Text>
+            <Text
+              className="text-slate-400 text-xs font-semibold"
+              numberOfLines={2}
+            >
+              {address}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={onToggle} className="w-7 h-7 items-end">
           {selected ? <HeartFilled /> : <Heart />}
@@ -175,6 +183,12 @@ export default function Restaurant() {
               image={restaurant.image}
               selected={!!selectedRestaurants[restaurant.id]}
               onToggle={() => toggle(restaurant.id)}
+              onPress={() =>
+                router.push({
+                  pathname: "/home/restaurantdetail",
+                  params: { restaurantId: String(restaurant.id) },
+                })
+              }
             />
           ))
         )}
