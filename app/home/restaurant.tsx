@@ -4,6 +4,7 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
+import Map from "../../assets/images/map.svg";
 
 import SearchInput from "../../components/searchinput";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
@@ -125,13 +126,16 @@ export default function Restaurant() {
   return (
     <View className="flex-1 bg-white px-4 py-[56px]">
       {/* 헤더 */}
-      <View className="py-4 flex-row gap-2 items-center">
-        <TouchableOpacity onPress={() => router.back()}>
-          <ChevronLeft />
-        </TouchableOpacity>
-        <Text className="text-gray-800 text-xl font-semibold">
-          식당 선택하기
-        </Text>
+      <View className="flex flex-row justify-between items-center">
+        <View className="py-4 flex-row gap-2 items-center">
+          <TouchableOpacity onPress={() => router.back()}>
+            <ChevronLeft />
+          </TouchableOpacity>
+          <Text className="text-gray-800 text-xl font-semibold">
+            식당 선택하기
+          </Text>
+        </View>
+        <Map />
       </View>
 
       <SearchInput placeholder="식당을 검색해주세요." />

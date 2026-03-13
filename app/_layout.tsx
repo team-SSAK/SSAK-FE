@@ -3,7 +3,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo } from "react";
-import { Text } from "react-native";
+import { Text, TextInput } from "react-native";
 import "./global.css";
 
 export default function RootLayout() {
@@ -48,11 +48,18 @@ export default function RootLayout() {
     return null;
   }
 
-  // 전역 기본 폰트 설정
+  // 전역 기본 폰트 설정 (Text, TextInput)
   (Text as any).defaultProps = (Text as any).defaultProps || {};
-  (Text as any).defaultProps.style = {
-    fontFamily: "Pretendard-Variable",
-  };
+  (Text as any).defaultProps.style = [
+    (Text as any).defaultProps.style,
+    { fontFamily: "Pretendard-Variable" },
+  ];
+
+  (TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
+  (TextInput as any).defaultProps.style = [
+    (TextInput as any).defaultProps.style,
+    { fontFamily: "Pretendard-Variable" },
+  ];
 
   return (
     <QueryClientProvider client={queryClient}>
