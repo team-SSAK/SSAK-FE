@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
+  Platform,
   TextInput as RNTextInput,
   Text,
   TouchableOpacity,
@@ -43,6 +44,7 @@ function PWInput({
         onChangeText={onChangeText}
         value={value}
         editable={!disabled}
+        showSoftInputOnFocus={Platform.OS === "android" ? true : undefined}
       />
       <TouchableOpacity
         onPress={() => setIsPasswordVisible(!isPasswordVisible)}

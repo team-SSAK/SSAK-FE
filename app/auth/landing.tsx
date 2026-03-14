@@ -64,6 +64,7 @@ function IDInput({ placeholder, onChangeText, value }: IDInputProps) {
         onChangeText={onChangeText}
         value={value}
         autoCapitalize="none"
+        showSoftInputOnFocus={Platform.OS === "android" ? true : undefined}
       />
     </View>
   );
@@ -87,6 +88,7 @@ function PWInput({ placeholder, onChangeText, value }: PWInputProps) {
         secureTextEntry={!isPasswordVisible}
         onChangeText={onChangeText}
         value={value}
+        showSoftInputOnFocus={Platform.OS === "android" ? true : undefined}
       />
       <TouchableOpacity onPress={() => setIsPasswordVisible((prev) => !prev)}>
         {isPasswordVisible ? (
