@@ -206,16 +206,18 @@ export default function Main() {
         </View>
 
         {/* 잔반 인증하러 가기 */}
-        <View className="h-12 p-3 mt-4 mb-[30px] bg-green-400 rounded-xl justify-center items-center">
-          <Text className="text-center text-gray-50 text-lg font-medium leading-7">
-            잔반 인증하러 가기
-          </Text>
-        </View>
+        <TouchableOpacity onPress={() => router.push("/home/restaurant")}>
+          <View className="h-12 p-3 mt-4 mb-[30px] bg-green-400 rounded-xl justify-center items-center">
+            <Text className="text-center text-gray-50 text-lg font-medium leading-7">
+              잔반 인증하러 가기
+            </Text>
+          </View>
+        </TouchableOpacity>
         {/* 식당 */}
         <View className="gap-3">
           <View className="flex-row justify-between">
             <Text className="text-gray-800 text-lg font-semibold">내 식당</Text>
-            <TouchableOpacity onPress={() => router.push("/home/restaurant")}>
+            <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
               <ChevronRightG />
             </TouchableOpacity>
           </View>
@@ -226,12 +228,20 @@ export default function Main() {
             contentContainerStyle={{ gap: 15 }}
           >
             {restaurants.map((restaurant) => (
-              <ResBanner
+              <TouchableOpacity
                 key={restaurant.id}
-                name={restaurant.name}
-                address={restaurant.address}
-                image={restaurant.image}
-              />
+                onPress={() =>
+                  router.push(
+                    `/home/restaurantdetail?restaurantId=${restaurant.id}`,
+                  )
+                }
+              >
+                <ResBanner
+                  name={restaurant.name}
+                  address={restaurant.address}
+                  image={restaurant.image}
+                />
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>

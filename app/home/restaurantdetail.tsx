@@ -259,10 +259,23 @@ export default function RestaurantDetail() {
               식당 선택하기
             </Text>
           </View>
-          <Map />
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/home/restaurantlocation",
+                params:
+                  typeof restaurantId === "string" ? { restaurantId } : {},
+              })
+            }
+          >
+            <Map />
+          </TouchableOpacity>
         </View>
 
-        <View className="h-[196px] bg-gray-400" />
+        <View
+          className="h-[196px] bg-gray-400"
+          style={{ marginHorizontal: -16 }}
+        />
 
         <View className="pt-4 flex flex-col">
           <View className="self-start px-2.5 py-0.5 bg-green-300 rounded-md justify-center items-center mb-1 ">
@@ -352,6 +365,17 @@ export default function RestaurantDetail() {
       {/* 하단 그라디언트 */}
       <View className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none">
         <View className="flex-1 bg-gradient-to-b from-white/0 to-white/90" />
+      </View>
+
+      {/* 잔반 인증 버튼 */}
+      <View className="absolute bottom-0 left-0 right-0 px-4 pb-[56px]">
+        <TouchableOpacity>
+          <View className="h-12 p-3 bg-green-400 rounded-xl justify-center items-center">
+            <Text className="text-center text-gray-50 text-lg font-medium leading-7">
+              잔반 인증하러 가기
+            </Text>
+          </View>
+        </TouchableOpacity>
       </View>
     </View>
   );
