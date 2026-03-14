@@ -309,44 +309,53 @@ export default function RestaurantDetail() {
         <View className="h-0 outline outline-1 outline-offset-[-0.50px] outline-zinc-100 my-[30px]"></View>
 
         {/* 내용 */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="flex-grow-0"
-          style={{ flexGrow: 0 }}
-          contentContainerStyle={{ gap: 15, paddingBottom: 0 }}
+        <TouchableOpacity
+          onPress={() =>
+            router.push({
+              pathname: "/home/menu",
+              params: typeof restaurantId === "string" ? { restaurantId } : {},
+            })
+          }
         >
-          {/* Hardcoded Menu Cards */}
-          <View className="self-start w-64 p-3.5 bg-gray-50 rounded-[10px] flex flex-col justify-center items-start gap-2.5">
-            <View className="self-stretch flex flex-col justify-start items-start gap-7">
-              <Text className="self-stretch text-gray-800 text-sm font-semibold leading-6">
-                중식
-              </Text>
-              <Text
-                className="self-stretch text-gray-500 text-sm font-medium leading-6"
-                numberOfLines={2}
-              >
-                제육볶음, 쌀밥, 미역국 김치찌개, 요구르트, 제육볶음, 쌀밥,
-                미역국 김치찌개, 요구르트,요구르트
-              </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="flex-grow-0"
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{ gap: 15, paddingBottom: 0 }}
+          >
+            {/* Hardcoded Menu Cards */}
+            <View className="self-start w-64 p-3.5 bg-gray-50 rounded-[10px] flex flex-col justify-center items-start gap-2.5">
+              <View className="self-stretch flex flex-col justify-start items-start gap-7">
+                <Text className="self-stretch text-gray-800 text-sm font-semibold leading-6">
+                  중식
+                </Text>
+                <Text
+                  className="self-stretch text-gray-500 text-sm font-medium leading-6"
+                  numberOfLines={2}
+                >
+                  제육볶음, 쌀밥, 미역국 김치찌개, 요구르트, 제육볶음, 쌀밥,
+                  미역국 김치찌개, 요구르트,요구르트
+                </Text>
+              </View>
             </View>
-          </View>
 
-          <View className="self-start w-64 p-3.5 bg-gray-50 rounded-[10px] flex flex-col justify-center items-start gap-2.5">
-            <View className="self-stretch flex flex-col justify-start items-start gap-7">
-              <Text className="self-stretch text-gray-800 text-sm font-semibold leading-6">
-                중식
-              </Text>
-              <Text
-                className="self-stretch text-gray-500 text-sm font-medium leading-6"
-                numberOfLines={2}
-              >
-                제육볶음, 쌀밥, 미역국 김치찌개, 요구르트, 제육볶음, 쌀밥,
-                미역국 김치찌개, 요구르트,요구르트
-              </Text>
+            <View className="self-start w-64 p-3.5 bg-gray-50 rounded-[10px] flex flex-col justify-center items-start gap-2.5">
+              <View className="self-stretch flex flex-col justify-start items-start gap-7">
+                <Text className="self-stretch text-gray-800 text-sm font-semibold leading-6">
+                  중식
+                </Text>
+                <Text
+                  className="self-stretch text-gray-500 text-sm font-medium leading-6"
+                  numberOfLines={2}
+                >
+                  제육볶음, 쌀밥, 미역국 김치찌개, 요구르트, 제육볶음, 쌀밥,
+                  미역국 김치찌개, 요구르트,요구르트
+                </Text>
+              </View>
             </View>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </TouchableOpacity>
 
         <View className="mt-[26px] flex-row justify-between">
           <Text className="text-gray-800 text-lg font-semibold">

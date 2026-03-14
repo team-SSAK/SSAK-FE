@@ -21,7 +21,7 @@ interface RestaurantWishResponse {
 // 페이지
 //////////////////////////////////////////////////////
 
-export default function RestaurantLoacation() {
+export default function Menu() {
   const { data } = useRestaurantWish();
   const { restaurantId } = useLocalSearchParams<{ restaurantId?: string }>();
 
@@ -53,13 +53,8 @@ export default function RestaurantLoacation() {
           <TouchableOpacity onPress={() => router.back()}>
             <ChevronLeft />
           </TouchableOpacity>
-          <Text className="text-gray-800 text-xl font-semibold">매장 상세</Text>
+          <Text className="text-gray-800 text-xl font-semibold">메뉴 상세</Text>
         </View>
-
-        <View
-          className="flex-1 bg-gray-400"
-          style={{ marginHorizontal: -16 }}
-        />
 
         <View className="pt-4 flex flex-col">
           <View className="self-start px-2.5 py-0.5 bg-green-300 rounded-md justify-center items-center mb-1 ">
@@ -89,17 +84,17 @@ export default function RestaurantLoacation() {
             </View>
           </View>
         </View>
-      </View>
 
-      {/* 잔반 인증 버튼 */}
-      <View className="px-4 pb-[56px] pt-[37px]">
-        <TouchableOpacity onPress={() => router.push("/home/restaurant")}>
-          <View className="h-12 p-3 bg-green-400 rounded-xl justify-center items-center">
-            <Text className="text-center text-gray-50 text-lg font-medium leading-7">
-              잔반 인증하러 가기
+        <View className="self-stretch pl-3 pr-16 pt-2.5 pb-4 bg-slate-100 rounded-[10px] flex-row justify-start items-start gap-2.5 mt-5">
+          <View className="w-20 flex-col justify-start items-start gap-2">
+            <Text className="self-stretch text-slate-800 text-sm font-semibold leading-6">
+              조식
+            </Text>
+            <Text className="self-stretch text-slate-400 text-sm font-medium leading-6">
+              돌솥 비빔밥 고추장 비빔밥 미역국 정식 제육볶음 기본 김밥
             </Text>
           </View>
-        </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
