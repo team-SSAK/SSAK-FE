@@ -25,6 +25,7 @@ interface MockPostProps {
   commentCount?: number;
   date?: string;
   onMenuPress?: () => void;
+  onPress?: () => void;
 }
 
 export default function MockPost({
@@ -38,6 +39,7 @@ export default function MockPost({
   commentCount = 0,
   date = "25.11.14",
   onMenuPress,
+  onPress,
 }: MockPostProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -64,7 +66,11 @@ export default function MockPost({
   };
 
   return (
-    <View className="self-stretch py-4 bg-white border-b border-gray-100 flex flex-col justify-start items-start">
+    <TouchableOpacity
+      activeOpacity={onPress ? 0.7 : 1}
+      onPress={onPress}
+      className="self-stretch py-4 bg-white border-b border-gray-100 flex flex-col justify-start items-start"
+    >
       <View className="self-stretch flex flex-col justify-start items-start gap-2">
         {/* 배지 */}
         {showBadge && (
@@ -179,6 +185,6 @@ export default function MockPost({
           </View>
         </Pressable>
       </Modal>
-    </View>
+    </TouchableOpacity>
   );
 }

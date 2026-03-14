@@ -254,9 +254,9 @@ export default function RestaurantDetail() {
             <ChevronRightG />
           </TouchableOpacity>
         </View>
-        <MockPost />
-        <MockPost showBadge={false} />
-        <MockPost showBadge={false} />
+        <MockPost onPress={() => router.push("/home/post")} />
+        <MockPost showBadge={false} onPress={() => router.push("/home/post")} />
+        <MockPost showBadge={false} onPress={() => router.push("/home/post")} />
       </ScrollView>
 
       {/* 하단 그라디언트 */}
