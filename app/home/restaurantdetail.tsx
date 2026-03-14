@@ -7,6 +7,8 @@ import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
 import Map from "../../assets/images/map.svg";
 
+import MockPost from "../../components/mockpost";
+
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
 
 //////////////////////////////////////////////////////
@@ -71,120 +73,6 @@ function ResCard({
         <TouchableOpacity onPress={onToggle} className="w-7 h-7 items-end">
           {selected ? <HeartFilled /> : <Heart />}
         </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-interface MockPostProps {
-  showBadge?: boolean;
-  badge?: string;
-  author?: string;
-  title?: string;
-  content?: string;
-  image?: string;
-  likeCount?: number;
-  commentCount?: number;
-  date?: string;
-  onMenuPress?: () => void;
-}
-
-export function MockPost({
-  showBadge = true,
-  badge = "비공개",
-  author = "화여니",
-  title = "오늘의 메뉴!",
-  content = "오늘 식당 메뉴 최고네요! 넘 맛있어요!",
-  image,
-  likeCount = 0,
-  commentCount = 0,
-  date = "25.11.14",
-  onMenuPress,
-}: MockPostProps) {
-  return (
-    <View className="self-stretch py-4 bg-white border-b border-slate-100 flex flex-col justify-start items-start">
-      <View className="self-stretch flex flex-col justify-start items-start gap-2">
-        {/* 배지 */}
-        {showBadge && (
-          <View className="px-2.5 py-0.5 bg-slate-200 rounded-md justify-center items-center">
-            <Text className="text-slate-400 text-xs font-semibold leading-5">
-              {badge}
-            </Text>
-          </View>
-        )}
-
-        {/* 작성자 */}
-        <View className="self-stretch flex-row justify-start items-start gap-2">
-          <View className="flex-1 flex-row items-center gap-2">
-            <Image
-              source={
-                image ? { uri: image } : { uri: "https://placehold.co/30x30" }
-              }
-              className="w-7 h-7 rounded-full"
-            />
-            <Text className="text-slate-700 text-base font-semibold leading-6">
-              {author}
-            </Text>
-          </View>
-
-          {/* 더보기 버튼 */}
-          <TouchableOpacity
-            onPress={onMenuPress}
-            className="w-4 h-4 justify-center items-center"
-          >
-            <Text className="text-slate-400 text-lg leading-none tracking-widest">
-              ...
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 제목 + 내용 + 썸네일 */}
-        <View className="self-stretch flex-row justify-start items-center gap-4">
-          <View className="flex-1 flex-col gap-0.5">
-            <Text
-              className="text-slate-700 text-base font-semibold leading-6"
-              numberOfLines={1}
-            >
-              {title}
-            </Text>
-            <Text
-              className="text-slate-400 text-base font-medium leading-6"
-              numberOfLines={1}
-            >
-              {content}
-            </Text>
-          </View>
-          <Image
-            source={{ uri: "https://placehold.co/68x68" }}
-            className="w-16 h-16 rounded-md"
-          />
-        </View>
-
-        {/* 좋아요 / 댓글 / 날짜 */}
-        <View className="self-stretch flex-row items-center gap-2">
-          <View className="flex-row items-center gap-2">
-            {/* 좋아요 */}
-            <View className="flex-row items-center gap-0.5">
-              <View className="w-5 h-5" />
-              <Text className="text-slate-400 text-sm font-medium leading-6">
-                {likeCount}
-              </Text>
-            </View>
-            {/* 댓글 */}
-            <View className="flex-row items-center gap-0.5">
-              <View className="w-5 h-5" />
-              <Text className="text-slate-400 text-sm font-medium leading-6">
-                {commentCount}
-              </Text>
-            </View>
-          </View>
-
-          <View className="w-px h-3 bg-slate-300" />
-
-          <Text className="text-slate-400 text-sm font-medium leading-6">
-            {date}
-          </Text>
-        </View>
       </View>
     </View>
   );
@@ -362,7 +250,7 @@ export default function RestaurantDetail() {
             식당 커뮤니티
           </Text>
 
-          <TouchableOpacity onPress={() => router.push("/home/anouncement")}>
+          <TouchableOpacity onPress={() => router.push("/home/community")}>
             <ChevronRightG />
           </TouchableOpacity>
         </View>
