@@ -69,7 +69,7 @@ export default function RegisterVerification() {
             return;
           }
 
-          // ✅ 만료
+          // 만료
           if (msg.includes("유효시간") || msg.includes("만료")) {
             setPopupType("CODE_EXPIRED");
             return;
@@ -157,7 +157,7 @@ export default function RegisterVerification() {
         <View className="flex flex-col gap-3">
           <Text className="text-center text-gray-500 text-xs">
             메일이 오지 않나요?
-            <br />
+            {"\n"}
             스팸메일함을 확인해주세요
           </Text>
           <TouchableOpacity
