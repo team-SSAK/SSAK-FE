@@ -75,7 +75,7 @@ export default function Community() {
             </TouchableOpacity>
             {isSearchMode ? (
               <View className="flex-1">
-                <SearchInput placeholder="식당 커뮤니티 검색" />
+                <SearchInput placeholder="게시글을 검색해주세요." />
               </View>
             ) : (
               <Text className="text-gray-800 text-xl font-semibold">
@@ -88,7 +88,9 @@ export default function Community() {
               <TouchableOpacity onPress={() => setIsSearchMode(true)}>
                 <SearchB />
               </TouchableOpacity>
-              <Pen />
+              <TouchableOpacity onPress={() => router.push("/home/writepost")}>
+                <Pen />
+              </TouchableOpacity>
             </View>
           )}
         </View>
