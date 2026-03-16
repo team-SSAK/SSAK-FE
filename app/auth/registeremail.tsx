@@ -79,7 +79,7 @@ export default function RegisterEmail() {
         <View
           className="self-stretch h-[52px] p-3 rounded-xl justify-center items-center"
           style={{
-            backgroundColor: isButtonEnabled ? "#45B310" : "#6B7280",
+            backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
             opacity: isPending ? 0.8 : 1,
           }}
         >

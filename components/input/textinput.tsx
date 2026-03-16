@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TextInput as RNTextInput, View } from "react-native";
+import { Platform, TextInput as RNTextInput, View } from "react-native";
 
 interface TextInputProps {
   placeholder: string;
@@ -30,6 +30,7 @@ export default function TextInput({
         className="text-gray-900 font-medium leading-6"
         onChangeText={handleChange}
         value={value !== undefined ? value : internalValue}
+        showSoftInputOnFocus={Platform.OS === "android" ? true : undefined}
       />
     </View>
   );

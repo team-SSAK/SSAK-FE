@@ -7,7 +7,7 @@ export default function DeleteAccount() {
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
       <View className="flex flex-col">
         <View className="py-4 flex-row gap-2 justify-start items-center mb-5">
-          <TouchableOpacity onPress={() => router.push("/auth/landing")}>
+          <TouchableOpacity onPress={() => router.back()}>
             <ChevronLeft />
           </TouchableOpacity>
         </View>

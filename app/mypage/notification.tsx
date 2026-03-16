@@ -71,8 +71,8 @@ export default function Notification() {
               마케팅 정보 수신
             </Text>
 
-            <View className="flex flex-row justify-between py-3.5 px-4 bg-gray-50 rounded-lg">
-              <Text className="text-gray-700 font-medium">
+            <View className="self-stretch h-14 px-4 py-3.5 bg-gray-50 rounded-tl-lg rounded-tr-lg flex-row justify-start items-center gap-2.5">
+              <Text className="flex-1 text-gray-700 font-medium leading-6">
                 이벤트 및 혜택 알림
               </Text>
               <Toggle

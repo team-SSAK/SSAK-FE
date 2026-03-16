@@ -98,6 +98,7 @@ function PointHistoryItem({
   pointTime,
   showDate,
 }: PointHistoryItemProps) {
+  const { point } = usePoint();
   const hasValidTime =
     typeof pointTime === "string" &&
     !Number.isNaN(new Date(pointTime).getTime());
@@ -139,6 +140,9 @@ function PointHistoryItem({
         >
           {isPlus ? "+" : "-"}
           {pointAmount}P
+        </Text>
+        <Text className="text-gray-500 text-xs font-medium leading-5 line-clamp-1">
+          {point ?? 0}P
         </Text>
       </View>
     </View>
