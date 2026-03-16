@@ -246,7 +246,7 @@ export default function EditProfile() {
       <TouchableOpacity
         disabled={!isButtonEnabled}
         onPress={handleSubmit}
-        className={`h-12 rounded-xl justify-center items-center ${
+        className={`h-[52px] rounded-xl justify-center items-center ${
           isButtonEnabled ? "bg-[#45B310]" : "bg-slate-300"
         }`}
       >

@@ -35,7 +35,7 @@ export default function DeleteAccount() {
       </View>
       <TouchableOpacity
         onPress={() => router.push("/mypage/deletereason")}
-        className="self-stretch h-12 p-3 bg-[#45B310] rounded-xl flex-row justify-center items-center"
+        className="self-stretch h-[52px] p-3 bg-[#45B310] rounded-xl flex-row justify-center items-center"
       >
         <Text className="flex-1 text-center text-white text-lg font-medium leading-7">
           확인

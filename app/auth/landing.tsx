@@ -183,7 +183,7 @@ export default function Landing() {
       <TouchableOpacity
         disabled={!isLoginEnabled || isPending}
         onPress={onLogin}
-        className={`self-stretch p-4 rounded-xl justify-center my-[18px] ${
+        className={`self-stretch h-[52px] px-4 rounded-xl justify-center my-[18px] ${
           isLoginEnabled ? "bg-[#45B310]" : "bg-gray-500"
         }`}
       >

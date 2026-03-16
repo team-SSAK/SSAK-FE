@@ -143,7 +143,9 @@ export default function Restaurant() {
             식당 선택하기
           </Text>
         </View>
-        <Map />
+        <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
+          <Map />
+        </TouchableOpacity>
       </View>
 
       <SearchInput placeholder="식당을 검색해주세요." />

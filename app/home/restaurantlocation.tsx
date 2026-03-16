@@ -94,7 +94,7 @@ export default function RestaurantLoacation() {
       {/* 잔반 인증 버튼 */}
       <View className="px-4 pb-[56px] pt-[37px]">
         <TouchableOpacity onPress={() => router.push("/home/restaurant")}>
-          <View className="h-12 p-3 bg-green-400 rounded-xl justify-center items-center">
+          <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
             <Text className="text-center text-gray-50 text-lg font-medium leading-7">
               잔반 인증하러 가기
             </Text>
