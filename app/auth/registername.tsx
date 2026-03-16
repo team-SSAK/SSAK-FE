@@ -44,7 +44,7 @@ export default function RegisterName() {
         {/* 이전: 고정폭 */}
         <TouchableOpacity
           onPress={() => router.back()}
-          className="h-12 px-9 rounded-xl bg-slate-100 items-center justify-center"
+          className="h-[52px] px-9 rounded-xl bg-slate-100 items-center justify-center"
         >
           <Text className="text-slate-900 text-lg font-medium">이전</Text>
         </TouchableOpacity>
@@ -52,7 +52,7 @@ export default function RegisterName() {
         {/* 다음: flex-1 */}
         <TouchableOpacity
           disabled={!isButtonEnabled}
-          className="flex-1 h-12 rounded-xl items-center justify-center"
+          className="flex-1 h-[52px] rounded-xl items-center justify-center"
           style={{
             backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
             opacity: isButtonEnabled ? 1 : 0.5,

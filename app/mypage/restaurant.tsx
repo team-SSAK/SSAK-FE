@@ -166,7 +166,7 @@ export default function Restaurant() {
       </View>
 
       <View className="absolute bottom-[56px] right-4 z-10">
-        <AddBtn />
+        <AddBtn onPress={() => router.push("/home/restaurant")} />
       </View>
     </View>
   );

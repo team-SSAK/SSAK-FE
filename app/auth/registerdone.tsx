@@ -166,7 +166,7 @@ export default function RegisterDone() {
           onPress={handleSignup}
         >
           <View
-            className="self-stretch p-3 rounded-xl justify-center items-center"
+            className="self-stretch h-[52px] p-3 rounded-xl justify-center items-center"
             style={{
               backgroundColor:
                 isRequiredAgreed && !isPending ? "#45B310" : "#94A3B8",

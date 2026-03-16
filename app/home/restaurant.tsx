@@ -4,6 +4,7 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
+import Map from "../../assets/images/map.svg";
 
 import SearchInput from "../../components/searchinput";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
@@ -26,6 +27,7 @@ interface ResCardProps {
   image?: string;
   selected?: boolean;
   onToggle?: () => void;
+  onPress?: () => void;
 }
 
 //////////////////////////////////////////////////////
@@ -38,34 +40,41 @@ function ResCard({
   image,
   selected = true,
   onToggle,
+  onPress,
 }: ResCardProps) {
   return (
     <View className="self-stretch p-4 bg-slate-100 rounded-[10px] flex-col">
       <View className="flex-row gap-4">
-        {image ? (
-          <Image
-            source={{ uri: image }}
-            className="w-20 h-20 rounded-lg"
-            resizeMode="cover"
-          />
-        ) : (
-          <View className="w-20 h-20 rounded-lg bg-slate-200" />
-        )}
+        <TouchableOpacity
+          onPress={onPress}
+          className="flex-1 flex-row gap-4"
+          activeOpacity={0.8}
+        >
+          {image ? (
+            <Image
+              source={{ uri: image }}
+              className="w-20 h-20 rounded-lg"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-20 h-20 rounded-lg bg-slate-200" />
+          )}
 
-        <View className="flex-1 flex-col gap-0.5">
-          <Text
-            className="text-slate-900 text-base font-semibold"
-            numberOfLines={1}
-          >
-            {name}
-          </Text>
-          <Text
-            className="text-slate-400 text-xs font-semibold"
-            numberOfLines={2}
-          >
-            {address}
-          </Text>
-        </View>
+          <View className="flex-1 flex-col gap-0.5">
+            <Text
+              className="text-slate-900 text-base font-semibold"
+              numberOfLines={1}
+            >
+              {name}
+            </Text>
+            <Text
+              className="text-slate-400 text-xs font-semibold"
+              numberOfLines={2}
+            >
+              {address}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={onToggle} className="w-7 h-7 items-end">
           {selected ? <HeartFilled /> : <Heart />}
@@ -125,13 +134,18 @@ export default function Restaurant() {
   return (
     <View className="flex-1 bg-white px-4 py-[56px]">
       {/* 헤더 */}
-      <View className="py-4 flex-row gap-2 items-center">
-        <TouchableOpacity onPress={() => router.back()}>
-          <ChevronLeft />
+      <View className="flex flex-row justify-between items-center">
+        <View className="py-4 flex-row gap-2 items-center">
+          <TouchableOpacity onPress={() => router.back()}>
+            <ChevronLeft />
+          </TouchableOpacity>
+          <Text className="text-gray-800 text-xl font-semibold">
+            식당 선택하기
+          </Text>
+        </View>
+        <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
+          <Map />
         </TouchableOpacity>
-        <Text className="text-gray-800 text-xl font-semibold">
-          식당 선택하기
-        </Text>
       </View>
 
       <SearchInput placeholder="식당을 검색해주세요." />
@@ -171,6 +185,12 @@ export default function Restaurant() {
               image={restaurant.image}
               selected={!!selectedRestaurants[restaurant.id]}
               onToggle={() => toggle(restaurant.id)}
+              onPress={() =>
+                router.push({
+                  pathname: "/home/restaurantdetail",
+                  params: { restaurantId: String(restaurant.id) },
+                })
+              }
             />
           ))
         )}

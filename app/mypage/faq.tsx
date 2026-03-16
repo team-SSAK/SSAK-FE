@@ -182,6 +182,20 @@ const faqData: FAQCategory[] = [
 
 export default function FAQ() {
   const [openItems, setOpenItems] = useState<{ [key: string]: boolean }>({});
+  const [query, setQuery] = useState("");
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredFaqData = faqData
+    .map((category) => ({
+      ...category,
+      items:
+        normalizedQuery.length === 0
+          ? category.items
+          : category.items.filter((item) =>
+              item.question.toLowerCase().includes(normalizedQuery),
+            ),
+    }))
+    .filter((category) => category.items.length > 0);
 
   const toggleItem = (id: string) => {
     setOpenItems((prev) => ({
@@ -202,11 +216,15 @@ export default function FAQ() {
       </View>
 
       <View className="m-2.5 mb-6">
-        <SearchInput placeholder="궁금한 점을 검색해보세요." />
+        <SearchInput
+          placeholder="궁금한 점을 검색해보세요."
+          value={query}
+          onChangeText={setQuery}
+        />
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {faqData.map((category, categoryIndex) => (
+        {filteredFaqData.map((category, categoryIndex) => (
           <View key={categoryIndex} className="flex flex-col">
             <Text className="justify-start text-gray-500 font-semibold leading-6 py-2.5 px-4">
               {category.category}

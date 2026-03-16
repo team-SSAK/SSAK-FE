@@ -1,11 +1,12 @@
-@font-face {
-  font-family: "Jalnan_2";
-  src: url("/assets/fonts/Jalnan2TTF.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    font-family:
+      "Pretendard-Variable", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+}

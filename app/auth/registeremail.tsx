@@ -77,7 +77,7 @@ export default function RegisterEmail() {
       </View>
       <TouchableOpacity disabled={!isButtonEnabled} onPress={onSend}>
         <View
-          className="self-stretch p-3 rounded-xl justify-center items-center"
+          className="self-stretch h-[52px] p-3 rounded-xl justify-center items-center"
           style={{
             backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
             opacity: isPending ? 0.8 : 1,
