@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import TextInput from "../../components/input/textinput";
 import {
   getWithdrawal,
   postWithdrawal,
@@ -15,6 +16,7 @@ interface WithdrawalReason {
 export default function DeleteReason() {
   const [reasons, setReasons] = useState<WithdrawalReason[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [customReason, setCustomReason] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -22,7 +24,11 @@ export default function DeleteReason() {
     const fetchReasons = async () => {
       try {
         const res = await getWithdrawal();
-        setReasons(res);
+        const ordered = [
+          ...res.filter((reason) => reason.wdReasonId !== "1"),
+          ...res.filter((reason) => reason.wdReasonId === "1"),
+        ];
+        setReasons(ordered);
       } catch (e) {
         console.log("탈퇴 사유 조회 실패", e);
       } finally {
@@ -47,8 +53,12 @@ export default function DeleteReason() {
 
       // 선택된 사유 객체 찾기
       const selectedReason = reasons.find((r) => r.wdReasonId === selectedId);
+      const reasonContent =
+        selectedId === "1"
+          ? customReason.trim()
+          : (selectedReason?.wdReasonContent ?? "");
 
-      await postWithdrawal(selectedId, selectedReason?.wdReasonContent ?? "");
+      await postWithdrawal(selectedId, reasonContent);
 
       router.replace("/auth/landing?showPopup=true&type=delete");
     } catch (e) {
@@ -101,6 +111,20 @@ export default function DeleteReason() {
             })
           )}
         </View>
+
+        <View className="h-2.5" />
+
+        {selectedId === "1" ? (
+          <>
+            <View className="h-2.5" />
+            <TextInput
+              placeholder="사유를 입력해주세요"
+              value={customReason}
+              onChangeText={setCustomReason}
+              multiline
+            />
+          </>
+        ) : null}
       </View>
 
       {/* 하단 버튼 */}

@@ -167,6 +167,11 @@ export default function Main() {
   const { me } = useMe();
   const { point } = usePoint();
   const { coupons } = useCoupons("ISSUED");
+  const [profileImageLoadError, setProfileImageLoadError] = useState(false);
+
+  const profileImageUri = (me?.userProfileImg ?? "").trim();
+  const shouldShowProfileImage =
+    profileImageUri.length > 0 && !profileImageLoadError;
 
   // 즐겨찾기 식당 (개수 제한 없음)
   const { data: restaurantData } = useRestaurantWish();
@@ -216,7 +221,17 @@ export default function Main() {
 
         {/* 프로필 */}
         <View className="flex-row items-center mt-2.5 mb-[18px]">
-          <Avatar />
+          {shouldShowProfileImage ? (
+            <Image
+              source={{ uri: profileImageUri }}
+              style={{ width: 58, height: 58, borderRadius: 29 }}
+              resizeMode="cover"
+              onLoad={() => setProfileImageLoadError(false)}
+              onError={() => setProfileImageLoadError(true)}
+            />
+          ) : (
+            <Avatar />
+          )}
 
           <View className="flex-1 flex-row items-end gap-0.5 ml-3.5">
             <Text className="text-2xl font-semibold text-black">

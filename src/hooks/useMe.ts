@@ -62,14 +62,9 @@ export function useMe() {
 
   const updateMe = async (nickname?: string, userProfileImg?: any) => {
     try {
-      const res = await patchMe(nickname, userProfileImg);
-      const updated = normalizeMe(res);
-
-      if (updated) {
-        setMe(updated);
-      } else {
-        await fetchMe();
-      }
+      await patchMe(nickname, userProfileImg);
+      // PATCH 응답 스키마가 달라도 최신 이름/이미지를 확실히 동기화하기 위해 항상 재조회한다.
+      await fetchMe();
 
       return true;
     } catch (e) {
