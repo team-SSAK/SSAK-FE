@@ -4,6 +4,7 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
+import AddBtn from "../../components/addbtn";
 
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
 
@@ -162,6 +163,10 @@ export default function Restaurant() {
       {/* 하단 그라디언트 */}
       <View className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none">
         <View className="flex-1 bg-gradient-to-b from-white/0 to-white/90" />
+      </View>
+
+      <View className="absolute bottom-[56px] right-4 z-10">
+        <AddBtn />
       </View>
     </View>
   );
