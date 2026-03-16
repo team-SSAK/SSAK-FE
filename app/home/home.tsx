@@ -13,13 +13,14 @@ import {
   useWindowDimensions,
 } from "react-native";
 
+import BottomGradientSVG from "../../assets/images/BottomGradient.svg";
 import ChevronRightG from "../../assets/images/chevron-right-gray.svg";
 import HorizontalEllipsis from "../../assets/images/Horizontal-Ellipsis.svg";
+import TopGradientSVG from "../../assets/images/TopGradient.svg";
 
 import { BottomNav } from "../../components/bottomnav";
 
 import { useCoupons } from "@/src/hooks/useCoupons";
-import { LinearGradient } from "expo-linear-gradient";
 import AnouncementCard from "../../components/anouncementcard";
 import { useMe } from "../../src/hooks/useMe";
 import { usePoint } from "../../src/hooks/usePoint";
@@ -58,7 +59,7 @@ const ResBanner = ({
   image?: string;
 }) => {
   return (
-    <View className="w-60 px-4 py-4 bg-slate-100 rounded-2xl gap-3">
+    <View className="w-60 px-4 py-4 bg-slate-100 rounded-2xl gap-5">
       <Text
         className="text-slate-800 text-base font-semibold"
         numberOfLines={1}
@@ -147,7 +148,7 @@ export default function Main() {
       >
         {/* 헤더 */}
         <View
-          className="-mt-4 -mx-4 justify-start overflow-hidden"
+          className="-mt-4 -mx-4 justify-start overflow-hidden items-between"
           style={{
             width: screenWidth,
             aspectRatio: headerAspectRatio,
@@ -161,28 +162,29 @@ export default function Main() {
             style={{ width: "100%", height: "100%" }}
           />
 
-          {/* 탑 그라디언트 - from-black to-black/0 */}
-          <LinearGradient
-            colors={["rgba(0,0,0,1)", "rgba(0,0,0,0)"] as const}
+          {/* 탑 그라디언트 */}
+          <TopGradientSVG
             style={{
-              position: "absolute" as const,
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
-              height: 112, // h-28
             }}
+            width="100%"
+            preserveAspectRatio="none"
           />
 
           {/* 바텀 그라디언트 */}
-          <LinearGradient
-            colors={["rgba(64,64,64,0)", "rgba(38,38,38,1)"] as const} // ✅ neutral-700/0 → neutral-800
+          <BottomGradientSVG
             style={{
-              position: "absolute" as const,
+              position: "absolute",
               bottom: 0,
               left: 0,
               right: 0,
-              height: 128,
+              transform: [{ rotate: "180deg" }],
             }}
+            width="100%"
+            preserveAspectRatio="none"
           />
 
           <View className="absolute inset-0 px-4 pt-[56px] pb-4 flex-col justify-between">
@@ -207,7 +209,7 @@ export default function Main() {
 
         {/* 잔반 인증하러 가기 */}
         <TouchableOpacity onPress={() => router.push("/home/restaurant")}>
-          <View className="h-12 p-3 mt-4 mb-[30px] bg-green-400 rounded-xl justify-center items-center">
+          <View className="h-[52px] p-3 mt-4 mb-[30px] bg-green-400 rounded-xl justify-center items-center">
             <Text className="text-center text-gray-50 text-lg font-medium leading-7">
               잔반 인증하러 가기
             </Text>
