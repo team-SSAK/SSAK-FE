@@ -1,9 +1,12 @@
 import AnouncementCard from "@/components/anouncementcard";
 import { router } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Linking, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 
 export default function Anouncement() {
+  const ANNOUNCEMENT_URL =
+    "https://www.notion.so/31fc1339dd7680e6add1d62805ab8dba?source=copy_link";
+
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
       <View className="flex flex-col">
@@ -17,7 +20,9 @@ export default function Anouncement() {
         </View>
 
         <View className="flex flex-col">
-          <AnouncementCard />
+          <TouchableOpacity onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}>
+            <AnouncementCard />
+          </TouchableOpacity>
         </View>
       </View>
     </View>

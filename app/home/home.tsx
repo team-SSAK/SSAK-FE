@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Image,
+  Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -20,12 +21,8 @@ import TopGradientSVG from "../../assets/images/TopGradient.svg";
 
 import { BottomNav } from "../../components/bottomnav";
 
-import { useCoupons } from "@/src/hooks/useCoupons";
 import AnouncementCard from "../../components/anouncementcard";
-import { useMe } from "../../src/hooks/useMe";
-import { usePoint } from "../../src/hooks/usePoint";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
-import { postCouponWish } from "../../src/services/mypage/coupons.service";
 
 const headerImageSource = require("../../assets/images/SSAK.png");
 const headerImageAsset = Asset.fromModule(headerImageSource);
@@ -33,17 +30,12 @@ const headerAspectRatio =
   headerImageAsset.width && headerImageAsset.height
     ? headerImageAsset.width / headerImageAsset.height
     : 1.6;
+
+const ANNOUNCEMENT_URL =
+  "https://www.notion.so/31fc1339dd7680e6add1d62805ab8dba?source=copy_link";
 //////////////////////////////////////////////////////
 // 타입
 //////////////////////////////////////////////////////
-
-interface RestaurantWishResponse {
-  restaurantWishId: number;
-  restaurantId: number;
-  restaurantName: string;
-  restaurantLocation: string;
-  restaurantImgUrl: string;
-}
 
 //////////////////////////////////////////////////////
 // 식당 배너 (API 기반)
@@ -82,7 +74,7 @@ const ResBanner = ({
 // 메인 페이지
 //////////////////////////////////////////////////////
 
-export default function Main() {
+export default function Home() {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const newsCardGap = 16;
@@ -91,42 +83,15 @@ export default function Main() {
   const newsCards = [1, 2, 3, 4];
   const [newsPage, setNewsPage] = useState(0);
 
-  const [selectedCoupons, setSelectedCoupons] = useState<
-    Record<number, boolean>
-  >({});
-
-  const { me } = useMe();
-  const { point } = usePoint();
-  const { coupons } = useCoupons("ISSUED");
-
   // 즐겨찾기 식당 (개수 제한 없음)
-  const { data: restaurantData } = useRestaurantWish();
+  const { data: restaurantData = [] } = useRestaurantWish();
 
-  const restaurants = Array.isArray(restaurantData)
-    ? restaurantData.map((item: RestaurantWishResponse) => ({
-        id: item.restaurantId,
-        name: item.restaurantName,
-        address: item.restaurantLocation,
-        image: item.restaurantImgUrl,
-      }))
-    : [];
-
-  const toggleCouponWish = async (id: number) => {
-    const isCurrentlySelected = !!selectedCoupons[id];
-
-    if (!isCurrentlySelected) {
-      // 찜하기 추가
-      try {
-        await postCouponWish(id);
-        setSelectedCoupons((prev) => ({ ...prev, [id]: true }));
-      } catch (error) {
-        console.error("쿠폰 찜하기 실패:", error);
-      }
-    } else {
-      // 찜하기 해제 (로컬에서만 처리)
-      setSelectedCoupons((prev) => ({ ...prev, [id]: false }));
-    }
-  };
+  const restaurants = restaurantData.map((item) => ({
+    id: item.restaurantId,
+    name: item.restaurantName,
+    address: item.restaurantLocation,
+    image: item.restaurantImgUrl,
+  }));
 
   const handleNewsScrollEnd = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
@@ -302,9 +267,15 @@ export default function Main() {
           </View>
 
           <>
-            <AnouncementCard />
-            <AnouncementCard />
-            <AnouncementCard />
+            <TouchableOpacity onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}>
+              <AnouncementCard />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}>
+              <AnouncementCard />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}>
+              <AnouncementCard />
+            </TouchableOpacity>
           </>
         </View>
       </ScrollView>

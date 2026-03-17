@@ -3,8 +3,47 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo } from "react";
-import { Text, TextInput } from "react-native";
+import { Platform, Text, TextInput } from "react-native";
 import "./global.css";
+
+const IOS_TEXT_SCALE = 1.1;
+let typographyDefaultsApplied = false;
+
+function applyGlobalTypographyDefaults() {
+  if (typographyDefaultsApplied) {
+    return;
+  }
+
+  typographyDefaultsApplied = true;
+
+  const textDefaults = (Text as any).defaultProps || {};
+  (Text as any).defaultProps = {
+    ...textDefaults,
+    allowFontScaling:
+      Platform.OS === "ios" ? false : textDefaults.allowFontScaling,
+    maxFontSizeMultiplier:
+      Platform.OS === "ios" ? 1 : textDefaults.maxFontSizeMultiplier,
+    style: [
+      textDefaults.style,
+      { fontFamily: "Pretendard-Variable" },
+      Platform.OS === "ios" ? { fontSize: 16 * IOS_TEXT_SCALE } : null,
+    ],
+  };
+
+  const textInputDefaults = (TextInput as any).defaultProps || {};
+  (TextInput as any).defaultProps = {
+    ...textInputDefaults,
+    allowFontScaling:
+      Platform.OS === "ios" ? false : textInputDefaults.allowFontScaling,
+    maxFontSizeMultiplier:
+      Platform.OS === "ios" ? 1 : textInputDefaults.maxFontSizeMultiplier,
+    style: [
+      textInputDefaults.style,
+      { fontFamily: "Pretendard-Variable" },
+      Platform.OS === "ios" ? { fontSize: 16 * IOS_TEXT_SCALE } : null,
+    ],
+  };
+}
 
 export default function RootLayout() {
   const queryClient = useMemo(() => new QueryClient(), []);
@@ -48,18 +87,7 @@ export default function RootLayout() {
     return null;
   }
 
-  // 전역 기본 폰트 설정 (Text, TextInput)
-  (Text as any).defaultProps = (Text as any).defaultProps || {};
-  (Text as any).defaultProps.style = [
-    (Text as any).defaultProps.style,
-    { fontFamily: "Pretendard-Variable" },
-  ];
-
-  (TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
-  (TextInput as any).defaultProps.style = [
-    (TextInput as any).defaultProps.style,
-    { fontFamily: "Pretendard-Variable" },
-  ];
+  applyGlobalTypographyDefaults();
 
   return (
     <QueryClientProvider client={queryClient}>
