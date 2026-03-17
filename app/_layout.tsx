@@ -67,6 +67,7 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     "Pretendard-Variable": require("../assets/fonts/PretendardVariable.ttf"),
     Jalnan_2: require("../assets/fonts/Jalnan2TTF.ttf"),
+    JalnanGothic: require("../assets/fonts/JalnanGothic.otf"),
   });
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
 import AddBtn from "../../components/addbtn";
 
+import { usePostRestaurantWish } from "../../src/hooks/useRestaurant";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
 
 //////////////////////////////////////////////////////
@@ -26,6 +27,7 @@ interface ResCardProps {
   image?: string;
   selected?: boolean;
   onToggle?: () => void;
+  onPress?: () => void;
 }
 
 //////////////////////////////////////////////////////
@@ -38,34 +40,41 @@ function ResCard({
   image,
   selected = true,
   onToggle,
+  onPress,
 }: ResCardProps) {
   return (
     <View className="self-stretch p-4 bg-slate-100 rounded-[10px] flex-col">
       <View className="flex-row gap-4">
-        {image ? (
-          <Image
-            source={{ uri: image }}
-            className="w-20 h-20 rounded-lg"
-            resizeMode="cover"
-          />
-        ) : (
-          <View className="w-20 h-20 rounded-lg bg-slate-200" />
-        )}
+        <TouchableOpacity
+          onPress={onPress}
+          className="flex-1 flex-row gap-4"
+          activeOpacity={0.8}
+        >
+          {image ? (
+            <Image
+              source={{ uri: image }}
+              className="w-20 h-20 rounded-lg"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-20 h-20 rounded-lg bg-slate-200" />
+          )}
 
-        <View className="flex-1 flex-col gap-0.5">
-          <Text
-            className="text-slate-900 text-base font-semibold"
-            numberOfLines={1}
-          >
-            {name}
-          </Text>
-          <Text
-            className="text-slate-400 text-xs font-semibold"
-            numberOfLines={2}
-          >
-            {address}
-          </Text>
-        </View>
+          <View className="flex-1 flex-col gap-0.5">
+            <Text
+              className="text-slate-900 text-base font-semibold"
+              numberOfLines={1}
+            >
+              {name}
+            </Text>
+            <Text
+              className="text-slate-400 text-xs font-semibold"
+              numberOfLines={2}
+            >
+              {address}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={onToggle} className="w-7 h-7 items-end">
           {selected ? <HeartFilled /> : <Heart />}
@@ -89,6 +98,7 @@ const EMPTY_MESSAGES = {
 
 export default function Restaurant() {
   const { data } = useRestaurantWish();
+  const { mutateAsync: postRestaurantWish } = usePostRestaurantWish();
 
   const restaurants = useMemo(() => {
     if (!Array.isArray(data)) return [];
@@ -115,11 +125,25 @@ export default function Restaurant() {
     }
   }, [restaurants]);
 
-  const toggle = (id: number) => {
+  const toggle = async (id: number) => {
+    const currentSelected = selectedRestaurants[id] ?? true;
+    const nextSelected = !currentSelected;
+
     setSelectedRestaurants((prev) => ({
       ...prev,
-      [id]: !prev[id],
+      [id]: nextSelected,
     }));
+
+    try {
+      await postRestaurantWish(id);
+    } catch (error) {
+      console.error("식당 찜하기 토글 실패:", error);
+
+      setSelectedRestaurants((prev) => ({
+        ...prev,
+        [id]: currentSelected,
+      }));
+    }
   };
 
   return (
@@ -154,7 +178,18 @@ export default function Restaurant() {
               address={restaurant.address}
               image={restaurant.image}
               selected={!!selectedRestaurants[restaurant.id]}
-              onToggle={() => toggle(restaurant.id)}
+              onToggle={() => {
+                void toggle(restaurant.id);
+              }}
+              onPress={() =>
+                router.push({
+                  pathname: "/home/restaurantdetail",
+                  params: {
+                    restaurantId: String(restaurant.id),
+                    restaurantImage: restaurant.image ?? "",
+                  },
+                })
+              }
             />
           ))
         )}

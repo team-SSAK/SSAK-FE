@@ -24,11 +24,14 @@ interface MockPostProps {
   likeCount?: number;
   commentCount?: number;
   date?: string;
+  isMine?: boolean;
   onMenuPress?: () => void;
+  onDeletePress?: () => void;
+  onReportPress?: () => void;
   onPress?: () => void;
 }
 
-export default function MockPost({
+export default function Post({
   showBadge = true,
   badge = "비공개",
   author = "화여니",
@@ -38,7 +41,10 @@ export default function MockPost({
   likeCount = 0,
   commentCount = 0,
   date = "25.11.14",
+  isMine = true,
   onMenuPress,
+  onDeletePress,
+  onReportPress,
   onPress,
 }: MockPostProps) {
   const [showMenu, setShowMenu] = useState(false);
@@ -50,7 +56,6 @@ export default function MockPost({
     const popupWidth = 208; // w-52
     const horizontalMargin = 16;
 
-    // Align popup right edge to the trigger button and clamp into the viewport.
     const rawLeft = pageX - popupWidth + 16;
     const clampedLeft = Math.min(
       screenWidth - popupWidth - horizontalMargin,
@@ -127,15 +132,15 @@ export default function MockPost({
         <View className="self-stretch flex-row items-center gap-2">
           <View className="flex-row items-center gap-2">
             <View className="flex-row items-center gap-0.5">
-              <Heart width="20px" height="20px" />
-              <Text className="text-gray-500 text-sm font-medium leading-6">
-                {likeCount}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-0.5">
               <Message width="20px" height="20px" />
               <Text className="text-gray-500 text-sm font-medium leading-6">
                 {commentCount}
+              </Text>
+            </View>
+            <View className="flex-row items-center gap-0.5">
+              <Heart width="20px" height="20px" />
+              <Text className="text-gray-500 text-sm font-medium leading-6">
+                {likeCount}
               </Text>
             </View>
           </View>
@@ -168,18 +173,34 @@ export default function MockPost({
               onPress={(e: GestureResponderEvent) => e.stopPropagation()}
             >
               <ActionPopup
-                options={[
-                  {
-                    label: "수정하기",
-                    color: "text-gray-800",
-                    onPress: () => setShowMenu(false),
-                  },
-                  {
-                    label: "삭제하기",
-                    color: "text-red-700",
-                    onPress: () => setShowMenu(false),
-                  },
-                ]}
+                options={
+                  isMine
+                    ? [
+                        {
+                          label: "수정하기",
+                          color: "text-gray-800",
+                          onPress: () => setShowMenu(false),
+                        },
+                        {
+                          label: "삭제하기",
+                          color: "text-red-700",
+                          onPress: () => {
+                            onDeletePress?.();
+                            setShowMenu(false);
+                          },
+                        },
+                      ]
+                    : [
+                        {
+                          label: "신고하기",
+                          color: "text-gray-800",
+                          onPress: () => {
+                            onReportPress?.();
+                            setShowMenu(false);
+                          },
+                        },
+                      ]
+                }
               />
             </Pressable>
           </View>

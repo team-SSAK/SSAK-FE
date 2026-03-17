@@ -6,12 +6,16 @@ interface SearchInputProps {
   placeholder?: string;
   value?: string;
   onChangeText?: (text: string) => void;
+  autoFocus?: boolean;
+  onBlur?: () => void;
 }
 
 export default function SearchInput({
   placeholder = "궁금한 점을 검색해보세요.",
   value,
   onChangeText,
+  autoFocus = false,
+  onBlur,
 }: SearchInputProps) {
   const [internalValue, setInternalValue] = useState("");
 
@@ -32,6 +36,8 @@ export default function SearchInput({
         value={value !== undefined ? value : internalValue}
         onChangeText={handleChange}
         autoCapitalize="none"
+        autoFocus={autoFocus}
+        onBlur={onBlur}
         showSoftInputOnFocus={Platform.OS === "android" ? true : undefined}
       />
       <Search />
