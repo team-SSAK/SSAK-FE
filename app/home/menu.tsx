@@ -1,49 +1,14 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
-
-import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
-
-//////////////////////////////////////////////////////
-// 타입
-//////////////////////////////////////////////////////
-
-interface RestaurantWishResponse {
-  restaurantWishId: number;
-  restaurantId: number;
-  restaurantName: string;
-  restaurantLocation: string;
-  restaurantImgUrl: string;
-}
-
-//////////////////////////////////////////////////////
-// 페이지
-//////////////////////////////////////////////////////
+import { MOCK_RESTAURANTS } from "../../constants/mock-data";
 
 export default function Menu() {
-  const { data } = useRestaurantWish();
   const { restaurantId } = useLocalSearchParams<{ restaurantId?: string }>();
-
-  const restaurants = useMemo(() => {
-    if (!Array.isArray(data)) return [];
-
-    return data.map((item: RestaurantWishResponse) => ({
-      id: item.restaurantId,
-      name: item.restaurantName,
-      address: item.restaurantLocation,
-      image: item.restaurantImgUrl,
-    }));
-  }, [data]);
-
-  const selectedRestaurantId =
-    typeof restaurantId === "string" ? Number(restaurantId) : NaN;
-
-  const selectedRestaurant = useMemo(
-    () =>
-      restaurants.find((restaurant) => restaurant.id === selectedRestaurantId),
-    [restaurants, selectedRestaurantId],
-  );
+  const selectedRestaurant =
+    MOCK_RESTAURANTS.find(
+      (restaurant) => String(restaurant.id) === String(restaurantId ?? ""),
+    ) ?? MOCK_RESTAURANTS[0];
 
   return (
     <View className="flex-1 bg-white">
@@ -63,7 +28,7 @@ export default function Menu() {
             </Text>
           </View>
           <Text className="justify-start text-gray-800 text-xl font-semibold leading-8">
-            {selectedRestaurant?.name ?? "식당 정보"}
+            {selectedRestaurant.name}
           </Text>
           <View className="flex flex-row mt-2.5 ">
             <View className="flex flex-col gap-1 mr-[19px]">
@@ -76,10 +41,10 @@ export default function Menu() {
             </View>
             <View className="flex flex-col gap-1">
               <Text className="text-gray-600 text-sm font-semibold leading-6 line-clamp-2">
-                {selectedRestaurant?.address ?? "식당 주소"}
+                {selectedRestaurant.address}
               </Text>
               <Text className="text-gray-600 text-sm font-semibold leading-6 line-clamp-2">
-                07:00 - 21:30
+                {selectedRestaurant.hours}
               </Text>
             </View>
           </View>
@@ -88,10 +53,10 @@ export default function Menu() {
         <View className="self-stretch pl-3 pr-16 pt-2.5 pb-4 bg-slate-100 rounded-[10px] flex-row justify-start items-start gap-2.5 mt-5">
           <View className="w-20 flex-col justify-start items-start gap-2">
             <Text className="self-stretch text-slate-800 text-sm font-semibold leading-6">
-              조식
+              {selectedRestaurant.mealType}
             </Text>
             <Text className="self-stretch text-slate-400 text-sm font-medium leading-6">
-              돌솥 비빔밥 고추장 비빔밥 미역국 정식 제육볶음 기본 김밥
+              {selectedRestaurant.menu}
             </Text>
           </View>
         </View>

@@ -1,13 +1,10 @@
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
-import {
-  getCoupons,
-  postCouponWish,
-} from "../../src/services/mypage/coupons.service";
+import { MOCK_COUPONS } from "../../constants/mock-data";
 
 interface CouponCardProps {
   storeName?: string;
@@ -112,63 +109,11 @@ const TabBar = ({ activeTab, onTabChange }: TabBarProps) => {
 interface CouponItem {
   id: number;
   used: boolean;
+  wished?: boolean;
   storeName: string;
   title: string;
   price: string;
   image?: string;
-}
-
-{
-  /*const COUPONS: CouponItem[] = [
-  {
-    id: 0,
-    used: false,
-    storeName: "GS25",
-    title: "GS25 새콤달콤 포도맛 15% 할인 쿠폰",
-    price: "200P",
-    image: "https://via.placeholder.com/150",
-  },
-  {
-    id: 1,
-    used: true,
-    storeName: "CU",
-    title: "CU 아메리카노 20% 할인 쿠폰",
-    price: "150P",
-    image: "https://via.placeholder.com/150",
-  },
-  {
-    id: 2,
-    used: false,
-    storeName: "스타벅스",
-    title: "스타벅스 카라멜 마키아토 10% 할인 쿠폰",
-    price: "300P",
-    image: "https://via.placeholder.com/150",
-  },
-  {
-    id: 3,
-    used: true,
-    storeName: "맥도날드",
-    title: "맥도날드 빅맥 세트 15% 할인 쿠폰",
-    price: "500P",
-    image: "https://via.placeholder.com/150",
-  },
-  {
-    id: 4,
-    used: false,
-    storeName: "올리브영",
-    title: "올리브영 스킨케어 10% 할인 쿠폰",
-    price: "100P",
-    image: "https://via.placeholder.com/150",
-  },
-  {
-    id: 5,
-    used: false,
-    storeName: "배달의민족",
-    title: "배달의민족 치킨 3,000원 할인 쿠폰",
-    price: "400P",
-    image: "https://via.placeholder.com/150",
-  },
-];*/
 }
 
 const EMPTY_MESSAGES: Record<TabType, string> = {
@@ -182,65 +127,15 @@ export default function Coupon() {
   const [selectedCoupons, setSelectedCoupons] = useState<
     Record<number, boolean>
   >({});
-  const [coupons, setCoupons] = useState<CouponItem[]>([]);
-  const [allCoupons, setAllCoupons] = useState<CouponItem[]>([]); // fallback
+  const coupons: CouponItem[] = MOCK_COUPONS;
+  const filteredCoupons = coupons.filter((coupon) => {
+    if (activeTab === "사용 가능") return !coupon.used;
+    if (activeTab === "사용 완료") return coupon.used;
+    return !!coupon.wished;
+  });
 
-  useEffect(() => {
-    const fetchCoupons = async () => {
-      try {
-        if (activeTab === "사용 가능") {
-          const data = await getCoupons("ISSUED");
-          console.log("API 응답:", data);
-          const transformed = data.map((item: any) => ({
-            id: item.couponHistId,
-            used: false,
-            storeName: item.couponStore,
-            title: item.couponNm,
-            price: item.couponPoint + "P",
-            image: item.couponImgUrl,
-          }));
-          setCoupons(transformed);
-          setAllCoupons(transformed);
-        } else if (activeTab === "사용 완료") {
-          const data = await getCoupons("USED");
-          console.log("API 응답:", data);
-          const transformed = data.map((item: any) => ({
-            id: item.couponHistId,
-            used: true,
-            storeName: item.couponStore,
-            title: item.couponNm,
-            price: item.couponPoint + "P",
-            image: item.couponImgUrl,
-          }));
-          setCoupons(transformed);
-          setAllCoupons(transformed);
-        } else if (activeTab === "찜한 쿠폰") {
-          // 찜한 쿠폰은 선택된 쿠폰들
-          setCoupons(
-            allCoupons.filter((coupon) => !!selectedCoupons[coupon.id]),
-          );
-        }
-      } catch (error) {
-        console.error("쿠폰 로딩 실패:", error);
-        setCoupons([]);
-      }
-    };
-
-    fetchCoupons();
-  }, [activeTab, selectedCoupons, allCoupons]);
-
-  const toggle = async (id: number) => {
-    const isCurrentlySelected = !!selectedCoupons[id];
-
-    try {
-      // 서버가 토글 방식이므로 추가/해제 모두 같은 API 호출
-      await postCouponWish(id);
-
-      // 성공 시 로컬 상태 토글
-      setSelectedCoupons((prev) => ({ ...prev, [id]: !isCurrentlySelected }));
-    } catch (error) {
-      console.error("쿠폰 찜하기/해제 실패:", error);
-    }
+  const toggle = (id: number) => {
+    setSelectedCoupons((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
@@ -259,7 +154,7 @@ export default function Coupon() {
       <ScrollView
         contentContainerStyle={{ paddingVertical: 42, paddingBottom: 140 }}
       >
-        {coupons.length === 0 ? (
+        {filteredCoupons.length === 0 ? (
           <View className="items-center justify-center py-20">
             <Text className="text-slate-300 text-base font-semibold">
               {EMPTY_MESSAGES[activeTab]}
@@ -267,7 +162,7 @@ export default function Coupon() {
           </View>
         ) : (
           <View className="flex-row flex-wrap gap-x-[14px] gap-y-[18px]">
-            {coupons.map((coupon) => (
+            {filteredCoupons.map((coupon) => (
               <View key={coupon.id} className="w-[calc(50%-7px)]">
                 <CouponCard
                   storeName={coupon.storeName}

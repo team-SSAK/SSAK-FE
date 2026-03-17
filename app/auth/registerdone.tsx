@@ -1,10 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronRight from "../../assets/images/chevron-right.svg";
 import RadioButton from "../../assets/images/radio-button.svg";
 import TickCircle from "../../assets/images/tick-circle.svg";
-import { useSignup } from "../../src/hooks/useSignup";
 
 interface CheckboxProps {
   label: string;
@@ -44,15 +43,6 @@ export default function RegisterDone() {
   const name = typeof params.name === "string" ? params.name : "";
 
   /* -----------------------------
-     잘못된 접근 방어
-  ----------------------------- */
-  useEffect(() => {
-    if (!email || !password || !name) {
-      router.replace("/auth/landing");
-    }
-  }, []);
-
-  /* -----------------------------
      약관 상태
   ----------------------------- */
   const [agreeAll, setAgreeAll] = useState(false);
@@ -70,34 +60,6 @@ export default function RegisterDone() {
 
   const syncAll = (privacy: boolean, location: boolean, marketing: boolean) => {
     setAgreeAll(privacy && location && marketing);
-  };
-
-  /* -----------------------------
-     signup 훅
-  ----------------------------- */
-  const { mutate: signupMutate, isPending } = useSignup();
-
-  const isRequiredAgreed = agreePrivacy && agreeLocation;
-
-  const handleSignup = () => {
-    if (!isRequiredAgreed) return;
-
-    signupMutate(
-      {
-        userEmail: email,
-        userPw: password,
-        userNm: name,
-        marketAgreeYn: agreeMarketing,
-      },
-      {
-        onSuccess: () => {
-          router.replace("/auth/landing");
-        },
-        onError: (err: any) => {
-          console.log("Signup error:", err);
-        },
-      },
-    );
   };
 
   return (
@@ -161,20 +123,10 @@ export default function RegisterDone() {
         <View className="h-[34px]" />
 
         {/* 가입 버튼 */}
-        <TouchableOpacity
-          disabled={!isRequiredAgreed || isPending}
-          onPress={handleSignup}
-        >
-          <View
-            className="self-stretch h-[52px] p-3 rounded-xl justify-center items-center"
-            style={{
-              backgroundColor:
-                isRequiredAgreed && !isPending ? "#45B310" : "#94A3B8",
-              opacity: isRequiredAgreed && !isPending ? 1 : 0.6,
-            }}
-          >
+        <TouchableOpacity onPress={() => router.replace("/auth/landing")}>
+          <View className="self-stretch h-[52px] p-3 rounded-xl justify-center items-center bg-[#45B310]">
             <Text className="text-center text-white text-lg font-medium leading-7">
-              {isPending ? "가입 중..." : "가입 완료"}
+              가입 완료
             </Text>
           </View>
         </TouchableOpacity>

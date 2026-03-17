@@ -1,7 +1,6 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   Platform,
   TextInput as RNTextInput,
   Text,
@@ -13,12 +12,6 @@ import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
 import PopUp from "../../components/popup";
 import StepIndicator from "../../components/stepindicator";
-import client from "../../src/lib/api/client";
-
-interface ResetpwRequest {
-  email: string;
-  newPassword: string;
-}
 
 interface PWInputProps {
   placeholder: string;
@@ -68,51 +61,22 @@ function PWInput({
 }
 
 export default function FoundPWPW() {
-  const { email } = useLocalSearchParams<{ email: string }>();
-
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const isButtonEnabled =
-    password.length > 0 && confirmPassword.length > 0 && !loading;
-
-  const resetpw = async (request: ResetpwRequest): Promise<void> => {
-    await client.post("/api/auth/reset-password", request);
-  };
-
-  const handleNext = async () => {
-    if (password !== confirmPassword) {
+  const handleNext = () => {
+    if (
+      password.length > 0 &&
+      confirmPassword.length > 0 &&
+      password !== confirmPassword
+    ) {
       setPopupMessage("입력된 비밀번호가 일치한지 확인해주세요");
       setShowPopup(true);
       return;
     }
-
-    if (!email) {
-      setPopupMessage("이메일 정보가 없습니다. 처음부터 다시 진행해주세요.");
-      setShowPopup(true);
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      await resetpw({
-        email,
-        newPassword: password,
-      });
-
-      router.replace("/auth/landing?showPopup=true&type=password");
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message || "비밀번호 재설정에 실패했습니다.";
-      setPopupMessage(message);
-      setShowPopup(true);
-    } finally {
-      setLoading(false);
-    }
+    router.replace("/auth/landing");
   };
 
   return (
@@ -162,19 +126,10 @@ export default function FoundPWPW() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          disabled={!isButtonEnabled}
           onPress={handleNext}
-          className="flex-1 h-[52px] rounded-xl items-center justify-center"
-          style={{
-            backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
-            opacity: isButtonEnabled ? 1 : 0.5,
-          }}
+          className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
         >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text className="text-white text-lg font-medium">다음</Text>
-          )}
+          <Text className="text-white text-lg font-medium">다음</Text>
         </TouchableOpacity>
       </View>
 

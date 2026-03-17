@@ -1,6 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import {
   Platform,
@@ -14,39 +12,6 @@ import Apple from "../../assets/images/Apple.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
 import Google from "../../assets/images/google.svg";
-import client from "../../src/lib/api/client";
-import {
-  getAccessToken,
-  setAccessToken,
-  setRefreshToken,
-} from "../../src/utils/storage";
-
-/* ================= OAuth URLs ================= */
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
-
-const GOOGLE_OAUTH_URL = `${API_BASE_URL}/oauth2/authorization/google`;
-const KAKAO_OAUTH_URL = `${API_BASE_URL}/oauth2/authorization/kakao`;
-/* ============================================== */
-
-/* ================= Login API ================== */
-interface LoginRequest {
-  userEmail: string;
-  userPw: string;
-}
-
-const login = async (request: LoginRequest) => {
-  const res = await client.post("/api/auth/login", request);
-
-  const accessToken = res.data.accessToken;
-  const refreshToken = res.data.refreshToken;
-
-  // 토큰 저장
-  if (accessToken) await setAccessToken(accessToken);
-  if (refreshToken) await setRefreshToken(refreshToken);
-
-  return res.data;
-};
-/* ============================================== */
 
 interface IDInputProps {
   placeholder: string;
@@ -83,7 +48,7 @@ function PWInput({ placeholder, onChangeText, value }: PWInputProps) {
     <View className="self-stretch p-4 bg-gray-100 rounded-lg justify-between items-center flex flex-row">
       <RNTextInput
         placeholder={placeholder}
-        placeholderTextColor="#6B7280"
+        placeholderTextColor="#94A3B8"
         className="text-gray-900 font-medium leading-6 flex-1"
         secureTextEntry={!isPasswordVisible}
         onChangeText={onChangeText}
@@ -104,57 +69,6 @@ function PWInput({ placeholder, onChangeText, value }: PWInputProps) {
 export default function Landing() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const isLoginEnabled = email.length > 7 && password.length > 7;
-
-  /* ============ Login Mutation ============ */
-  const { mutate: loginMutate, isPending } = useMutation({
-    mutationFn: (payload: LoginRequest) => login(payload),
-
-    // 로그인 성공 후 토큰 확인 + 이동
-    onSuccess: async () => {
-      const token = await getAccessToken();
-      console.log("저장된 토큰:", token);
-
-      router.replace("/home/home");
-    },
-
-    onError: (err: any) => {
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "로그인에 실패했습니다.";
-      setErrorMsg(msg);
-    },
-  });
-  /* ======================================== */
-
-  const onLogin = () => {
-    setErrorMsg(null);
-    loginMutate({
-      userEmail: email,
-      userPw: password,
-    });
-  };
-
-  /* ============ OAuth Handlers ============ */
-  const openOAuth = async (url: string) => {
-    if (!API_BASE_URL) {
-      console.error("API_BASE_URL is not defined");
-      return;
-    }
-
-    if (Platform.OS === "web") {
-      window.location.href = url;
-    } else {
-      await WebBrowser.openBrowserAsync(url);
-    }
-  };
-
-  const onGoogleLogin = () => openOAuth(GOOGLE_OAUTH_URL);
-  const onKakaoLogin = () => openOAuth(KAKAO_OAUTH_URL);
-  /* ======================================== */
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-center p-4">
@@ -176,21 +90,15 @@ export default function Landing() {
           onChangeText={setPassword}
           value={password}
         />
-        {errorMsg && (
-          <Text className="text-red-600 text-sm mt-1">{errorMsg}</Text>
-        )}
       </View>
 
       {/* 로그인 버튼 */}
       <TouchableOpacity
-        disabled={!isLoginEnabled || isPending}
-        onPress={onLogin}
-        className={`self-stretch h-[52px] px-4 rounded-xl justify-center my-[18px] ${
-          isLoginEnabled ? "bg-[#45B310]" : "bg-gray-500"
-        }`}
+        onPress={() => router.replace("/home/home")}
+        className="self-stretch h-[52px] px-4 rounded-xl justify-center my-[18px] bg-[#45B310]"
       >
         <Text className="text-center text-white text-lg font-medium">
-          {isPending ? "로그인 중..." : "로그인하기"}
+          로그인하기
         </Text>
       </TouchableOpacity>
 
@@ -208,7 +116,7 @@ export default function Landing() {
       {/* OAuth Buttons */}
       <View className="self-stretch flex flex-row gap-3 justify-center items-center">
         <TouchableOpacity
-          onPress={onGoogleLogin}
+          onPress={() => router.replace("/home/home")}
           className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow flex justify-center items-center"
         >
           <Google width={16} height={16} />
@@ -219,7 +127,7 @@ export default function Landing() {
         </View>
 
         <TouchableOpacity
-          onPress={onKakaoLogin}
+          onPress={() => router.replace("/home/home")}
           className="w-28 h-12 px-7 py-3 bg-yellow-400 rounded-3xl shadow flex justify-center items-center"
         >
           <Text className="text-zinc-900 text-sm font-semibold">KaKao</Text>

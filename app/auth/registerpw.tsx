@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from "expo-router";
+﻿import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   Platform,
@@ -10,7 +10,6 @@ import {
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
-import PopUp from "../../components/popup";
 import StepIndicator from "../../components/stepindicator";
 
 interface PWInputProps {
@@ -51,17 +50,9 @@ function PWInput({
         disabled={disabled}
       >
         {isPasswordVisible ? (
-          <Eye
-            width={20}
-            height={20}
-            color={disabled ? "#94A3B8" : "#94A3B8"}
-          />
+          <Eye width={20} height={20} color="#94A3B8" />
         ) : (
-          <EyeOff
-            width={20}
-            height={20}
-            color={disabled ? "#94A3B8" : "#94A3B8"}
-          />
+          <EyeOff width={20} height={20} color="#94A3B8" />
         )}
       </TouchableOpacity>
     </View>
@@ -71,23 +62,6 @@ function PWInput({
 export default function RegisterPW() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPopup, setShowPopup] = useState(false);
-
-  const isButtonEnabled = password.length > 0 && confirmPassword.length > 0;
-
-  const handleNext = () => {
-    if (password !== confirmPassword) {
-      setShowPopup(true);
-    } else {
-      router.push({
-        pathname: "/auth/registername",
-        params: {
-          email,
-          password,
-        },
-      });
-    }
-  };
 
   const { email } = useLocalSearchParams<{ email: string }>();
 
@@ -95,7 +69,7 @@ export default function RegisterPW() {
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
       <View className="flex flex-col">
         <View className="py-4 flex-row gap-2 justify-start items-center mb-10">
-          <TouchableOpacity onPress={() => router.push("/auth/landing")}>
+          <TouchableOpacity onPress={() => router.back()}>
             <ChevronLeft />
           </TouchableOpacity>
           <Text className="self-stretch text-gray-800 text-xl font-semibold leading-8">
@@ -124,7 +98,6 @@ export default function RegisterPW() {
       </View>
 
       <View className="w-full flex-row gap-2.5 px-4 py-2.5">
-        {/* 이전: 고정폭 */}
         <TouchableOpacity
           onPress={() => router.back()}
           className="h-[52px] px-9 rounded-xl bg-slate-100 items-center justify-center"
@@ -132,27 +105,21 @@ export default function RegisterPW() {
           <Text className="text-slate-900 text-lg font-medium">이전</Text>
         </TouchableOpacity>
 
-        {/* 다음: flex-1 */}
         <TouchableOpacity
-          disabled={!isButtonEnabled}
-          onPress={handleNext}
-          className="flex-1 h-[52px] rounded-xl items-center justify-center"
-          style={{
-            backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
-            opacity: isButtonEnabled ? 1 : 0.5,
-          }}
+          onPress={() =>
+            router.push({
+              pathname: "/auth/registername",
+              params: {
+                email: email || "test@test.com",
+                password: password || "testpass",
+              },
+            })
+          }
+          className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
         >
           <Text className="text-white text-lg font-medium">다음</Text>
         </TouchableOpacity>
       </View>
-
-      {showPopup && (
-        <PopUp
-          title="비밀번호가 일치하지 않습니다"
-          message="입력된 비밀번호가 일치한지 확인해주세요"
-          onClose={() => setShowPopup(false)}
-        />
-      )}
     </View>
   );
 }

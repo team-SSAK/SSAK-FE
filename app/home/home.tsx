@@ -20,12 +20,8 @@ import TopGradientSVG from "../../assets/images/TopGradient.svg";
 
 import { BottomNav } from "../../components/bottomnav";
 
-import { useCoupons } from "@/src/hooks/useCoupons";
 import AnouncementCard from "../../components/anouncementcard";
-import { useMe } from "../../src/hooks/useMe";
-import { usePoint } from "../../src/hooks/usePoint";
-import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
-import { postCouponWish } from "../../src/services/mypage/coupons.service";
+import { MOCK_RESTAURANTS } from "../../constants/mock-data";
 
 const headerImageSource = require("../../assets/images/SSAK.png");
 const headerImageAsset = Asset.fromModule(headerImageSource);
@@ -33,17 +29,6 @@ const headerAspectRatio =
   headerImageAsset.width && headerImageAsset.height
     ? headerImageAsset.width / headerImageAsset.height
     : 1.6;
-//////////////////////////////////////////////////////
-// 타입
-//////////////////////////////////////////////////////
-
-interface RestaurantWishResponse {
-  restaurantWishId: number;
-  restaurantId: number;
-  restaurantName: string;
-  restaurantLocation: string;
-  restaurantImgUrl: string;
-}
 
 //////////////////////////////////////////////////////
 // 식당 배너 (API 기반)
@@ -51,12 +36,12 @@ interface RestaurantWishResponse {
 
 const ResBanner = ({
   name,
-  address,
-  image,
+  mealType,
+  menu,
 }: {
   name: string;
-  address: string;
-  image?: string;
+  mealType: string;
+  menu: string;
 }) => {
   return (
     <View className="w-60 px-4 py-4 bg-slate-100 rounded-2xl gap-5">
@@ -68,10 +53,10 @@ const ResBanner = ({
       </Text>
       <View>
         <Text className="text-gray-800 text-xs font-semibold leading-5">
-          중식
+          {mealType}
         </Text>
         <Text className="text-gray-500 text-xs font-medium" numberOfLines={1}>
-          제육볶음, 쌀밥, 미역국 김치찌개, 요구르트
+          {menu}
         </Text>
       </View>
     </View>
@@ -91,42 +76,7 @@ export default function Main() {
   const newsCards = [1, 2, 3, 4];
   const [newsPage, setNewsPage] = useState(0);
 
-  const [selectedCoupons, setSelectedCoupons] = useState<
-    Record<number, boolean>
-  >({});
-
-  const { me } = useMe();
-  const { point } = usePoint();
-  const { coupons } = useCoupons("ISSUED");
-
-  // 즐겨찾기 식당 (개수 제한 없음)
-  const { data: restaurantData } = useRestaurantWish();
-
-  const restaurants = Array.isArray(restaurantData)
-    ? restaurantData.map((item: RestaurantWishResponse) => ({
-        id: item.restaurantId,
-        name: item.restaurantName,
-        address: item.restaurantLocation,
-        image: item.restaurantImgUrl,
-      }))
-    : [];
-
-  const toggleCouponWish = async (id: number) => {
-    const isCurrentlySelected = !!selectedCoupons[id];
-
-    if (!isCurrentlySelected) {
-      // 찜하기 추가
-      try {
-        await postCouponWish(id);
-        setSelectedCoupons((prev) => ({ ...prev, [id]: true }));
-      } catch (error) {
-        console.error("쿠폰 찜하기 실패:", error);
-      }
-    } else {
-      // 찜하기 해제 (로컬에서만 처리)
-      setSelectedCoupons((prev) => ({ ...prev, [id]: false }));
-    }
-  };
+  const restaurants = MOCK_RESTAURANTS;
 
   const handleNewsScrollEnd = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
@@ -240,8 +190,8 @@ export default function Main() {
               >
                 <ResBanner
                   name={restaurant.name}
-                  address={restaurant.address}
-                  image={restaurant.image}
+                  mealType={restaurant.mealType}
+                  menu={restaurant.menu}
                 />
               </TouchableOpacity>
             ))}

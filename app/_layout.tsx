@@ -6,6 +6,27 @@ import { useEffect, useMemo } from "react";
 import { Text, TextInput } from "react-native";
 import "./global.css";
 
+let typographyDefaultsApplied = false;
+
+function applyGlobalTypographyDefaults() {
+  if (typographyDefaultsApplied) {
+    return;
+  }
+  typographyDefaultsApplied = true;
+
+  const textDefaults = (Text as any).defaultProps || {};
+  (Text as any).defaultProps = {
+    ...textDefaults,
+    style: [textDefaults.style, { fontFamily: "Pretendard-Variable" }],
+  };
+
+  const textInputDefaults = (TextInput as any).defaultProps || {};
+  (TextInput as any).defaultProps = {
+    ...textInputDefaults,
+    style: [textInputDefaults.style, { fontFamily: "Pretendard-Variable" }],
+  };
+}
+
 export default function RootLayout() {
   const queryClient = useMemo(() => new QueryClient(), []);
 
@@ -48,18 +69,7 @@ export default function RootLayout() {
     return null;
   }
 
-  // 전역 기본 폰트 설정 (Text, TextInput)
-  (Text as any).defaultProps = (Text as any).defaultProps || {};
-  (Text as any).defaultProps.style = [
-    (Text as any).defaultProps.style,
-    { fontFamily: "Pretendard-Variable" },
-  ];
-
-  (TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
-  (TextInput as any).defaultProps.style = [
-    (TextInput as any).defaultProps.style,
-    { fontFamily: "Pretendard-Variable" },
-  ];
+  applyGlobalTypographyDefaults();
 
   return (
     <QueryClientProvider client={queryClient}>

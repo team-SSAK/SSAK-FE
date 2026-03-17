@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
@@ -7,19 +7,7 @@ import Heart from "../../assets/images/heart.svg";
 import Map from "../../assets/images/map.svg";
 
 import SearchInput from "../../components/searchinput";
-import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
-
-//////////////////////////////////////////////////////
-// 타입
-//////////////////////////////////////////////////////
-
-interface RestaurantWishResponse {
-  restaurantWishId: number;
-  restaurantId: number;
-  restaurantName: string;
-  restaurantLocation: string;
-  restaurantImgUrl: string;
-}
+import { MOCK_RESTAURANTS } from "../../constants/mock-data";
 
 interface ResCardProps {
   name?: string;
@@ -88,47 +76,18 @@ function ResCard({
 // 빈 메시지
 //////////////////////////////////////////////////////
 
-const EMPTY_MESSAGES = {
-  restaurant: "즐겨찾기한 식당이 없습니다.",
-};
-
-//////////////////////////////////////////////////////
-// 페이지
-//////////////////////////////////////////////////////
-
 export default function Restaurant() {
-  const { data } = useRestaurantWish();
-
-  const restaurants = useMemo(() => {
-    if (!Array.isArray(data)) return [];
-
-    return data.map((item: RestaurantWishResponse) => ({
-      id: item.restaurantId,
-      name: item.restaurantName,
-      address: item.restaurantLocation,
-      image: item.restaurantImgUrl,
-    }));
-  }, [data]);
-
-  // 기본값: 전부 채워진 하트
+  const restaurants = MOCK_RESTAURANTS;
   const [selectedRestaurants, setSelectedRestaurants] = useState<
     Record<number, boolean>
-  >({});
-
-  useEffect(() => {
-    if (restaurants.length > 0) {
-      const initialState = Object.fromEntries(
-        restaurants.map((r) => [r.id, true]),
-      );
-      setSelectedRestaurants(initialState);
-    }
-  }, [restaurants]);
+  >(() =>
+    Object.fromEntries(
+      MOCK_RESTAURANTS.map((restaurant) => [restaurant.id, true]),
+    ),
+  );
 
   const toggle = (id: number) => {
-    setSelectedRestaurants((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+    setSelectedRestaurants((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
@@ -170,30 +129,22 @@ export default function Restaurant() {
           gap: 6,
         }}
       >
-        {restaurants.length === 0 ? (
-          <View className="flex-1 items-center justify-center mt-20">
-            <Text className="text-slate-300 text-base font-semibold">
-              {EMPTY_MESSAGES.restaurant}
-            </Text>
-          </View>
-        ) : (
-          restaurants.map((restaurant) => (
-            <ResCard
-              key={restaurant.id}
-              name={restaurant.name}
-              address={restaurant.address}
-              image={restaurant.image}
-              selected={!!selectedRestaurants[restaurant.id]}
-              onToggle={() => toggle(restaurant.id)}
-              onPress={() =>
-                router.push({
-                  pathname: "/home/restaurantdetail",
-                  params: { restaurantId: String(restaurant.id) },
-                })
-              }
-            />
-          ))
-        )}
+        {restaurants.map((restaurant) => (
+          <ResCard
+            key={restaurant.id}
+            name={restaurant.name}
+            address={restaurant.address}
+            image={restaurant.image}
+            selected={!!selectedRestaurants[restaurant.id]}
+            onToggle={() => toggle(restaurant.id)}
+            onPress={() =>
+              router.push({
+                pathname: "/home/restaurantdetail",
+                params: { restaurantId: String(restaurant.id) },
+              })
+            }
+          />
+        ))}
       </ScrollView>
 
       {/* 하단 그라디언트 */}
