@@ -1,15 +1,68 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronRightG from "../../assets/images/chevron-right-gray.svg";
-import HeartFilled from "../../assets/images/heart-filled.svg";
-import Heart from "../../assets/images/heart.svg";
 import Map from "../../assets/images/map.svg";
 
-import MockPost from "../../components/mockpost";
+import Post from "../../components/post";
 
+import { useCommunity, useDeleteCommunity } from "../../src/hooks/useCommunity";
+import { useMe } from "../../src/hooks/useMe";
+import { useReport } from "../../src/hooks/useReport";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
+
+function Popup({
+  title = "이미 신고된 글입니다",
+  description = "현재 검토가 진행중입니다",
+  onCancel,
+  onConfirm,
+  visible = false,
+}: {
+  title?: string;
+  description?: string;
+  onCancel?: () => void;
+  onConfirm?: () => void;
+  visible?: boolean;
+}) {
+  return (
+    <Modal transparent visible={visible}>
+      <View
+        className="flex-1 justify-center items-center"
+        style={{ backgroundColor: "rgba(0,0,0,0.1)" }}
+      >
+        <View className="w-72 p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
+          <View className="self-stretch flex-col justify-start items-start gap-1">
+            <Text className="self-stretch text-slate-800 text-lg font-semibold leading-7">
+              {title}
+            </Text>
+            <Text className="self-stretch text-slate-500 text-sm font-medium leading-6">
+              {description}
+            </Text>
+          </View>
+
+          <View className="self-stretch flex-row justify-start items-center gap-2">
+            <TouchableOpacity
+              onPress={onConfirm}
+              className="flex-1 h-10 px-2 py-2 bg-green-400 rounded-[10px] justify-center items-center"
+            >
+              <Text className="text-white text-base font-medium leading-6">
+                확인
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 //////////////////////////////////////////////////////
 // 타입
@@ -21,61 +74,7 @@ interface RestaurantWishResponse {
   restaurantName: string;
   restaurantLocation: string;
   restaurantImgUrl: string;
-}
-
-interface ResCardProps {
-  name?: string;
-  address?: string;
-  image?: string;
-  selected?: boolean;
-  onToggle?: () => void;
-}
-
-//////////////////////////////////////////////////////
-// 카드 컴포넌트
-//////////////////////////////////////////////////////
-
-function ResCard({
-  name,
-  address,
-  image,
-  selected = true,
-  onToggle,
-}: ResCardProps) {
-  return (
-    <View className="self-stretch p-4 bg-slate-100 rounded-[10px] flex-col">
-      <View className="flex-row gap-4">
-        {image ? (
-          <Image
-            source={{ uri: image }}
-            className="w-20 h-20 rounded-lg"
-            resizeMode="cover"
-          />
-        ) : (
-          <View className="w-20 h-20 rounded-lg bg-slate-200" />
-        )}
-
-        <View className="flex-1 flex-col gap-0.5">
-          <Text
-            className="text-slate-900 text-base font-semibold"
-            numberOfLines={1}
-          >
-            {name}
-          </Text>
-          <Text
-            className="text-slate-400 text-xs font-semibold"
-            numberOfLines={2}
-          >
-            {address}
-          </Text>
-        </View>
-
-        <TouchableOpacity onPress={onToggle} className="w-7 h-7 items-end">
-          {selected ? <HeartFilled /> : <Heart />}
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  restaurantType?: string | null;
 }
 
 //////////////////////////////////////////////////////
@@ -84,7 +83,12 @@ function ResCard({
 
 export default function RestaurantDetail() {
   const { data } = useRestaurantWish();
-  const { restaurantId } = useLocalSearchParams<{ restaurantId?: string }>();
+  const { restaurantId, restaurantImage, restaurantType } =
+    useLocalSearchParams<{
+      restaurantId?: string;
+      restaurantImage?: string;
+      restaurantType?: string;
+    }>();
 
   const restaurants = useMemo(() => {
     if (!Array.isArray(data)) return [];
@@ -94,6 +98,7 @@ export default function RestaurantDetail() {
       name: item.restaurantName,
       address: item.restaurantLocation,
       image: item.restaurantImgUrl,
+      type: item.restaurantType ?? null,
     }));
   }, [data]);
 
@@ -105,6 +110,67 @@ export default function RestaurantDetail() {
       restaurants.find((restaurant) => restaurant.id === selectedRestaurantId),
     [restaurants, selectedRestaurantId],
   );
+
+  const detailImage =
+    typeof restaurantImage === "string" && restaurantImage.length > 0
+      ? restaurantImage
+      : selectedRestaurant?.image;
+
+  const selectedRestaurantType =
+    restaurantType === "null"
+      ? null
+      : typeof restaurantType === "string" && restaurantType.length > 0
+        ? restaurantType
+        : (selectedRestaurant?.type ?? null);
+
+  const restaurantTypeLabel =
+    selectedRestaurantType === null ? "자율배식형" : selectedRestaurantType;
+
+  const { data: communityPosts = [] } = useCommunity(restaurantId);
+  const { mutate: deletePost } = useDeleteCommunity();
+  const { mutate: reportPost } = useReport();
+  const { me } = useMe();
+  const [showReportPopup, setShowReportPopup] = useState(false);
+
+  const isDuplicateReportError = (error: unknown) => {
+    const err = error as {
+      response?: { status?: number; data?: { message?: string } };
+      message?: string;
+    };
+
+    const responseMessage = err.response?.data?.message ?? "";
+    const fallbackMessage = err.message ?? "";
+
+    return (
+      err.response?.status === 409 ||
+      responseMessage.includes("이미 신고") ||
+      fallbackMessage.includes("이미 신고")
+    );
+  };
+
+  const visibleCommunityPosts = useMemo(() => {
+    const myNickname = (me?.userNm ?? "").trim();
+
+    return communityPosts.filter((post) => {
+      const isMine =
+        myNickname.length > 0 && post.nickname.trim() === myNickname;
+      return post.postVisibility || isMine;
+    });
+  }, [communityPosts, me?.userNm]);
+
+  const formatPostDate = (isoDate: string) => {
+    const date = new Date(isoDate);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    const yy = String(date.getFullYear()).slice(-2);
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+
+    return `${yy}.${mm}.${dd}`;
+  };
 
   // 기본값: 전부 채워진 하트
   const [selectedRestaurants, setSelectedRestaurants] = useState<
@@ -160,15 +226,24 @@ export default function RestaurantDetail() {
           </TouchableOpacity>
         </View>
 
-        <View
-          className="h-[196px] bg-gray-400"
-          style={{ marginHorizontal: -16 }}
-        />
+        {detailImage ? (
+          <Image
+            source={{ uri: detailImage }}
+            className="h-[196px]"
+            style={{ marginHorizontal: -16 }}
+            resizeMode="cover"
+          />
+        ) : (
+          <View
+            className="h-[196px] bg-gray-400"
+            style={{ marginHorizontal: -16 }}
+          />
+        )}
 
         <View className="pt-4 flex flex-col">
           <View className="self-start px-2.5 py-0.5 bg-green-300 rounded-md justify-center items-center mb-1 ">
             <Text className="text-white text-xs font-semibold leading-5">
-              자율배식형
+              {restaurantTypeLabel}
             </Text>
           </View>
           <Text className="justify-start text-gray-800 text-xl font-semibold leading-8">
@@ -250,13 +325,86 @@ export default function RestaurantDetail() {
             식당 커뮤니티
           </Text>
 
-          <TouchableOpacity onPress={() => router.push("/home/community")}>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/home/community",
+                params:
+                  typeof restaurantId === "string" ? { restaurantId } : {},
+              })
+            }
+          >
             <ChevronRightG />
           </TouchableOpacity>
         </View>
-        <MockPost onPress={() => router.push("/home/post")} />
-        <MockPost showBadge={false} onPress={() => router.push("/home/post")} />
-        <MockPost showBadge={false} onPress={() => router.push("/home/post")} />
+        {visibleCommunityPosts.map((post) => (
+          <Post
+            key={post.postId}
+            showBadge={!post.postVisibility}
+            badge="비공개"
+            author={post.nickname}
+            title={post.postTitle}
+            content={post.postContent}
+            image={post.imageUrls?.[0]}
+            likedPostId={post.postId}
+            likeCount={post.postLikeCnt}
+            commentCount={post.postCommentCnt}
+            date={formatPostDate(post.postCreateTime)}
+            isMine={post.nickname.trim() === (me?.userNm ?? "").trim()}
+            onDeletePress={() => {
+              if (!restaurantId) return;
+              deletePost({
+                postId: post.postId,
+                restaurantId,
+              });
+            }}
+            onEditPress={() => {
+              router.push({
+                pathname: "/home/writepost",
+                params: {
+                  restaurantId: String(restaurantId ?? ""),
+                  postId: String(post.postId),
+                  postTitle: post.postTitle ?? "",
+                  postContent: post.postContent,
+                  postVisibility: String(post.postVisibility),
+                  postImages: JSON.stringify(post.imageUrls ?? []),
+                },
+              });
+            }}
+            onReportPress={() => {
+              reportPost(
+                {
+                  postId: post.postId,
+                  reportContent: post.postContent,
+                },
+                {
+                  onError: (error) => {
+                    if (isDuplicateReportError(error)) {
+                      setShowReportPopup(true);
+                    }
+                  },
+                },
+              );
+            }}
+            onPress={() =>
+              router.push({
+                pathname: "/home/post",
+                params: {
+                  postId: String(post.postId),
+                  restaurantId: String(restaurantId ?? ""),
+                  postTitle: post.postTitle ?? "",
+                  postContent: post.postContent,
+                  nickname: post.nickname,
+                  postCreateTime: post.postCreateTime,
+                  postLikeCnt: String(post.postLikeCnt),
+                  postCommentCnt: String(post.postCommentCnt),
+                  postImage: post.imageUrls?.[0] ?? "",
+                  postImages: JSON.stringify(post.imageUrls ?? []),
+                },
+              })
+            }
+          />
+        ))}
       </ScrollView>
 
       {/* 하단 그라디언트 */}
@@ -274,6 +422,11 @@ export default function RestaurantDetail() {
           </View>
         </TouchableOpacity>
       </View>
+
+      <Popup
+        visible={showReportPopup}
+        onConfirm={() => setShowReportPopup(false)}
+      />
     </View>
   );
 }

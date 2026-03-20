@@ -9,6 +9,20 @@ export const getRestaurantWish = async () => {
 };
 
 /**
+ * 식당 찜하기 API
+ *
+ * POST /api/restaurants/wish
+
+
+export const postRestaurantWish = async (couponId: number) => {
+  const res = await client.post("/api/restaurants/wish", {
+    wishRestaurantId: restaurantId,
+  });
+
+  return res.data;
+}; */
+
+/**
  * 쿠폰 찜하기 API
  *
  * POST /api/coupons/my/wish

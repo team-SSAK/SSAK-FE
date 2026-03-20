@@ -160,7 +160,7 @@ export default function Home() {
               </TouchableOpacity>
             </View>
             <View className="flex flex-col gap-[2px]">
-              <Text className="text-white text-xl font-normal leading-8">
+              <Text className="font-jalnangothic text-[22px] leading-[30.8px] text-white">
                 잔반 인증하고
                 {"\n"}
                 함께 싹 틔워요!
@@ -198,9 +198,13 @@ export default function Home() {
               <TouchableOpacity
                 key={restaurant.id}
                 onPress={() =>
-                  router.push(
-                    `/home/restaurantdetail?restaurantId=${restaurant.id}`,
-                  )
+                  router.push({
+                    pathname: "/home/restaurantdetail",
+                    params: {
+                      restaurantId: String(restaurant.id),
+                      restaurantImage: restaurant.image ?? "",
+                    },
+                  })
                 }
               >
                 <ResBanner

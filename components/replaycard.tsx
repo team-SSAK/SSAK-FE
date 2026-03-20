@@ -1,5 +1,12 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import {
+  GestureResponderEvent,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import User from "../assets/images/avatar.svg";
+import HeartFilled from "../assets/images/heart-filled.svg";
 import Heart from "../assets/images/lineheart.svg";
 import Reply from "../assets/images/reply.svg";
 
@@ -8,7 +15,8 @@ interface ReplyCardProps {
   content?: string;
   likeCount?: number;
   date?: string;
-  onMenuPress?: () => void;
+  isMine?: boolean;
+  onMenuPress?: (event: GestureResponderEvent) => void;
 }
 
 export default function ReplyCard({
@@ -18,6 +26,9 @@ export default function ReplyCard({
   date = "25.11.14",
   onMenuPress,
 }: ReplyCardProps) {
+  const [isLiked, setIsLiked] = useState(false);
+  const displayedLikeCount = likeCount + (isLiked ? 1 : 0);
+
   return (
     <View className="self-stretch py-3.5 bg-white border-b border-gray-100 flex-row justify-start items-start">
       {/* 들여쓰기 인디케이터 */}
@@ -52,12 +63,20 @@ export default function ReplyCard({
 
         {/* 하단 액션 */}
         <View className="self-stretch flex-row items-center gap-2">
-          <View className="flex-row items-center gap-0.5">
-            <Heart width="20px" height="20px" />
+          <TouchableOpacity
+            onPress={() => setIsLiked((prev) => !prev)}
+            className="flex-row items-center gap-0.5"
+            activeOpacity={0.8}
+          >
+            {isLiked ? (
+              <HeartFilled width="20px" height="20px" />
+            ) : (
+              <Heart width="20px" height="20px" />
+            )}
             <Text className="text-gray-500 text-sm font-medium leading-6">
-              {likeCount}
+              {displayedLikeCount}
             </Text>
-          </View>
+          </TouchableOpacity>
 
           <View className="w-px h-3 bg-gray-300" />
 

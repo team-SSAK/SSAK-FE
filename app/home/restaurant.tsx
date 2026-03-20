@@ -6,20 +6,16 @@ import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
 import Map from "../../assets/images/map.svg";
 
+import { mockrestaurent } from "../../components/mockrestaurent";
 import SearchInput from "../../components/searchinput";
-import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
+import {
+  usePostRestaurantWish,
+  useRestaurant,
+} from "../../src/hooks/useRestaurant";
 
 //////////////////////////////////////////////////////
 // 타입
 //////////////////////////////////////////////////////
-
-interface RestaurantWishResponse {
-  restaurantWishId: number;
-  restaurantId: number;
-  restaurantName: string;
-  restaurantLocation: string;
-  restaurantImgUrl: string;
-}
 
 interface ResCardProps {
   name?: string;
@@ -84,12 +80,18 @@ function ResCard({
   );
 }
 
-//////////////////////////////////////////////////////
-// 빈 메시지
-//////////////////////////////////////////////////////
+const normalizeSearchText = (text: string) =>
+  text.replace(/\s+/g, "").toLowerCase();
 
-const EMPTY_MESSAGES = {
-  restaurant: "즐겨찾기한 식당이 없습니다.",
+const isMatchedKeyword = (text: string, keyword: string) => {
+  const normalizedText = normalizeSearchText(text);
+  const normalizedKeyword = normalizeSearchText(keyword);
+
+  if (!normalizedKeyword) {
+    return true;
+  }
+
+  return normalizedText.includes(normalizedKeyword);
 };
 
 //////////////////////////////////////////////////////
@@ -97,16 +99,21 @@ const EMPTY_MESSAGES = {
 //////////////////////////////////////////////////////
 
 export default function Restaurant() {
-  const { data } = useRestaurantWish();
+  const [activeTab, setActiveTab] = useState<"nearby" | "my">("nearby");
+  const [searchText, setSearchText] = useState("");
+  const { data = [] } = useRestaurant();
+  const { mutateAsync: postRestaurantWish } = usePostRestaurantWish();
 
   const restaurants = useMemo(() => {
-    if (!Array.isArray(data)) return [];
+    const source = data.length === 0 ? mockrestaurent : data;
 
-    return data.map((item: RestaurantWishResponse) => ({
+    return source.map((item) => ({
       id: item.restaurantId,
       name: item.restaurantName,
       address: item.restaurantLocation,
       image: item.restaurantImgUrl,
+      type: item.restaurantType ?? null,
+      wished: item.wished,
     }));
   }, [data]);
 
@@ -118,18 +125,56 @@ export default function Restaurant() {
   useEffect(() => {
     if (restaurants.length > 0) {
       const initialState = Object.fromEntries(
-        restaurants.map((r) => [r.id, true]),
+        restaurants.map((r) => [r.id, r.wished]),
       );
       setSelectedRestaurants(initialState);
     }
   }, [restaurants]);
 
-  const toggle = (id: number) => {
+  const toggle = async (id: number) => {
+    const currentSelected =
+      selectedRestaurants[id] ??
+      restaurants.find((restaurant) => restaurant.id === id)?.wished ??
+      false;
+    const nextSelected = !currentSelected;
+
     setSelectedRestaurants((prev) => ({
       ...prev,
-      [id]: !prev[id],
+      [id]: nextSelected,
     }));
+
+    try {
+      await postRestaurantWish(id);
+    } catch (error) {
+      console.error("식당 찜하기 실패:", error);
+
+      setSelectedRestaurants((prev) => ({
+        ...prev,
+        [id]: currentSelected,
+      }));
+    }
   };
+
+  const tabRestaurants = useMemo(() => {
+    if (activeTab === "nearby") {
+      return restaurants;
+    }
+
+    return restaurants.filter((restaurant) => {
+      const isMyRestaurant =
+        selectedRestaurants[restaurant.id] ?? restaurant.wished;
+
+      return isMyRestaurant;
+    });
+  }, [activeTab, restaurants, selectedRestaurants]);
+
+  const filteredRestaurants = useMemo(() => {
+    return tabRestaurants.filter(
+      (restaurant) =>
+        isMatchedKeyword(restaurant.name, searchText) ||
+        isMatchedKeyword(restaurant.address, searchText),
+    );
+  }, [searchText, tabRestaurants]);
 
   return (
     <View className="flex-1 bg-white px-4 py-[56px]">
@@ -143,24 +188,36 @@ export default function Restaurant() {
             식당 선택하기
           </Text>
         </View>
-        <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
+        <TouchableOpacity onPress={() => router.push("/home/location")}>
           <Map />
         </TouchableOpacity>
       </View>
 
-      <SearchInput placeholder="식당을 검색해주세요." />
+      <SearchInput
+        placeholder="식당을 검색해주세요."
+        value={searchText}
+        onChangeText={setSearchText}
+      />
 
       <View
         className="flex flex-row gap-1.5 items-center"
         style={{ marginTop: 16, marginBottom: 10 }}
       >
-        <Text className="p-2 text-gray-900 text-sm font-semibold leading-6">
-          가까운 식당
-        </Text>
+        <TouchableOpacity onPress={() => setActiveTab("nearby")}>
+          <Text
+            className={`p-2 text-sm font-semibold leading-6 ${activeTab === "nearby" ? "text-gray-900" : "text-gray-400"}`}
+          >
+            가까운 식당
+          </Text>
+        </TouchableOpacity>
         <View className="w-0 h-3 outline outline-[1.20px] outline-offset-[-0.60px] outline-gray-400" />
-        <Text className="p-2 text-gray-400 text-sm font-semibold leading-6">
-          내 식당
-        </Text>
+        <TouchableOpacity onPress={() => setActiveTab("my")}>
+          <Text
+            className={`p-2 text-sm font-semibold leading-6 ${activeTab === "my" ? "text-gray-900" : "text-gray-400"}`}
+          >
+            내 식당
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* 내용 */}
@@ -170,30 +227,29 @@ export default function Restaurant() {
           gap: 6,
         }}
       >
-        {restaurants.length === 0 ? (
-          <View className="flex-1 items-center justify-center mt-20">
-            <Text className="text-slate-300 text-base font-semibold">
-              {EMPTY_MESSAGES.restaurant}
-            </Text>
-          </View>
-        ) : (
-          restaurants.map((restaurant) => (
-            <ResCard
-              key={restaurant.id}
-              name={restaurant.name}
-              address={restaurant.address}
-              image={restaurant.image}
-              selected={!!selectedRestaurants[restaurant.id]}
-              onToggle={() => toggle(restaurant.id)}
-              onPress={() =>
-                router.push({
-                  pathname: "/home/restaurantdetail",
-                  params: { restaurantId: String(restaurant.id) },
-                })
-              }
-            />
-          ))
-        )}
+        {filteredRestaurants.map((restaurant) => (
+          <ResCard
+            key={restaurant.id}
+            name={restaurant.name}
+            address={restaurant.address}
+            image={restaurant.image}
+            selected={!!selectedRestaurants[restaurant.id]}
+            onToggle={() => {
+              void toggle(restaurant.id);
+            }}
+            onPress={() =>
+              router.push({
+                pathname: "/home/restaurantdetail",
+                params: {
+                  restaurantId: String(restaurant.id),
+                  restaurantImage: restaurant.image ?? "",
+                  restaurantType:
+                    restaurant.type === null ? "null" : restaurant.type,
+                },
+              })
+            }
+          />
+        ))}
       </ScrollView>
 
       {/* 하단 그라디언트 */}
