@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import {
+  GestureResponderEvent,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import User from "../assets/images/avatar.svg";
 import HeartFilled from "../assets/images/heart-filled.svg";
 import Heart from "../assets/images/lineheart.svg";
@@ -10,7 +15,8 @@ interface ReplyCardProps {
   content?: string;
   likeCount?: number;
   date?: string;
-  onMenuPress?: () => void;
+  isMine?: boolean;
+  onMenuPress?: (event: GestureResponderEvent) => void;
 }
 
 export default function ReplyCard({

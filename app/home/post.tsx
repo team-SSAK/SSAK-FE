@@ -4,7 +4,9 @@ import {
   Dimensions,
   GestureResponderEvent,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -24,10 +26,11 @@ import Message from "../../assets/images/message.svg";
 import CommentCard from "../../components/commentcard";
 import ReplyCard from "../../components/replaycard";
 import ReplyInput from "../../components/replyinput";
+import { useDeleteComment, usePatchComment } from "../../src/hooks/useComment";
 import { useDeleteCommunity } from "../../src/hooks/useCommunity";
 import { useMe } from "../../src/hooks/useMe";
 import { usePost, usePostComment } from "../../src/hooks/usePost";
-import { useReport } from "../../src/hooks/useReport";
+import { useReport, useReportComment } from "../../src/hooks/useReport";
 import { useIsPostLiked, usePostWish } from "../../src/hooks/useWish";
 
 function Popup({
@@ -78,6 +81,12 @@ function Popup({
 //////////////////////////////////////////////////////
 
 export default function Post() {
+  type CommentMenuTarget = {
+    commentId: number;
+    commentContent: string;
+    isMine: boolean;
+  };
+
   const {
     postId,
     restaurantId,
@@ -101,8 +110,12 @@ export default function Post() {
   }>();
   const { data: post } = usePost(postId);
   const { mutate: submitComment, isPending } = usePostComment(postId ?? "");
+  const { mutate: deleteComment } = useDeleteComment();
+  const { mutate: patchComment, isPending: isPatchCommentPending } =
+    usePatchComment();
   const { mutate: deleteMutate } = useDeleteCommunity();
   const { mutate: reportPost } = useReport();
+  const { mutate: reportComment } = useReportComment();
   const { mutate: postWish, isPending: isPostWishPending } = usePostWish();
   const isLiked = useIsPostLiked(post?.postId ?? postId);
   const { me } = useMe();
@@ -111,6 +124,7 @@ export default function Post() {
   const [replyTargetAuthor, setReplyTargetAuthor] = useState<string | null>(
     null,
   );
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [showSortPopup, setShowSortPopup] = useState(false);
   const sortPopupPosition = {
     top: 0,
@@ -122,6 +136,13 @@ export default function Post() {
     top: 0,
     left: 0,
   });
+  const [showCommentMenuPopup, setShowCommentMenuPopup] = useState(false);
+  const [commentMenuPopupPosition, setCommentMenuPopupPosition] = useState({
+    top: 0,
+    left: 0,
+  });
+  const [commentMenuTarget, setCommentMenuTarget] =
+    useState<CommentMenuTarget | null>(null);
 
   const isDuplicateReportError = (error: unknown) => {
     const err = error as {
@@ -153,9 +174,57 @@ export default function Post() {
     setShowMenuPopup(true);
   };
 
+  const onOpenCommentMenuPopup = (
+    event: GestureResponderEvent,
+    target: CommentMenuTarget,
+  ) => {
+    const { pageX, pageY } = event.nativeEvent;
+    const screenWidth = Dimensions.get("window").width;
+    const popupWidth = 208;
+    const horizontalMargin = 16;
+    const rawLeft = pageX - popupWidth + 16;
+    const clampedLeft = Math.min(
+      screenWidth - popupWidth - horizontalMargin,
+      Math.max(horizontalMargin, rawLeft),
+    );
+
+    setCommentMenuTarget(target);
+    setCommentMenuPopupPosition({ top: pageY + 8, left: clampedLeft });
+    setShowCommentMenuPopup(true);
+  };
+
   const onSubmitComment = () => {
     const trimmed = commentText.trim();
-    if (!trimmed || isPending) return;
+
+    if (!trimmed) {
+      return;
+    }
+
+    if (editingCommentId !== null) {
+      if (isPatchCommentPending) {
+        return;
+      }
+
+      patchComment(
+        {
+          commentId: editingCommentId,
+          postId: post?.postId ?? postId,
+          commentContent: trimmed,
+        },
+        {
+          onSuccess: () => {
+            setCommentText("");
+            setEditingCommentId(null);
+            setReplyTargetId(null);
+            setReplyTargetAuthor(null);
+          },
+        },
+      );
+      return;
+    }
+
+    if (isPending) return;
+
     submitComment(
       { commentContent: trimmed, parentId: replyTargetId },
       {
@@ -237,6 +306,79 @@ export default function Post() {
     }
 
     postWish({ likedPostId: resolvedPostId });
+  };
+
+  const handleCommentReportPress = () => {
+    const target = commentMenuTarget;
+
+    if (!target || !target.commentContent.trim()) {
+      setShowCommentMenuPopup(false);
+      return;
+    }
+
+    setShowCommentMenuPopup(false);
+    setCommentMenuTarget(null);
+
+    setTimeout(() => {
+      reportComment(
+        {
+          commentId: target.commentId,
+          postId: post?.postId ?? postId,
+          reportContent: target.commentContent,
+        },
+        {
+          onError: (error) => {
+            if (isDuplicateReportError(error)) {
+              setShowReportPopup(true);
+            }
+          },
+        },
+      );
+    }, 0);
+  };
+
+  const handleCommentEditPress = () => {
+    const target = commentMenuTarget;
+
+    if (!target) {
+      setShowCommentMenuPopup(false);
+      return;
+    }
+
+    setShowCommentMenuPopup(false);
+    setEditingCommentId(target.commentId);
+    setCommentText(target.commentContent);
+    setReplyTargetId(null);
+    setReplyTargetAuthor(null);
+    setCommentMenuTarget(null);
+  };
+
+  const handleCommentDeletePress = () => {
+    const target = commentMenuTarget;
+
+    if (!target) {
+      setShowCommentMenuPopup(false);
+      return;
+    }
+
+    setShowCommentMenuPopup(false);
+
+    deleteComment(
+      {
+        commentId: target.commentId,
+        postId: post?.postId ?? postId,
+      },
+      {
+        onSuccess: () => {
+          if (editingCommentId === target.commentId) {
+            setEditingCommentId(null);
+            setCommentText("");
+          }
+
+          setCommentMenuTarget(null);
+        },
+      },
+    );
   };
 
   return (
@@ -329,12 +471,22 @@ export default function Post() {
           const commentDate = Number.isNaN(cd.getTime())
             ? ""
             : `${String(cd.getFullYear()).slice(-2)}.${String(cd.getMonth() + 1).padStart(2, "0")}.${String(cd.getDate()).padStart(2, "0")}`;
+          const isMyComment =
+            myNickname.length > 0 && comment.nickname.trim() === myNickname;
           return (
             <View key={comment.commentId}>
               <CommentCard
                 author={comment.nickname}
                 content={comment.commentContent}
                 date={commentDate}
+                isMine={isMyComment}
+                onMenuPress={(event) =>
+                  onOpenCommentMenuPopup(event, {
+                    commentId: comment.commentId,
+                    commentContent: comment.commentContent,
+                    isMine: isMyComment,
+                  })
+                }
                 onReplyPress={() => {
                   setReplyTargetId(comment.commentId);
                   setReplyTargetAuthor(comment.nickname);
@@ -345,12 +497,22 @@ export default function Post() {
                 const childDate = Number.isNaN(ccd.getTime())
                   ? ""
                   : `${String(ccd.getFullYear()).slice(-2)}.${String(ccd.getMonth() + 1).padStart(2, "0")}.${String(ccd.getDate()).padStart(2, "0")}`;
+                const isMyReply =
+                  myNickname.length > 0 && child.nickname.trim() === myNickname;
                 return (
                   <ReplyCard
                     key={child.commentId}
                     author={child.nickname}
                     content={child.commentContent}
                     date={childDate}
+                    isMine={isMyReply}
+                    onMenuPress={(event) =>
+                      onOpenCommentMenuPopup(event, {
+                        commentId: child.commentId,
+                        commentContent: child.commentContent,
+                        isMine: isMyReply,
+                      })
+                    }
                   />
                 );
               })}
@@ -475,6 +637,55 @@ export default function Post() {
       />
 
       <Modal
+        visible={showCommentMenuPopup}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCommentMenuPopup(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.1)" }}
+          onPress={() => setShowCommentMenuPopup(false)}
+        >
+          <View
+            style={{
+              position: "absolute",
+              top: commentMenuPopupPosition.top,
+              left: commentMenuPopupPosition.left,
+            }}
+          >
+            <Pressable
+              onPress={(e: GestureResponderEvent) => e.stopPropagation()}
+            >
+              <ActionPopup
+                options={
+                  commentMenuTarget?.isMine
+                    ? [
+                        {
+                          label: "수정하기",
+                          color: "text-gray-800",
+                          onPress: handleCommentEditPress,
+                        },
+                        {
+                          label: "삭제하기",
+                          color: "text-red-700",
+                          onPress: handleCommentDeletePress,
+                        },
+                      ]
+                    : [
+                        {
+                          label: "신고하기",
+                          color: "text-gray-800",
+                          onPress: handleCommentReportPress,
+                        },
+                      ]
+                }
+              />
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <Modal
         visible={showSortPopup}
         transparent
         animationType="fade"
@@ -518,18 +729,26 @@ export default function Post() {
         </Pressable>
       </Modal>
 
-      <View className="absolute bottom-0 left-0 right-0 bg-white pb-[56px]">
-        <ReplyInput
-          value={commentText}
-          onChangeText={setCommentText}
-          onSubmit={onSubmitComment}
-          placeholder={
-            replyTargetAuthor
-              ? `${replyTargetAuthor}님께 답글 작성...`
-              : "댓글을 작성해주세요."
-          }
-        />
-      </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+        className="absolute bottom-0 left-0 right-0"
+      >
+        <View className="bg-white pb-[56px]">
+          <ReplyInput
+            value={commentText}
+            onChangeText={setCommentText}
+            onSubmit={onSubmitComment}
+            placeholder={
+              editingCommentId !== null
+                ? "댓글을 수정해주세요."
+                : replyTargetAuthor
+                  ? `${replyTargetAuthor}님께 답글 작성...`
+                  : "댓글을 작성해주세요."
+            }
+          />
+        </View>
+      </KeyboardAvoidingView>
 
       {/* 하단 그라디언트 */}
       <View
