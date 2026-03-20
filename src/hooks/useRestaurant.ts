@@ -27,7 +27,9 @@ const isRestaurant = (value: unknown): value is Restaurant => {
     typeof item.restaurantName === "string" &&
     typeof item.restaurantLocation === "string" &&
     typeof item.restaurantImgUrl === "string" &&
-    (typeof item.restaurantType === "string" || item.restaurantType === null) &&
+    (item.restaurantType === undefined ||
+      typeof item.restaurantType === "string" ||
+      item.restaurantType === null) &&
     typeof item.wished === "boolean"
   );
 };

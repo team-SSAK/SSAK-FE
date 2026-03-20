@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dimensions,
   GestureResponderEvent,
@@ -10,8 +10,10 @@ import {
   View,
 } from "react-native";
 import User from "../assets/images/avatar.svg";
+import HeartFilled from "../assets/images/heart-filled.svg";
 import Heart from "../assets/images/lineheart.svg";
 import Message from "../assets/images/message.svg";
+import { useIsPostLiked, usePostWish } from "../src/hooks/useWish";
 import ActionPopup from "./actionpopup";
 
 interface MockPostProps {
@@ -21,11 +23,13 @@ interface MockPostProps {
   title?: string;
   content?: string;
   image?: string;
+  likedPostId?: number | string;
   likeCount?: number;
   commentCount?: number;
   date?: string;
   isMine?: boolean;
   onMenuPress?: () => void;
+  onEditPress?: () => void;
   onDeletePress?: () => void;
   onReportPress?: () => void;
   onPress?: () => void;
@@ -38,17 +42,34 @@ export default function Post({
   title = "오늘의 메뉴!",
   content = "오늘 식당 메뉴 최고네요! 넘 맛있어요!",
   image,
+  likedPostId,
   likeCount = 0,
   commentCount = 0,
   date = "25.11.14",
   isMine = true,
   onMenuPress,
+  onEditPress,
   onDeletePress,
   onReportPress,
   onPress,
 }: MockPostProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [isImageLoadFailed, setIsImageLoadFailed] = useState(false);
+  const isLiked = useIsPostLiked(likedPostId);
+  const { mutate: postWish, isPending: isPostWishPending } = usePostWish();
+
+  const trimmedImage = image?.trim();
+  const normalizedImageUri = trimmedImage
+    ? trimmedImage.startsWith("http") || trimmedImage.startsWith("data:image")
+      ? trimmedImage
+      : `data:image/jpeg;base64,${trimmedImage}`
+    : null;
+  const hasImage = Boolean(normalizedImageUri);
+
+  useEffect(() => {
+    setIsImageLoadFailed(false);
+  }, [trimmedImage]);
 
   const handleMenuPress = (event: GestureResponderEvent) => {
     const { pageX, pageY } = event.nativeEvent;
@@ -68,6 +89,14 @@ export default function Post({
     });
     setShowMenu(true);
     onMenuPress?.();
+  };
+
+  const handleLikePress = () => {
+    if (!likedPostId || isPostWishPending) {
+      return;
+    }
+
+    postWish({ likedPostId });
   };
 
   return (
@@ -122,10 +151,17 @@ export default function Post({
               {content}
             </Text>
           </View>
-          <Image
-            source={{ uri: "https://placehold.co/68x68" }}
-            className="w-16 h-16 rounded-md"
-          />
+          {hasImage ? (
+            isImageLoadFailed ? (
+              <View className="w-[68px] h-[68px] rounded-md bg-slate-200" />
+            ) : (
+              <Image
+                source={{ uri: normalizedImageUri }}
+                className="w-[68px] h-[68px] rounded-md bg-slate-100"
+                onError={() => setIsImageLoadFailed(true)}
+              />
+            )
+          ) : null}
         </View>
 
         {/* 좋아요 / 댓글 / 날짜 */}
@@ -137,12 +173,20 @@ export default function Post({
                 {commentCount}
               </Text>
             </View>
-            <View className="flex-row items-center gap-0.5">
-              <Heart width="20px" height="20px" />
+            <TouchableOpacity
+              onPress={handleLikePress}
+              className="flex-row items-center gap-0.5"
+              activeOpacity={0.8}
+            >
+              {isLiked ? (
+                <HeartFilled width="20px" height="20px" />
+              ) : (
+                <Heart width="20px" height="20px" />
+              )}
               <Text className="text-gray-500 text-sm font-medium leading-6">
                 {likeCount}
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
           <View className="w-px h-3 bg-gray-500" />
           <Text className="text-gray-500 text-sm font-medium leading-6">
@@ -179,7 +223,10 @@ export default function Post({
                         {
                           label: "수정하기",
                           color: "text-gray-800",
-                          onPress: () => setShowMenu(false),
+                          onPress: () => {
+                            onEditPress?.();
+                            setShowMenu(false);
+                          },
                         },
                         {
                           label: "삭제하기",

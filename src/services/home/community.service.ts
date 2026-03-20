@@ -30,9 +30,30 @@ export const postCommunity = async (
     throw new Error("restaurantId is required");
   }
 
+  const formData = new FormData();
+  formData.append("postVisibility", String(payload.postVisibility));
+  formData.append("postTitle", payload.postTitle);
+  formData.append("postContent", payload.postContent);
+
+  for (let index = 0; index < payload.images.length; index += 1) {
+    const uri = payload.images[index];
+    const filename = uri.split("/").pop() ?? `image_${index}.jpg`;
+    const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";
+    const mimeType = ext === "png" ? "image/png" : "image/jpeg";
+
+    const fileResponse = await fetch(uri);
+    const fileBlob = await fileResponse.blob();
+    const typedBlob =
+      fileBlob.type === mimeType
+        ? fileBlob
+        : fileBlob.slice(0, fileBlob.size, mimeType);
+
+    formData.append("images", typedBlob, filename);
+  }
+
   const res = await client.post(
     `/api/community/${encodeURIComponent(restId)}`,
-    payload,
+    formData,
   );
   return res.data;
 };

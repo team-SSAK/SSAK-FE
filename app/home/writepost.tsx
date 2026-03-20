@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import Image from "../../assets/images/image.svg";
 import { usePostCommunity } from "../../src/hooks/useCommunity";
+import { usePatchPost, usePost } from "../../src/hooks/usePost";
 
 function PublicToggle({
   label,
@@ -95,45 +96,133 @@ function Popup({
 
 export default function WritePost() {
   const router = useRouter();
-  const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
+  const {
+    restaurantId,
+    postId,
+    postTitle,
+    postContent,
+    postVisibility,
+    postImages,
+  } = useLocalSearchParams<{
+    restaurantId?: string;
+    postId?: string;
+    postTitle?: string;
+    postContent?: string;
+    postVisibility?: string;
+    postImages?: string;
+  }>();
   const { mutate: postCommunityMutation, isPending } = usePostCommunity();
+  const { mutate: patchPostMutation, isPending: isPatchPending } =
+    usePatchPost();
+  const { data: editPostDetail } = usePost(postId);
 
-  const [postVisibility, setPostVisibility] = useState(true);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [images, setImages] = useState<string[]>([]);
+  const isEditMode = typeof postId === "string" && postId.trim().length > 0;
+  const initialVisibility =
+    postVisibility === "false"
+      ? false
+      : postVisibility === "true"
+        ? true
+        : true;
+  const existingImagesFromParams = useMemo(() => {
+    if (!postImages) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(postImages);
+
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.filter(
+        (value): value is string => typeof value === "string",
+      );
+    } catch {
+      const singleImage = postImages.trim();
+      return singleImage.length > 0 ? [singleImage] : [];
+    }
+  }, [postImages]);
+
+  const existingImages = useMemo(() => {
+    const hasDetailImages = Array.isArray(editPostDetail?.imageUrls);
+    const base = hasDetailImages
+      ? (editPostDetail?.imageUrls ?? [])
+      : existingImagesFromParams;
+
+    return base
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0)
+      .map((value) =>
+        value.startsWith("http") || value.startsWith("data:image")
+          ? value
+          : `data:image/jpeg;base64,${value}`,
+      );
+  }, [editPostDetail?.imageUrls, existingImagesFromParams]);
+
+  const [postVisibilityState, setPostVisibilityState] =
+    useState(initialVisibility);
+  const [title, setTitle] = useState(postTitle ?? "");
+  const [content, setContent] = useState(postContent ?? "");
+  const [newImages, setNewImages] = useState<string[]>([]);
   const LINE_HEIGHT = 24; // leading-6 = 24px
   const [contentHeight, setContentHeight] = useState(LINE_HEIGHT * 2);
   const [imageSizes, setImageSizes] = useState<
     { width: number; height: number }[]
   >([]);
   const [showExitPopup, setShowExitPopup] = useState(false);
+  const isSubmitting = isPending || isPatchPending;
   const canSubmit = title.trim().length > 0 && content.trim().length > 0;
   const hasDraft =
-    title.trim().length > 0 || content.trim().length > 0 || images.length > 0;
+    title.trim().length > 0 ||
+    content.trim().length > 0 ||
+    newImages.length > 0 ||
+    existingImages.length > 0;
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.8,
-      base64: true,
     });
 
     if (!result.canceled) {
-      const base64Images = result.assets
-        .filter((asset) => asset.base64)
-        .map((asset) => asset.base64 as string);
-      setImages((prev) => [...prev, ...base64Images]);
-      const sizes = result.assets
-        .filter((asset) => asset.base64)
-        .map((asset) => ({ width: asset.width, height: asset.height }));
+      const uris = result.assets.map((asset) => asset.uri);
+      setNewImages((prev) => [...prev, ...uris]);
+      const sizes = result.assets.map((asset) => ({
+        width: asset.width,
+        height: asset.height,
+      }));
       setImageSizes((prev) => [...prev, ...sizes]);
     }
   };
 
   const handleSubmit = () => {
-    if (!canSubmit || !restaurantId) {
+    if (!canSubmit) {
+      return;
+    }
+
+    if (isEditMode) {
+      patchPostMutation(
+        {
+          postId: postId as string,
+          payload: {
+            postVisibility: postVisibilityState,
+            postTitle: title.trim(),
+            postContent: content.trim(),
+            newImages,
+          },
+        },
+        {
+          onSuccess: () => {
+            router.back();
+          },
+        },
+      );
+      return;
+    }
+
+    if (!restaurantId) {
       return;
     }
 
@@ -141,10 +230,10 @@ export default function WritePost() {
       {
         restaurantId,
         payload: {
-          postVisibility,
+          postVisibility: postVisibilityState,
           postTitle: title.trim(),
           postContent: content.trim(),
-          images,
+          images: newImages,
         },
       },
       {
@@ -181,16 +270,16 @@ export default function WritePost() {
               </Text>
             </TouchableOpacity>
             <Text className="text-gray-900 text-xl font-semibold leading-8">
-              글쓰기
+              {isEditMode ? "글수정" : "글쓰기"}
             </Text>
             <TouchableOpacity
               onPress={handleSubmit}
-              disabled={!canSubmit || isPending}
+              disabled={!canSubmit || isSubmitting}
               className={`px-1 py-1.5 flex flex-row items-center justify-center ${
-                canSubmit && !isPending ? "opacity-100" : "opacity-30"
+                canSubmit && !isSubmitting ? "opacity-100" : "opacity-30"
               }`}
             >
-              {isPending ? (
+              {isSubmitting ? (
                 <ActivityIndicator size="small" color="#16A34A" />
               ) : (
                 <Text className="text-green-600 text-sm font-medium leading-6">
@@ -230,12 +319,21 @@ export default function WritePost() {
               }}
               className="text-gray-900 font-medium leading-6"
             />
-            {images.length > 0 && (
+            {(existingImages.length > 0 || newImages.length > 0) && (
               <View className="mt-4 flex flex-col gap-4">
-                {images.map((b64, idx) => (
+                {existingImages.map((uri, idx) => (
                   <RNImage
-                    key={idx}
-                    source={{ uri: `data:image/jpeg;base64,${b64}` }}
+                    key={`existing-${idx}`}
+                    source={{ uri }}
+                    className="w-full rounded-md"
+                    style={{ width: "100%", aspectRatio: 1 }}
+                    resizeMode="cover"
+                  />
+                ))}
+                {newImages.map((uri, idx) => (
+                  <RNImage
+                    key={`new-${idx}`}
+                    source={{ uri }}
                     className="w-full rounded-md"
                     style={{
                       width: "100%",
@@ -267,13 +365,13 @@ export default function WritePost() {
             <View className="flex flex-row items-center gap-2.5">
               <PublicToggle
                 label="공개"
-                selected={postVisibility}
-                onPress={() => setPostVisibility(true)}
+                selected={postVisibilityState}
+                onPress={() => setPostVisibilityState(true)}
               />
               <PublicToggle
                 label="비공개"
-                selected={!postVisibility}
-                onPress={() => setPostVisibility(false)}
+                selected={!postVisibilityState}
+                onPress={() => setPostVisibilityState(false)}
               />
             </View>
           </View>

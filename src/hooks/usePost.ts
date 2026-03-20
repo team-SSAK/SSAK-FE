@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getPost, postPost } from "../services/home/post.service";
+import { getPost, patchPost, postPost } from "../services/home/post.service";
 
 export interface CommentItem {
   commentId: number;
@@ -76,6 +76,30 @@ export const usePostComment = (postId: number | string) => {
       postPost(postId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["post", String(postId)] });
+    },
+  });
+};
+
+export interface PatchPostPayload {
+  postVisibility: boolean;
+  postTitle: string;
+  postContent: string;
+  newImages: string[];
+}
+
+export const usePatchPost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (variables: {
+      postId: number | string;
+      payload: PatchPostPayload;
+    }) => patchPost(variables.postId, variables.payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["post", String(variables.postId)],
+      });
+      queryClient.invalidateQueries({ queryKey: ["community"] });
     },
   });
 };

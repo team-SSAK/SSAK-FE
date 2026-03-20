@@ -14,6 +14,7 @@ export interface CommunityItem {
   postCreateTime: string;
   postLikeCnt: number;
   postCommentCnt: number;
+  imageUrls?: string[];
 }
 
 const isCommunityItem = (value: unknown): value is CommunityItem => {
@@ -32,7 +33,10 @@ const isCommunityItem = (value: unknown): value is CommunityItem => {
     typeof item.nickname === "string" &&
     typeof item.postCreateTime === "string" &&
     typeof item.postLikeCnt === "number" &&
-    typeof item.postCommentCnt === "number"
+    typeof item.postCommentCnt === "number" &&
+    (item.imageUrls === undefined ||
+      (Array.isArray(item.imageUrls) &&
+        item.imageUrls.every((value) => typeof value === "string")))
   );
 };
 

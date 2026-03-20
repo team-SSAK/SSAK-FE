@@ -22,6 +22,50 @@ import Pen from "../../assets/images/pen.svg";
 import SearchB from "../../assets/images/searchB.svg";
 import { useCommunity, useDeleteCommunity } from "../../src/hooks/useCommunity";
 import { useMe } from "../../src/hooks/useMe";
+import { useReport } from "../../src/hooks/useReport";
+
+function Popup({
+  title = "이미 신고된 글입니다",
+  description = "현재 검토가 진행중입니다",
+  onConfirm,
+  visible = false,
+}: {
+  title?: string;
+  description?: string;
+  onConfirm?: () => void;
+  visible?: boolean;
+}) {
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <View
+        className="flex-1 justify-center items-center"
+        style={{ backgroundColor: "rgba(0,0,0,0.1)" }}
+      >
+        <View className="w-72 p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
+          <View className="self-stretch flex-col justify-start items-start gap-1">
+            <Text className="self-stretch text-slate-800 text-lg font-semibold leading-7">
+              {title}
+            </Text>
+            <Text className="self-stretch text-slate-500 text-sm font-medium leading-6">
+              {description}
+            </Text>
+          </View>
+
+          <View className="self-stretch flex-row justify-start items-center gap-2">
+            <TouchableOpacity
+              onPress={onConfirm}
+              className="flex-1 h-10 px-2 py-2 bg-lime-600 rounded-[10px] justify-center items-center"
+            >
+              <Text className="text-white text-base font-medium leading-6">
+                확인
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 //////////////////////////////////////////////////////
 // 페이지
 //////////////////////////////////////////////////////
@@ -35,11 +79,29 @@ export default function Community() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: communityPosts = [] } = useCommunity(restaurantId);
   const { mutate: deletePost } = useDeleteCommunity();
+  const { mutate: reportPost } = useReport();
   const { me } = useMe();
+  const [showReportPopup, setShowReportPopup] = useState(false);
   const [sortPopupPosition, setSortPopupPosition] = useState({
     top: 0,
     left: 0,
   });
+
+  const isDuplicateReportError = (error: unknown) => {
+    const err = error as {
+      response?: { status?: number; data?: { message?: string } };
+      message?: string;
+    };
+
+    const responseMessage = err.response?.data?.message ?? "";
+    const fallbackMessage = err.message ?? "";
+
+    return (
+      err.response?.status === 409 ||
+      responseMessage.includes("이미 신고") ||
+      fallbackMessage.includes("이미 신고")
+    );
+  };
 
   const formatPostDate = (isoDate: string) => {
     const date = new Date(isoDate);
@@ -240,6 +302,8 @@ export default function Community() {
             author={post.nickname}
             title={post.postTitle}
             content={post.postContent}
+            image={post.imageUrls?.[0]}
+            likedPostId={post.postId}
             likeCount={post.postLikeCnt}
             commentCount={post.postCommentCnt}
             date={formatPostDate(post.postCreateTime)}
@@ -251,10 +315,51 @@ export default function Community() {
                 restaurantId,
               });
             }}
-            onReportPress={() => {
-              // TODO: 신고 API 연결 시 이 콜백에서 호출
+            onEditPress={() => {
+              router.push({
+                pathname: "/home/writepost",
+                params: {
+                  restaurantId: String(restaurantId ?? ""),
+                  postId: String(post.postId),
+                  postTitle: post.postTitle ?? "",
+                  postContent: post.postContent,
+                  postVisibility: String(post.postVisibility),
+                  postImages: JSON.stringify(post.imageUrls ?? []),
+                },
+              });
             }}
-            onPress={() => router.push("/home/post")}
+            onReportPress={() => {
+              reportPost(
+                {
+                  postId: post.postId,
+                  reportContent: post.postContent,
+                },
+                {
+                  onError: (error) => {
+                    if (isDuplicateReportError(error)) {
+                      setShowReportPopup(true);
+                    }
+                  },
+                },
+              );
+            }}
+            onPress={() =>
+              router.push({
+                pathname: "/home/post",
+                params: {
+                  postId: String(post.postId),
+                  restaurantId: String(restaurantId ?? ""),
+                  postTitle: post.postTitle ?? "",
+                  postContent: post.postContent,
+                  nickname: post.nickname,
+                  postCreateTime: post.postCreateTime,
+                  postLikeCnt: String(post.postLikeCnt),
+                  postCommentCnt: String(post.postCommentCnt),
+                  postImage: post.imageUrls?.[0] ?? "",
+                  postImages: JSON.stringify(post.imageUrls ?? []),
+                },
+              })
+            }
           />
         ))}
       </ScrollView>
@@ -302,6 +407,11 @@ export default function Community() {
           </View>
         </Pressable>
       </Modal>
+
+      <Popup
+        visible={showReportPopup}
+        onConfirm={() => setShowReportPopup(false)}
+      />
 
       {/* 하단 그라디언트 */}
       <View

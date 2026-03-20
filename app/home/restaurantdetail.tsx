@@ -1,6 +1,13 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronRightG from "../../assets/images/chevron-right-gray.svg";
 import Map from "../../assets/images/map.svg";
@@ -9,7 +16,53 @@ import Post from "../../components/post";
 
 import { useCommunity, useDeleteCommunity } from "../../src/hooks/useCommunity";
 import { useMe } from "../../src/hooks/useMe";
+import { useReport } from "../../src/hooks/useReport";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
+
+function Popup({
+  title = "이미 신고된 글입니다",
+  description = "현재 검토가 진행중입니다",
+  onCancel,
+  onConfirm,
+  visible = false,
+}: {
+  title?: string;
+  description?: string;
+  onCancel?: () => void;
+  onConfirm?: () => void;
+  visible?: boolean;
+}) {
+  return (
+    <Modal transparent visible={visible}>
+      <View
+        className="flex-1 justify-center items-center"
+        style={{ backgroundColor: "rgba(0,0,0,0.1)" }}
+      >
+        <View className="w-72 p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
+          <View className="self-stretch flex-col justify-start items-start gap-1">
+            <Text className="self-stretch text-slate-800 text-lg font-semibold leading-7">
+              {title}
+            </Text>
+            <Text className="self-stretch text-slate-500 text-sm font-medium leading-6">
+              {description}
+            </Text>
+          </View>
+
+          <View className="self-stretch flex-row justify-start items-center gap-2">
+            <TouchableOpacity
+              onPress={onConfirm}
+              className="flex-1 h-10 px-2 py-2 bg-green-400 rounded-[10px] justify-center items-center"
+            >
+              <Text className="text-white text-base font-medium leading-6">
+                확인
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 //////////////////////////////////////////////////////
 // 타입
@@ -75,7 +128,25 @@ export default function RestaurantDetail() {
 
   const { data: communityPosts = [] } = useCommunity(restaurantId);
   const { mutate: deletePost } = useDeleteCommunity();
+  const { mutate: reportPost } = useReport();
   const { me } = useMe();
+  const [showReportPopup, setShowReportPopup] = useState(false);
+
+  const isDuplicateReportError = (error: unknown) => {
+    const err = error as {
+      response?: { status?: number; data?: { message?: string } };
+      message?: string;
+    };
+
+    const responseMessage = err.response?.data?.message ?? "";
+    const fallbackMessage = err.message ?? "";
+
+    return (
+      err.response?.status === 409 ||
+      responseMessage.includes("이미 신고") ||
+      fallbackMessage.includes("이미 신고")
+    );
+  };
 
   const visibleCommunityPosts = useMemo(() => {
     const myNickname = (me?.userNm ?? "").trim();
@@ -272,8 +343,10 @@ export default function RestaurantDetail() {
             showBadge={!post.postVisibility}
             badge="비공개"
             author={post.nickname}
-            //title={post.postTitle}
+            title={post.postTitle}
             content={post.postContent}
+            image={post.imageUrls?.[0]}
+            likedPostId={post.postId}
             likeCount={post.postLikeCnt}
             commentCount={post.postCommentCnt}
             date={formatPostDate(post.postCreateTime)}
@@ -285,15 +358,48 @@ export default function RestaurantDetail() {
                 restaurantId,
               });
             }}
+            onEditPress={() => {
+              router.push({
+                pathname: "/home/writepost",
+                params: {
+                  restaurantId: String(restaurantId ?? ""),
+                  postId: String(post.postId),
+                  postTitle: post.postTitle ?? "",
+                  postContent: post.postContent,
+                  postVisibility: String(post.postVisibility),
+                  postImages: JSON.stringify(post.imageUrls ?? []),
+                },
+              });
+            }}
             onReportPress={() => {
-              // TODO: 신고 API 연결 시 이 콜백에서 호출
+              reportPost(
+                {
+                  postId: post.postId,
+                  reportContent: post.postContent,
+                },
+                {
+                  onError: (error) => {
+                    if (isDuplicateReportError(error)) {
+                      setShowReportPopup(true);
+                    }
+                  },
+                },
+              );
             }}
             onPress={() =>
               router.push({
                 pathname: "/home/post",
                 params: {
                   postId: String(post.postId),
-                  restaurantId,
+                  restaurantId: String(restaurantId ?? ""),
+                  postTitle: post.postTitle ?? "",
+                  postContent: post.postContent,
+                  nickname: post.nickname,
+                  postCreateTime: post.postCreateTime,
+                  postLikeCnt: String(post.postLikeCnt),
+                  postCommentCnt: String(post.postCommentCnt),
+                  postImage: post.imageUrls?.[0] ?? "",
+                  postImages: JSON.stringify(post.imageUrls ?? []),
                 },
               })
             }
@@ -316,6 +422,11 @@ export default function RestaurantDetail() {
           </View>
         </TouchableOpacity>
       </View>
+
+      <Popup
+        visible={showReportPopup}
+        onConfirm={() => setShowReportPopup(false)}
+      />
     </View>
   );
 }
