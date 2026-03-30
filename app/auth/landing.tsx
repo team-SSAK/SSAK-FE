@@ -60,7 +60,7 @@ function IDInput({ placeholder, onChangeText, value }: IDInputProps) {
       <RNTextInput
         placeholder={placeholder}
         placeholderTextColor="#6B7280"
-        className="text-gray-900 font-medium leading-6"
+        className="text-gray-900 font-medium leading-6 flex-1 w-full"
         onChangeText={onChangeText}
         value={value}
         autoCapitalize="none"

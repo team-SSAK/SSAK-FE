@@ -55,7 +55,7 @@ export function BottomNav() {
           <Home width={24} height={24} />
         )}
         <Text
-          className={`text-xs ${selectedTab === "home" ? "text-[#0D131A]" : "text-gray-500"}`}
+          className={`text-xs ${selectedTab === "home" ? "text-green-500" : "text-gray-500"}`}
         >
           홈
         </Text>
@@ -64,7 +64,7 @@ export function BottomNav() {
       <TouchableOpacity className="items-center" onPress={handleStorePress}>
         <Star width={24} height={24} />
         <Text
-          className={`text-xs ${selectedTab === "store" ? "text-[#0D131A]" : "text-gray-500"}`}
+          className={`text-xs ${selectedTab === "store" ? "text-green-500" : "text-gray-500"}`}
         >
           스토어
         </Text>
@@ -77,7 +77,7 @@ export function BottomNav() {
           <User width={24} height={24} />
         )}
         <Text
-          className={`text-xs ${selectedTab === "mypage" ? "text-[#0D131A]" : "text-gray-500"}`}
+          className={`text-xs ${selectedTab === "mypage" ? "text-green-500" : "text-gray-500"}`}
         >
           마이페이지
         </Text>

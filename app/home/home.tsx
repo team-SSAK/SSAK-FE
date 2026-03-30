@@ -160,7 +160,7 @@ export default function Home() {
               </TouchableOpacity>
             </View>
             <View className="flex flex-col gap-[2px]">
-              <Text className="font-jalnangothic text-[22px] leading-[30.8px] text-white">
+              <Text className="text-[22px] leading-[30.8px] text-white">
                 잔반 인증하고
                 {"\n"}
                 함께 싹 틔워요!
@@ -181,13 +181,18 @@ export default function Home() {
           </View>
         </TouchableOpacity>
         {/* 식당 */}
-        <View className="gap-3">
-          <View className="flex-row justify-between">
-            <Text className="text-gray-800 text-lg font-semibold">내 식당</Text>
-            <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
+        <View className="gap-2">
+          <TouchableOpacity
+            onPress={() => router.push("/mypage/restaurant")}
+            activeOpacity={0.7}
+          >
+            <View className="flex-row justify-between items-center w-full">
+              <Text className="text-gray-800 text-lg font-semibold">
+                내 식당
+              </Text>
               <ChevronRightG />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
 
           <ScrollView
             horizontal
@@ -260,15 +265,17 @@ export default function Home() {
 
         {/* 공지사항 */}
         <View className="gap-3">
-          <View className="flex-row justify-between">
-            <Text className="text-gray-800 text-lg font-semibold">
-              공지사항
-            </Text>
-
-            <TouchableOpacity onPress={() => router.push("/home/anouncement")}>
+          <TouchableOpacity
+            onPress={() => router.push("/home/anouncement")}
+            activeOpacity={0.7}
+          >
+            <View className="flex-row justify-between items-center w-full">
+              <Text className="text-gray-800 text-lg font-semibold">
+                공지사항
+              </Text>
               <ChevronRightG />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
 
           <>
             <TouchableOpacity onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}>

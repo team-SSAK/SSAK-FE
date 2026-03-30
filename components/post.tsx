@@ -108,7 +108,7 @@ export default function Post({
       <View className="self-stretch flex flex-col justify-start items-start gap-2">
         {/* 배지 */}
         {showBadge && (
-          <View className="px-2.5 py-0.5 bg-gray-200 rounded-md justify-center items-center">
+          <View className="px-2.5 py-0.5 bg-gray-200 rounded-[7px] justify-center items-center">
             <Text className="text-gray-500 text-xs font-semibold leading-5">
               {badge}
             </Text>

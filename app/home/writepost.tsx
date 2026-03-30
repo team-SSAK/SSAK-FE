@@ -265,7 +265,7 @@ export default function WritePost() {
               onPress={handleCancelPress}
               className="px-1 py-1.5"
             >
-              <Text className="text-gray-700 text-sm font-medium leading-6">
+              <Text className="text-gray-700 text-base font-medium leading-6">
                 취소
               </Text>
             </TouchableOpacity>
@@ -282,7 +282,7 @@ export default function WritePost() {
               {isSubmitting ? (
                 <ActivityIndicator size="small" color="#16A34A" />
               ) : (
-                <Text className="text-green-600 text-sm font-medium leading-6">
+                <Text className="text-green-600 text-base font-medium leading-6">
                   완료
                 </Text>
               )}

@@ -280,14 +280,14 @@ export default function Community() {
         </View>
 
         <View className="flex flex-row justify-between items-center">
-          <Text className="text-gray-500 font-semibold leading-6">
+          <Text className="text-base text-gray-500 font-semibold leading-6">
             전체 {sortedPosts.length}
           </Text>
           <TouchableOpacity
             onPress={onOpenSortPopup}
             className="flex flex-row gap-0.5 items-center"
           >
-            <Text className="text-gray-500 font-semibold leading-6">
+            <Text className="text-base text-gray-500 font-semibold leading-6">
               {sortLabel}
             </Text>
             <ChevronDown width="18px" height="18px" />

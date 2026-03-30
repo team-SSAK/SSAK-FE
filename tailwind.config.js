@@ -31,8 +31,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        jalnan: ["Jalnan_2"],
-        jalnangothic: ["JalnanGothic"],
+        sans: ["Pretendard-Variable"],
         pretendard: ["Pretendard-Variable"],
       },
     },

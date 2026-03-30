@@ -210,7 +210,7 @@ export default function Restaurant() {
             가까운 식당
           </Text>
         </TouchableOpacity>
-        <View className="w-0 h-3 outline outline-[1.20px] outline-offset-[-0.60px] outline-gray-400" />
+        <View className="w-[1.8px] h-3 bg-gray-400 rounded-full" />
         <TouchableOpacity onPress={() => setActiveTab("my")}>
           <Text
             className={`p-2 text-sm font-semibold leading-6 ${activeTab === "my" ? "text-gray-900" : "text-gray-400"}`}
@@ -224,7 +224,7 @@ export default function Restaurant() {
       <ScrollView
         contentContainerStyle={{
           paddingBottom: 140,
-          gap: 6,
+          gap: 10,
         }}
       >
         {filteredRestaurants.map((restaurant) => (

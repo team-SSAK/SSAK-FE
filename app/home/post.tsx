@@ -444,9 +444,9 @@ export default function Post() {
             </View>
           ) : null}
 
-          <View className="flex flex-row justify-end gap-3.5">
+          <View className="flex flex-row justify-end items-center gap-3.5">
             <View className="flex flex-row">
-              <Message />
+              <Message width={24} height={24} />
               <Text className="text-gray-500 font-medium leading-6">
                 {` ${post?.postCommentCnt ?? Number(postCommentCnt ?? 0)}`}
               </Text>
@@ -456,7 +456,11 @@ export default function Post() {
               className="flex flex-row"
               activeOpacity={0.8}
             >
-              {isLiked ? <HeartFilled /> : <LineHeart />}
+              {isLiked ? (
+                <HeartFilled width={24} height={24} />
+              ) : (
+                <LineHeart width={24} height={24} />
+              )}
               <Text className="text-gray-500 font-medium leading-6">
                 {` ${displayedLikeCount}`}
               </Text>
