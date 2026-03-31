@@ -15,6 +15,9 @@ import {
 } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 
+import AlertPopup from "../../components/alertpopup";
+import AlertPopupRadio from "../../components/alertpopupradio";
+
 import ActionPopup from "@/components/actionpopup";
 
 import Avatar from "../../assets/images/avatar.svg";
@@ -32,49 +35,6 @@ import { useMe } from "../../src/hooks/useMe";
 import { usePost, usePostComment } from "../../src/hooks/usePost";
 import { useReport, useReportComment } from "../../src/hooks/useReport";
 import { useIsPostLiked, usePostWish } from "../../src/hooks/useWish";
-
-function Popup({
-  title = "이미 신고된 글입니다",
-  description = "현재 검토가 진행중입니다",
-  onConfirm,
-  visible = false,
-}: {
-  title?: string;
-  description?: string;
-  onConfirm?: () => void;
-  visible?: boolean;
-}) {
-  return (
-    <Modal transparent visible={visible} animationType="fade">
-      <View
-        className="flex-1 justify-center items-center"
-        style={{ backgroundColor: "rgba(0,0,0,0.1)" }}
-      >
-        <View className="w-72 p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
-          <View className="self-stretch flex-col justify-start items-start gap-1">
-            <Text className="self-stretch text-slate-800 text-lg font-semibold leading-7">
-              {title}
-            </Text>
-            <Text className="self-stretch text-slate-500 text-sm font-medium leading-6">
-              {description}
-            </Text>
-          </View>
-
-          <View className="self-stretch flex-row justify-start items-center gap-2">
-            <TouchableOpacity
-              onPress={onConfirm}
-              className="flex-1 h-10 px-2 py-2 bg-lime-600 rounded-[10px] justify-center items-center"
-            >
-              <Text className="text-white text-base font-medium leading-6">
-                확인
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
 
 //////////////////////////////////////////////////////
 // 페이지
@@ -132,6 +92,8 @@ export default function Post() {
   };
   const [showMenuPopup, setShowMenuPopup] = useState(false);
   const [showReportPopup, setShowReportPopup] = useState(false);
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [menuPopupPosition, setMenuPopupPosition] = useState({
     top: 0,
     left: 0,
@@ -587,14 +549,7 @@ export default function Post() {
                           color: "text-red-700",
                           onPress: () => {
                             setShowMenuPopup(false);
-                            if (!post?.postId) return;
-                            deleteMutate(
-                              {
-                                postId: post.postId,
-                                restaurantId: restaurantId ?? "",
-                              },
-                              { onSuccess: () => router.back() },
-                            );
+                            setShowDeletePopup(true);
                           },
                         },
                       ]
@@ -604,27 +559,7 @@ export default function Post() {
                           color: "text-gray-800",
                           onPress: () => {
                             setShowMenuPopup(false);
-                            const resolvedPostId = post?.postId ?? postId;
-                            const resolvedContent =
-                              post?.postContent ?? postContent ?? "";
-
-                            if (!resolvedPostId || !resolvedContent.trim()) {
-                              return;
-                            }
-
-                            reportPost(
-                              {
-                                postId: resolvedPostId,
-                                reportContent: resolvedContent,
-                              },
-                              {
-                                onError: (error) => {
-                                  if (isDuplicateReportError(error)) {
-                                    setShowReportPopup(true);
-                                  }
-                                },
-                              },
-                            );
+                            setTimeout(() => setShowReportPopup(true), 200);
                           },
                         },
                       ]
@@ -635,10 +570,47 @@ export default function Post() {
         </Pressable>
       </Modal>
 
-      <Popup
-        visible={showReportPopup}
-        onConfirm={() => setShowReportPopup(false)}
-      />
+      {showReportPopup && (
+        <AlertPopupRadio
+          title="신고 사유를 선택해주세요"
+          onCancel={() => setShowReportPopup(false)}
+          onConfirm={() => {
+            setShowReportPopup(false);
+            setTimeout(() => setShowReportConfirm(true), 200);
+          }}
+        />
+      )}
+
+      {showReportConfirm && (
+        <AlertPopup
+          title="신고가 완료되었습니다"
+          description="빠르게 검토 후 조치하겠습니다"
+          onConfirm={() => setShowReportConfirm(false)}
+          confirmText="확인"
+        />
+      )}
+
+      {showDeletePopup && (
+        <AlertPopup
+          visible={showDeletePopup}
+          title="글을 삭제하시겠습니까?"
+          description="삭제한 글은 복구할 수 없습니다"
+          onCancel={() => setShowDeletePopup(false)}
+          onConfirm={() => {
+            setShowDeletePopup(false);
+            if (!post?.postId) return;
+            deleteMutate(
+              {
+                postId: post.postId,
+                restaurantId: restaurantId ?? "",
+              },
+              { onSuccess: () => router.back() },
+            );
+          }}
+          cancelText="취소"
+          confirmText="확인"
+        />
+      )}
 
       <Modal
         visible={showCommentMenuPopup}

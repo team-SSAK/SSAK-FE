@@ -6,7 +6,6 @@ import {
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -113,7 +112,7 @@ export default function Home() {
       >
         {/* 헤더 */}
         <View
-          className="-mt-4 -mx-4 justify-start overflow-hidden items-between"
+          className="-mt-5 -ml-[17px] overflow-hidden"
           style={{
             width: screenWidth,
             aspectRatio: headerAspectRatio,
@@ -123,8 +122,12 @@ export default function Home() {
         >
           <Image
             source={headerImageSource}
-            resizeMode={Platform.OS === "web" ? "contain" : "cover"}
-            style={{ width: "100%", height: "100%" }}
+            resizeMode="cover"
+            style={{
+              width: "100%",
+              height: "100%",
+              transform: [{ scale: 1.7 }],
+            }}
           />
 
           {/* 탑 그라디언트 */}
@@ -134,6 +137,7 @@ export default function Home() {
               top: 0,
               left: 0,
               right: 0,
+              zIndex: 2,
             }}
             width="100%"
             preserveAspectRatio="none"
@@ -146,13 +150,16 @@ export default function Home() {
               bottom: 0,
               left: 0,
               right: 0,
-              transform: [{ rotate: "180deg" }],
+              zIndex: 2,
             }}
             width="100%"
             preserveAspectRatio="none"
           />
 
-          <View className="absolute inset-0 px-4 pt-[56px] pb-4 flex-col justify-between">
+          <View
+            className="absolute inset-0 px-4 pt-[56px] pb-4 flex-col justify-between"
+            style={{ zIndex: 3 }}
+          >
             <View className="py-4 flex-row justify-between items-center">
               <Text className="text-white text-lg font-bold">SSAK</Text>
               <TouchableOpacity onPress={() => router.push("/mypage/setting")}>
@@ -194,32 +201,51 @@ export default function Home() {
             </View>
           </TouchableOpacity>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 15 }}
-          >
-            {restaurants.map((restaurant) => (
-              <TouchableOpacity
-                key={restaurant.id}
-                onPress={() =>
-                  router.push({
-                    pathname: "/home/restaurantdetail",
-                    params: {
-                      restaurantId: String(restaurant.id),
-                      restaurantImage: restaurant.image ?? "",
-                    },
-                  })
-                }
-              >
-                <ResBanner
-                  name={restaurant.name}
-                  address={restaurant.address}
-                  image={restaurant.image}
-                />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          {restaurants.length === 0 ? (
+            <View className="w-full h-[114px] px-4 py-4 bg-gray-50 rounded-2xl flex flex-col justify-center items-center gap-2.5 mx-auto">
+              <View className="self-stretch flex flex-col justify-center items-center">
+                <Text
+                  className="self-stretch text-center justify-start text-gray-400 text-base font-semibold leading-6"
+                  numberOfLines={1}
+                >
+                  아직 등록된 식당이 없어요 !
+                </Text>
+                <Text
+                  className="justify-start text-gray-400 text-xs font-medium leading-5"
+                  numberOfLines={1}
+                >
+                  자주 이용하는 식당을 즐겨찾기에 추가해보세요
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 15 }}
+            >
+              {restaurants.map((restaurant) => (
+                <TouchableOpacity
+                  key={restaurant.id}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/home/restaurantdetail",
+                      params: {
+                        restaurantId: String(restaurant.id),
+                        restaurantImage: restaurant.image ?? "",
+                      },
+                    })
+                  }
+                >
+                  <ResBanner
+                    name={restaurant.name}
+                    address={restaurant.address}
+                    image={restaurant.image}
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         <View className="h-6" />

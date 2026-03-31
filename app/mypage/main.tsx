@@ -113,7 +113,7 @@ const ResBanner = ({
         <Text className="text-slate-800 text-xs font-semibold leading-5">
           {mealType}
         </Text>
-        <Text
+            <View className="w-96 h-64 px-4 py-9 bg-slate-100 rounded-2xl inline-flex flex-col justify-center items-center gap-2.5">
           className="text-slate-400 text-xs font-medium leading-5"
           numberOfLines={1}
         >
@@ -175,7 +175,7 @@ export default function Main() {
 
   const { me } = useMe();
   const { point } = usePoint();
-  const { coupons } = useCoupons("ISSUED");
+  const { coupons, isLoading: isCouponsLoading } = useCoupons("ISSUED");
   const [profileImageLoadError, setProfileImageLoadError] = useState(false);
 
   const profileImageUri = (me?.userProfileImg ?? "").trim();
@@ -289,23 +289,42 @@ export default function Main() {
             </View>
           </TouchableOpacity>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 15 }}
-          >
-            {coupons.map((coupon) => (
-              <CouponCard
-                key={coupon.id}
-                storeName={coupon.storeName}
-                title={coupon.title}
-                price={coupon.price}
-                image={coupon.image}
-                selected={!!selectedCoupons[coupon.id]}
-                onToggle={() => toggleCouponWish(coupon.id)}
-              />
-            ))}
-          </ScrollView>
+          {isCouponsLoading || coupons.length === 0 ? (
+            <View className="self-stretch h-64 px-4 py-9 bg-gray-50 rounded-2xl inline-flex flex-col justify-center items-center gap-2.5">
+              <View className="self-stretch flex flex-col justify-center items-center">
+                <Text
+                  className="self-stretch text-center justify-start text-gray-400 text-base font-semibold leading-6"
+                  numberOfLines={1}
+                >
+                  보유중인 쿠폰이 없어요!
+                </Text>
+                <Text
+                  className="justify-start text-gray-400 text-xs font-medium leading-5"
+                  numberOfLines={1}
+                >
+                  포인트를 통해 쿠폰을 교환해보세요
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 15 }}
+            >
+              {coupons.map((coupon) => (
+                <CouponCard
+                  key={coupon.id}
+                  storeName={coupon.storeName}
+                  title={coupon.title}
+                  price={coupon.price}
+                  image={coupon.image}
+                  selected={!!selectedCoupons[coupon.id]}
+                  onToggle={() => toggleCouponWish(coupon.id)}
+                />
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         {/* 식당 */}
@@ -322,20 +341,39 @@ export default function Main() {
             </View>
           </TouchableOpacity>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 15 }}
-          >
-            {restaurants.map((restaurant) => (
-              <ResBanner
-                key={restaurant.id}
-                name={restaurant.name}
-                address={restaurant.address}
-                image={restaurant.image}
-              />
-            ))}
-          </ScrollView>
+          {restaurants.length === 0 ? (
+            <View className="w-full h-[114px] px-4 py-4 bg-gray-50 rounded-2xl flex flex-col justify-center items-center gap-2.5 mx-auto">
+              <View className="self-stretch flex flex-col justify-center items-center">
+                <Text
+                  className="self-stretch text-center justify-start text-gray-400 text-base font-semibold leading-6"
+                  numberOfLines={1}
+                >
+                  아직 등록된 식당이 없어요 !
+                </Text>
+                <Text
+                  className="justify-start text-gray-400 text-xs font-medium leading-5"
+                  numberOfLines={1}
+                >
+                  자주 이용하는 식당을 즐겨찾기에 추가해보세요
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 15 }}
+            >
+              {restaurants.map((restaurant) => (
+                <ResBanner
+                  key={restaurant.id}
+                  name={restaurant.name}
+                  address={restaurant.address}
+                  image={restaurant.image}
+                />
+              ))}
+            </ScrollView>
+          )}
         </View>
       </ScrollView>
 

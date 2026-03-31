@@ -56,7 +56,7 @@ interface IDInputProps {
 
 function IDInput({ placeholder, onChangeText, value }: IDInputProps) {
   return (
-    <View className="self-stretch p-4 bg-gray-100 rounded-lg justify-center items-start">
+    <View className="self-stretch p-4 bg-gray-100 rounded-lg flex flex-row items-center">
       <RNTextInput
         placeholder={placeholder}
         placeholderTextColor="#6B7280"
