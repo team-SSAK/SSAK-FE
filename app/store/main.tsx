@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   Modal,
@@ -34,6 +35,7 @@ interface CouponCardProps {
   selected?: boolean;
   image?: string;
   onToggle?: () => void;
+  onPress?: () => void;
 }
 
 const CouponCard = ({
@@ -43,9 +45,14 @@ const CouponCard = ({
   selected = false,
   image,
   onToggle,
+  onPress,
 }: CouponCardProps) => {
   return (
-    <View className="flex-col gap-2.5 w-full">
+    <TouchableOpacity
+      className="flex-col gap-2.5 w-full"
+      activeOpacity={0.9}
+      onPress={onPress}
+    >
       <View
         className="relative w-full rounded-md bg-slate-100 overflow-hidden"
         style={{ aspectRatio: 1 }}
@@ -81,7 +88,7 @@ const CouponCard = ({
           {price}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -260,6 +267,18 @@ export default function Main() {
                     selected={!!selectedCoupons[coupon.id]}
                     image={coupon.image}
                     onToggle={() => toggleCouponWish(coupon.id)}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/store/coupon",
+                        params: {
+                          couponId: String(coupon.id),
+                          storeName: coupon.storeName,
+                          title: coupon.title,
+                          price: coupon.price,
+                          image: coupon.image ?? "",
+                        },
+                      })
+                    }
                   />
                 </View>
               ))}
