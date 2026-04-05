@@ -1,7 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
+import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Platform,
   TextInput as RNTextInput,
@@ -20,6 +21,8 @@ import {
   setAccessToken,
   setRefreshToken,
 } from "../../src/utils/storage";
+
+WebBrowser.maybeCompleteAuthSession();
 
 /* ================= OAuth URLs ================= */
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -43,6 +46,28 @@ const login = async (request: LoginRequest) => {
   // 토큰 저장
   if (accessToken) await setAccessToken(accessToken);
   if (refreshToken) await setRefreshToken(refreshToken);
+
+  return res.data;
+};
+
+const exchangeOAuthCode = async (code: string) => {
+  console.log("[OAuth] /api/auth/token 요청 시작", {
+    codePreview: `${code.slice(0, 8)}...`,
+    codeLength: code.length,
+  });
+
+  const res = await client.post("/api/auth/token", { code });
+
+  const accessToken = res.data.accessToken;
+  const refreshToken = res.data.refreshToken;
+
+  if (accessToken) await setAccessToken(accessToken);
+  if (refreshToken) await setRefreshToken(refreshToken);
+
+  console.log("[OAuth] /api/auth/token 응답 성공", {
+    hasAccessToken: Boolean(accessToken),
+    hasRefreshToken: Boolean(refreshToken),
+  });
 
   return res.data;
 };
@@ -102,6 +127,8 @@ function PWInput({ placeholder, onChangeText, value }: PWInputProps) {
 }
 
 export default function Landing() {
+  const incomingUrl = Linking.useURL();
+  const hasProcessedOAuthCode = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -138,6 +165,82 @@ export default function Landing() {
     });
   };
 
+  const handleOAuthCode = async (code: string) => {
+    console.log("[OAuth] 인가 코드 수신", {
+      codePreview: `${code.slice(0, 8)}...`,
+      codeLength: code.length,
+      platform: Platform.OS,
+    });
+
+    hasProcessedOAuthCode.current = true;
+    setErrorMsg(null);
+
+    try {
+      await exchangeOAuthCode(code);
+
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+        window.history.replaceState({}, "", cleanUrl);
+      }
+
+      console.log("[OAuth] 토큰 저장 완료, 홈으로 이동");
+      router.replace("/home/home");
+    } catch (err: any) {
+      console.log("[OAuth] 토큰 교환 실패", {
+        message: err?.message,
+        response: err?.response?.data,
+      });
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "소셜 로그인 토큰 발급에 실패했습니다.";
+      setErrorMsg(msg);
+      hasProcessedOAuthCode.current = false;
+    }
+  };
+
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const currentUrl =
+        Platform.OS === "web" && typeof window !== "undefined"
+          ? window.location.href
+          : incomingUrl;
+
+      console.log("[OAuth] 콜백 URL 감지", {
+        platform: Platform.OS,
+        hasUrl: Boolean(currentUrl),
+        currentUrl,
+      });
+
+      if (!currentUrl || hasProcessedOAuthCode.current) {
+        return;
+      }
+
+      const parsed = Linking.parse(currentUrl);
+      const code = parsed.queryParams?.code;
+      const error = parsed.queryParams?.error;
+
+      console.log("[OAuth] 콜백 파싱 결과", {
+        path: parsed.path,
+        hasCode: typeof code === "string" && code.trim().length > 0,
+        error,
+      });
+
+      if (typeof error === "string") {
+        setErrorMsg(`소셜 로그인에 실패했습니다. (${error})`);
+        return;
+      }
+
+      if (typeof code !== "string" || code.trim().length === 0) {
+        return;
+      }
+
+      await handleOAuthCode(code);
+    };
+
+    handleOAuthCallback();
+  }, [incomingUrl]);
+
   /* ============ OAuth Handlers ============ */
   const openOAuth = async (url: string) => {
     if (!API_BASE_URL) {
@@ -145,10 +248,51 @@ export default function Landing() {
       return;
     }
 
+    console.log("[OAuth] 로그인 시작", {
+      platform: Platform.OS,
+      requestUrl: url,
+    });
+
     if (Platform.OS === "web") {
       window.location.href = url;
     } else {
-      await WebBrowser.openBrowserAsync(url);
+      const redirectUri = Linking.createURL("/auth/landing");
+      const authUrl = `${url}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+      console.log("[OAuth] openAuthSessionAsync 호출", {
+        redirectUri,
+        authUrl,
+      });
+
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        redirectUri,
+      );
+
+      console.log("[OAuth] openAuthSessionAsync 결과", {
+        type: result.type,
+        resultUrl: result.type === "success" ? result.url : undefined,
+      });
+
+      if (result.type !== "success") {
+        return;
+      }
+
+      const parsed = Linking.parse(result.url);
+      const code = parsed.queryParams?.code;
+      const error = parsed.queryParams?.error;
+
+      if (typeof error === "string") {
+        setErrorMsg(`소셜 로그인에 실패했습니다. (${error})`);
+        return;
+      }
+
+      if (typeof code !== "string" || code.trim().length === 0) {
+        setErrorMsg("인가 코드(code)를 받지 못했습니다.");
+        return;
+      }
+
+      await handleOAuthCode(code);
     }
   };
 

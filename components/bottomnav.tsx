@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import HomeSelected from "../assets/images/home-selected.svg";
 import Home from "../assets/images/home.svg";
+import StarSelected from "../assets/images/star-selected.svg";
 import Star from "../assets/images/star.svg";
 import UserSelected from "../assets/images/user-selected.svg";
 import User from "../assets/images/user.svg";
@@ -17,6 +18,11 @@ export function BottomNav() {
   useEffect(() => {
     if (pathname === "/mypage/main") {
       setSelectedTab("mypage");
+      return;
+    }
+
+    if (pathname === "/store/main") {
+      setSelectedTab("store");
       return;
     }
 
@@ -37,6 +43,9 @@ export function BottomNav() {
 
   const handleStorePress = () => {
     setSelectedTab("store");
+    if (pathname !== "/store/main") {
+      router.push("/store/main");
+    }
   };
 
   const handleMyPagePress = () => {
@@ -62,7 +71,11 @@ export function BottomNav() {
       </TouchableOpacity>
 
       <TouchableOpacity className="items-center" onPress={handleStorePress}>
-        <Star width={24} height={24} />
+        {selectedTab === "store" ? (
+          <StarSelected width={24} height={24} />
+        ) : (
+          <Star width={24} height={24} />
+        )}
         <Text
           className={`text-xs ${selectedTab === "store" ? "text-green-500" : "text-gray-500"}`}
         >
