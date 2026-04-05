@@ -5,6 +5,7 @@ import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
+
 import {
   getCoupons,
   postCouponWish,
@@ -18,6 +19,7 @@ interface CouponCardProps {
   used?: boolean;
   image?: string;
   onToggle?: () => void;
+  onPress?: () => void;
 }
 
 const CouponCard = ({
@@ -28,9 +30,14 @@ const CouponCard = ({
   used = false,
   image,
   onToggle,
+  onPress,
 }: CouponCardProps) => {
   return (
-    <View className="flex-col gap-2.5 w-full">
+    <TouchableOpacity
+      className="flex-col gap-2.5 w-full"
+      activeOpacity={0.9}
+      onPress={onPress}
+    >
       <View
         className="relative w-full rounded-md bg-slate-100 overflow-hidden"
         style={{ aspectRatio: 1 }}
@@ -78,7 +85,7 @@ const CouponCard = ({
           {price}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -195,39 +202,28 @@ export default function Coupon() {
 
   useEffect(() => {
     const fetchCoupons = async () => {
+      if (activeTab === "찜한 쿠폰") {
+        return;
+      }
+
       try {
-        if (activeTab === "사용 가능") {
-          const data = await getCoupons("ISSUED");
-          console.log("API 응답:", data);
-          const transformed = data.map((item: any) => ({
-            id: item.couponHistId,
-            used: false,
-            storeName: item.couponStore,
-            title: item.couponNm,
-            price: item.couponPoint + "P",
-            image: item.couponImgUrl,
-          }));
-          setCoupons(transformed);
-          setAllCoupons(transformed);
-        } else if (activeTab === "사용 완료") {
-          const data = await getCoupons("USED");
-          console.log("API 응답:", data);
-          const transformed = data.map((item: any) => ({
-            id: item.couponHistId,
-            used: true,
-            storeName: item.couponStore,
-            title: item.couponNm,
-            price: item.couponPoint + "P",
-            image: item.couponImgUrl,
-          }));
-          setCoupons(transformed);
-          setAllCoupons(transformed);
-        } else if (activeTab === "찜한 쿠폰") {
-          // 찜한 쿠폰은 선택된 쿠폰들
-          setCoupons(
-            allCoupons.filter((coupon) => !!selectedCoupons[coupon.id]),
-          );
-        }
+        const status = activeTab === "사용 가능" ? "ISSUED" : "USED";
+        const used = activeTab === "사용 완료";
+        const data = await getCoupons(status);
+
+        console.log("API 응답:", data);
+
+        const transformed = data.map((item: any) => ({
+          id: item.couponHistId,
+          used,
+          storeName: item.couponStore,
+          title: item.couponNm,
+          price: item.couponPoint + "P",
+          image: item.couponImgUrl,
+        }));
+
+        setCoupons(transformed);
+        setAllCoupons(transformed);
       } catch (error) {
         console.error("쿠폰 로딩 실패:", error);
         setCoupons([]);
@@ -235,7 +231,15 @@ export default function Coupon() {
     };
 
     fetchCoupons();
-  }, [activeTab, selectedCoupons, allCoupons]);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "찜한 쿠폰") {
+      return;
+    }
+
+    setCoupons(allCoupons.filter((coupon) => !!selectedCoupons[coupon.id]));
+  }, [activeTab, allCoupons, selectedCoupons]);
 
   const toggle = async (id: number) => {
     const isCurrentlySelected = !!selectedCoupons[id];
@@ -285,6 +289,18 @@ export default function Coupon() {
                   selected={!!selectedCoupons[coupon.id]}
                   image={coupon.image}
                   onToggle={() => toggle(coupon.id)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/store/mycoupon",
+                      params: {
+                        couponId: String(coupon.id),
+                        storeName: coupon.storeName,
+                        title: coupon.title,
+                        price: coupon.price,
+                        image: coupon.image ?? "",
+                      },
+                    })
+                  }
                 />
               </View>
             ))}

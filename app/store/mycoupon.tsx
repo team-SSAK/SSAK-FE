@@ -1,11 +1,20 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useMemo, useState } from "react";
+import {
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
 import mockdiscription from "../../assets/images/mockdiscription.png";
 import AlertPopup from "../../components/alertpopup";
+import { postCouponWish } from "../../src/services/mypage/coupons.service";
 
 type TabType = "상품설명" | "상세정보";
 const TABS: TabType[] = ["상품설명", "상세정보"];
@@ -47,13 +56,99 @@ const EMPTY_MESSAGES: Record<TabType, string> = {
   상세정보: "상세 정보가 없습니다",
 };
 
+interface VerificationCodePopupProps {
+  visible: boolean;
+  value: string;
+  onChangeText: (text: string) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+const VerificationCodePopup = ({
+  visible,
+  value,
+  onChangeText,
+  onCancel,
+  onConfirm,
+}: VerificationCodePopupProps) => {
+  const isValidCode = value.trim().length === 6;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <View className="flex-1 bg-black/10 justify-center items-center px-6">
+        <View className="self-center p-5 bg-white rounded-[20px] max-w-full">
+          <View>
+            <Text className="text-gray-800 text-lg font-semibold leading-7">
+              쿠폰 사용 인증번호를 입력해주세요
+            </Text>
+          </View>
+
+          <View className="mt-[10px] self-stretch p-4 bg-gray-50 rounded-lg flex-col justify-start items-start gap-2.5">
+            <View className="self-stretch flex-row justify-start items-center">
+              <View className="flex-1 flex-row justify-start items-center gap-2.5">
+                <TextInput
+                  value={value}
+                  onChangeText={onChangeText}
+                  placeholder="6자리 번호를 입력해주세요"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  className="flex-1 text-gray-800 text-base font-medium leading-6 p-0"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+            </View>
+          </View>
+
+          <View className="mt-4">
+            <Text className="text-gray-400 text-sm font-medium leading-6">
+              - 결제 시 직원에게 번호 입력을 요청해주세요
+            </Text>
+            <Text className="text-gray-400 text-sm font-medium leading-6">
+              - 부정 사용 시 이용이 제한될 수 있습니다
+            </Text>
+          </View>
+
+          <View className="mt-[18px] flex-row gap-2">
+            <TouchableOpacity
+              onPress={onCancel}
+              className="w-[90px] h-10 bg-slate-100 rounded-[10px] justify-center items-center"
+            >
+              <Text className="text-slate-800 text-base font-medium leading-6">
+                취소
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                if (!isValidCode) {
+                  return;
+                }
+
+                onConfirm();
+              }}
+              className={`flex-1 h-10 rounded-[10px] justify-center items-center ${
+                isValidCode ? "bg-green-400" : "bg-gray-500"
+              }`}
+            >
+              <Text className="text-white text-base font-medium leading-6">
+                확인
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 export default function Coupon() {
   const {
+    couponId,
     image: couponImage,
     storeName,
     title,
     price,
   } = useLocalSearchParams<{
+    couponId?: string;
     image?: string;
     storeName?: string;
     title?: string;
@@ -61,7 +156,31 @@ export default function Coupon() {
   }>();
   const [activeTab, setActiveTab] = useState<TabType>("상품설명");
   const [showExchangePopup, setShowExchangePopup] = useState(false);
-  const [showExchangeDonePopup, setShowExchangeDonePopup] = useState(false);
+  const [showVerificationPopup, setShowVerificationPopup] = useState(false);
+  const [showUseDonePopup, setShowUseDonePopup] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [isWished, setIsWished] = useState(true);
+
+  const couponIdValue = useMemo(() => {
+    const rawCouponId = Array.isArray(couponId) ? couponId[0] : couponId;
+    return Number(rawCouponId);
+  }, [couponId]);
+
+  const handleToggleWish = async () => {
+    const previous = isWished;
+    setIsWished(!previous);
+
+    if (Number.isNaN(couponIdValue)) {
+      return;
+    }
+
+    try {
+      await postCouponWish(couponIdValue);
+    } catch (error) {
+      setIsWished(previous);
+      console.error("쿠폰 찜하기 실패:", error);
+    }
+  };
 
   return (
     <View className="flex-1 bg-white">
@@ -78,7 +197,9 @@ export default function Coupon() {
           <TouchableOpacity onPress={() => router.back()}>
             <ChevronLeft />
           </TouchableOpacity>
-          <Text className="text-gray-800 text-xl font-semibold">쿠폰 상세</Text>
+          <Text className="text-gray-800 text-xl font-semibold">
+            내 쿠폰 상세
+          </Text>
         </View>
 
         <View
@@ -186,9 +307,9 @@ export default function Coupon() {
 
       <View className="absolute bottom-0 left-0 right-0 px-4 pt-[14px] pb-[56px] bg-white">
         <View className="w-full flex-row gap-[11px]">
-          <TouchableOpacity>
+          <TouchableOpacity onPress={handleToggleWish}>
             <View className="w-14 h-[52px] p-3 bg-gray-100 rounded-xl justify-center items-center">
-              <Heart />
+              {isWished ? <HeartFilled /> : <Heart />}
             </View>
           </TouchableOpacity>
           <TouchableOpacity
@@ -197,7 +318,7 @@ export default function Coupon() {
           >
             <View className="w-full h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
               <Text className="text-center text-gray-50 text-lg font-medium leading-7">
-                교환하기
+                사용하기
               </Text>
             </View>
           </TouchableOpacity>
@@ -206,28 +327,38 @@ export default function Coupon() {
 
       <AlertPopup
         visible={showExchangePopup}
-        title="쿠폰을 교환할까요 ?"
-        description={`${title ?? "쿠폰 이름"} 을 ${price ?? "포인트"} 와 교환할까요 ?`}
+        title="쿠폰을 사용하시겠습니까?"
+        description="사용 시 쿠폰은 소멸됩니다"
         onCancel={() => setShowExchangePopup(false)}
         onConfirm={() => {
           setShowExchangePopup(false);
-          setTimeout(() => setShowExchangeDonePopup(true), 150);
+          setTimeout(() => setShowVerificationPopup(true), 150);
         }}
-        cancelText="아니요"
-        confirmText="네"
+        cancelText="취소"
+        confirmText="사용하기"
+      />
+
+      <VerificationCodePopup
+        visible={showVerificationPopup}
+        value={verificationCode}
+        onChangeText={setVerificationCode}
+        onCancel={() => {
+          setShowVerificationPopup(false);
+          setVerificationCode("");
+        }}
+        onConfirm={() => {
+          setShowVerificationPopup(false);
+          setVerificationCode("");
+          setTimeout(() => setShowUseDonePopup(true), 150);
+        }}
       />
 
       <AlertPopup
-        visible={showExchangeDonePopup}
-        title="교환을 완료했습니다 !"
-        description="내 쿠폰으로 이동할까요?"
-        onCancel={() => setShowExchangeDonePopup(false)}
-        onConfirm={() => {
-          setShowExchangeDonePopup(false);
-          router.push("/mypage/coupon");
-        }}
-        cancelText="취소"
-        confirmText="이동하기"
+        visible={showUseDonePopup}
+        title="쿠폰 사용 완료"
+        description="쿠폰이 성공적으로 사용되었습니다"
+        onConfirm={() => setShowUseDonePopup(false)}
+        confirmText="확인"
       />
     </View>
   );

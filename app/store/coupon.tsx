@@ -1,11 +1,16 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
 import mockdiscription from "../../assets/images/mockdiscription.png";
 import AlertPopup from "../../components/alertpopup";
+import {
+  getCouponWishes,
+  postCouponWish,
+} from "../../src/services/mypage/coupons.service";
 
 type TabType = "상품설명" | "상세정보";
 const TABS: TabType[] = ["상품설명", "상세정보"];
@@ -49,11 +54,13 @@ const EMPTY_MESSAGES: Record<TabType, string> = {
 
 export default function Coupon() {
   const {
+    couponId,
     image: couponImage,
     storeName,
     title,
     price,
   } = useLocalSearchParams<{
+    couponId?: string;
     image?: string;
     storeName?: string;
     title?: string;
@@ -62,6 +69,49 @@ export default function Coupon() {
   const [activeTab, setActiveTab] = useState<TabType>("상품설명");
   const [showExchangePopup, setShowExchangePopup] = useState(false);
   const [showExchangeDonePopup, setShowExchangeDonePopup] = useState(false);
+  const [isWished, setIsWished] = useState(false);
+
+  const couponIdValue = useMemo(() => {
+    const rawCouponId = Array.isArray(couponId) ? couponId[0] : couponId;
+    return Number(rawCouponId);
+  }, [couponId]);
+
+  useEffect(() => {
+    if (Number.isNaN(couponIdValue)) {
+      return;
+    }
+
+    const fetchWishState = async () => {
+      try {
+        const data = await getCouponWishes();
+        const list = Array.isArray(data) ? data : (data?.data ?? []);
+
+        setIsWished(
+          list.some((item: any) => Number(item.couponHistId) === couponIdValue),
+        );
+      } catch (error) {
+        console.error("찜한 쿠폰 조회 실패:", error);
+      }
+    };
+
+    fetchWishState();
+  }, [couponIdValue]);
+
+  const handleToggleWish = async () => {
+    const previous = isWished;
+    setIsWished(!previous);
+
+    if (Number.isNaN(couponIdValue)) {
+      return;
+    }
+
+    try {
+      await postCouponWish(couponIdValue);
+    } catch (error) {
+      setIsWished(previous);
+      console.error("쿠폰 찜하기 실패:", error);
+    }
+  };
 
   return (
     <View className="flex-1 bg-white">
@@ -186,9 +236,9 @@ export default function Coupon() {
 
       <View className="absolute bottom-0 left-0 right-0 px-4 pt-[14px] pb-[56px] bg-white">
         <View className="w-full flex-row gap-[11px]">
-          <TouchableOpacity>
+          <TouchableOpacity onPress={handleToggleWish}>
             <View className="w-14 h-[52px] p-3 bg-gray-100 rounded-xl justify-center items-center">
-              <Heart />
+              {isWished ? <HeartFilled /> : <Heart />}
             </View>
           </TouchableOpacity>
           <TouchableOpacity

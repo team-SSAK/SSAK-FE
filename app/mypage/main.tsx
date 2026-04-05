@@ -40,6 +40,7 @@ interface CouponCardProps {
   selected?: boolean;
   image?: string;
   onToggle?: () => void;
+  onPress?: () => void;
 }
 
 const CouponCard = ({
@@ -49,9 +50,14 @@ const CouponCard = ({
   selected = false,
   image,
   onToggle,
+  onPress,
 }: CouponCardProps) => {
   return (
-    <View className="flex-col gap-2.5">
+    <TouchableOpacity
+      className="flex-col gap-2.5"
+      activeOpacity={0.9}
+      onPress={onPress}
+    >
       <View className="relative w-40 h-40 rounded-md bg-slate-100 overflow-hidden">
         {image ? (
           <Image
@@ -87,7 +93,7 @@ const CouponCard = ({
         </Text>
         <Text className="text-slate-900 text-lg font-bold">{price}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -321,6 +327,18 @@ export default function Main() {
                   image={coupon.image}
                   selected={!!selectedCoupons[coupon.id]}
                   onToggle={() => toggleCouponWish(coupon.id)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/store/mycoupon",
+                      params: {
+                        couponId: String(coupon.id),
+                        storeName: coupon.storeName,
+                        title: coupon.title,
+                        price: coupon.price,
+                        image: coupon.image ?? "",
+                      },
+                    })
+                  }
                 />
               ))}
             </ScrollView>
