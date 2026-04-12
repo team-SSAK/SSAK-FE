@@ -15,6 +15,7 @@ import Apple from "../../assets/images/Apple.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
 import Google from "../../assets/images/google.svg";
+import Logo from "../../assets/images/logo_green.svg";
 import client from "../../src/lib/api/client";
 import {
   getAccessToken,
@@ -302,11 +303,20 @@ export default function Landing() {
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-center p-4">
+      <View className="absolute left-4 right-4 top-[72px]">
+        <Text className="text-right text-gray-500 text-sm font-medium leading-6">
+          식당의 사장님이신가요?
+        </Text>
+        <Text className="mt-[3px] text-right text-green-400 text-base font-semibold underline leading-6">
+          사장님 회원가입&gt;
+        </Text>
+      </View>
+
       <View className="flex flex-col gap-3 justify-center items-center mb-[64.5px]">
         <Text className="text-green-400 text-sm font-medium leading-6">
           싹 비우고, 싹 틔우다
         </Text>
-        <Text className="text-green-500 text-7xl font-normal">싹</Text>
+        <Logo width={90} height={97} />
       </View>
 
       <View className="flex flex-col gap-2.5">

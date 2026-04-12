@@ -1,4 +1,4 @@
-import Landing from "./auth/landing";
+import Landing from "./onbording/landing";
 
 export default function Index() {
   return <Landing />;
