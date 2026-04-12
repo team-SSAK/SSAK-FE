@@ -7,6 +7,7 @@ import ChevronRightG from "../../assets/images/chevron-right-gray.svg";
 import ChevronRightW from "../../assets/images/chevron-right-white.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
+import Logo from "../../assets/images/logo_green.svg";
 import Setting from "../../assets/images/setting.svg";
 
 import { BottomNav } from "../../components/bottomnav";
@@ -228,7 +229,7 @@ export default function Main() {
       >
         {/* 헤더 */}
         <View className="pt-[56px] pb-4 flex-row justify-between items-center">
-          <Text className="text-green-500 text-lg font-bold">SSAK</Text>
+          <Logo />
           <TouchableOpacity onPress={() => router.push("/mypage/setting")}>
             <Setting width={24} height={24} />
           </TouchableOpacity>

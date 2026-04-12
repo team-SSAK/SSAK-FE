@@ -24,6 +24,8 @@ import { postCouponWish } from "../../src/services/mypage/coupons.service";
 
 import ChevronDown from "../../assets/images/chevron-down.svg";
 
+import Logo from "../../assets/images/logo_green.svg";
+
 //////////////////////////////////////////////////////
 // 쿠폰 카드
 //////////////////////////////////////////////////////
@@ -175,7 +177,7 @@ export default function Main() {
             </View>
           ) : (
             <>
-              <Text className="text-green-500 text-lg font-bold">SSAK</Text>
+              <Logo />
               <TouchableOpacity onPress={() => setIsSearchMode(true)}>
                 <SearchB width={24} height={24} />
               </TouchableOpacity>

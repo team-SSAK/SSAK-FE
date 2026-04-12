@@ -23,6 +23,8 @@ import { BottomNav } from "../../components/bottomnav";
 import AnouncementCard from "../../components/anouncementcard";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
 
+import Logo from "../../assets/images/logo_green.svg";
+
 const headerImageSource = require("../../assets/images/SSAK.png");
 const headerImageAsset = Asset.fromModule(headerImageSource);
 const headerAspectRatio =
@@ -154,7 +156,7 @@ export default function Home() {
             style={{ zIndex: 3 }}
           >
             <View className="py-4 flex-row justify-between items-center">
-              <Text className="text-white text-lg font-bold">SSAK</Text>
+              <Logo />
               <TouchableOpacity onPress={() => router.push("/mypage/setting")}>
                 <HorizontalEllipsis />
               </TouchableOpacity>
