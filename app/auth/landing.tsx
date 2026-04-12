@@ -18,10 +18,12 @@ import Google from "../../assets/images/google.svg";
 import Logo from "../../assets/images/logo_green.svg";
 import client from "../../src/lib/api/client";
 import {
+  clearSocialLoginPending,
   getAccessToken,
   setAccessToken,
   setOwnerSignupClicked,
   setRefreshToken,
+  setSocialLoginPending,
 } from "../../src/utils/storage";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -146,6 +148,7 @@ export default function Landing() {
       const token = await getAccessToken();
       console.log("저장된 토큰:", token);
 
+      await clearSocialLoginPending();
       router.replace("/home/home");
     },
 
@@ -179,14 +182,15 @@ export default function Landing() {
 
     try {
       await exchangeOAuthCode(code);
+      await setSocialLoginPending(true);
 
       if (Platform.OS === "web" && typeof window !== "undefined") {
         const cleanUrl = `${window.location.origin}${window.location.pathname}`;
         window.history.replaceState({}, "", cleanUrl);
       }
 
-      console.log("[OAuth] 토큰 저장 완료, 홈으로 이동");
-      router.replace("/home/home");
+      console.log("[OAuth] 토큰 저장 완료, 회원가입 화면으로 이동");
+      router.replace("/auth/registername?socialLogin=true");
     } catch (err: any) {
       console.log("[OAuth] 토큰 교환 실패", {
         message: err?.message,
@@ -302,11 +306,13 @@ export default function Landing() {
   const onKakaoLogin = () => openOAuth(KAKAO_OAUTH_URL);
 
   const onOwnerSignupPress = async () => {
+    await clearSocialLoginPending();
     await setOwnerSignupClicked(true);
     router.push("/auth/registeremail");
   };
 
   const onUserSignupPress = async () => {
+    await clearSocialLoginPending();
     await setOwnerSignupClicked(false);
     router.push("/auth/registeremail");
   };
