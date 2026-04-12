@@ -1,6 +1,12 @@
 import { router } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import RestaurantLocationMap from "../../components/restaurant-location-map";
+
+const DEFAULT_PIN_COORD = {
+  latitude: 37.5665,
+  longitude: 126.978,
+};
 
 export default function Loacation() {
   return (
@@ -14,10 +20,14 @@ export default function Loacation() {
           <Text className="text-gray-800 text-xl font-semibold">내 위치</Text>
         </View>
 
-        <View
-          className="flex-1 bg-gray-400"
-          style={{ marginHorizontal: -16 }}
-        />
+        <View className="flex-1" style={{ marginHorizontal: -16 }}>
+          <RestaurantLocationMap
+            latitude={DEFAULT_PIN_COORD.latitude}
+            longitude={DEFAULT_PIN_COORD.longitude}
+            title="내 위치"
+            description="현재 위치 기준"
+          />
+        </View>
       </View>
     </View>
   );
