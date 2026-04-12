@@ -20,6 +20,7 @@ import client from "../../src/lib/api/client";
 import {
   getAccessToken,
   setAccessToken,
+  setOwnerSignupClicked,
   setRefreshToken,
 } from "../../src/utils/storage";
 
@@ -299,6 +300,16 @@ export default function Landing() {
 
   const onGoogleLogin = () => openOAuth(GOOGLE_OAUTH_URL);
   const onKakaoLogin = () => openOAuth(KAKAO_OAUTH_URL);
+
+  const onOwnerSignupPress = async () => {
+    await setOwnerSignupClicked(true);
+    router.push("/auth/registeremail");
+  };
+
+  const onUserSignupPress = async () => {
+    await setOwnerSignupClicked(false);
+    router.push("/auth/registeremail");
+  };
   /* ======================================== */
 
   return (
@@ -307,9 +318,11 @@ export default function Landing() {
         <Text className="text-right text-gray-500 text-sm font-medium leading-6">
           식당의 사장님이신가요?
         </Text>
-        <Text className="mt-[3px] text-right text-green-400 text-base font-semibold underline leading-6">
-          사장님 회원가입&gt;
-        </Text>
+        <TouchableOpacity onPress={onOwnerSignupPress} activeOpacity={0.7}>
+          <Text className="mt-[3px] text-right text-green-400 text-base font-semibold underline leading-6">
+            사장님 회원가입&gt;
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View className="flex flex-col gap-3 justify-center items-center mb-[64.5px]">
@@ -354,7 +367,7 @@ export default function Landing() {
             비밀번호 찾기
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/auth/registeremail")}>
+        <TouchableOpacity onPress={onUserSignupPress}>
           <Text className="text-green-500 font-medium underline">회원가입</Text>
         </TouchableOpacity>
       </View>

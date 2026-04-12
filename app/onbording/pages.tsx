@@ -35,14 +35,6 @@ const ONBOARDING_PAGES = [
   },
 ] as const;
 
-const GRAPHIC_SHADOW_STYLE = {
-  shadowColor: "#000",
-  shadowOffset: { width: 2.5328330993652344, height: 3.377110719680786 },
-  shadowOpacity: 0.1,
-  shadowRadius: 15.196998596191406,
-  elevation: 7,
-};
-
 export default function Pages() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -79,17 +71,14 @@ export default function Pages() {
             return (
               <View key={index} className="px-4" style={{ width }}>
                 <View className="w-full items-center">
-                  <View style={GRAPHIC_SHADOW_STYLE}>
-                    <Image
-                      source={item.graphicSource}
-                      resizeMode="contain"
-                      style={{
-                        width: graphicWidth,
-                        height: graphicHeight,
-                        borderRadius: 16,
-                      }}
-                    />
-                  </View>
+                  <Image
+                    source={item.graphicSource}
+                    resizeMode="contain"
+                    style={{
+                      width: graphicWidth,
+                      height: graphicHeight,
+                    }}
+                  />
                 </View>
                 <View className="h-8" />
                 <View className="w-full items-center">

@@ -2,8 +2,8 @@ import React from "react";
 import { Modal, Text, TouchableOpacity, View } from "react-native";
 
 interface AlertPopupProps {
-  title?: string;
-  description?: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
   visible?: boolean;
   onCancel?: () => void;
   onConfirm?: () => void;
@@ -20,7 +20,7 @@ export default function AlertPopup({
   onConfirm,
   cancelText = "취소",
   confirmText = "확인",
-  confirmColor = "bg-lime-600",
+  confirmColor = "bg-green-400",
 }: AlertPopupProps) {
   return (
     <Modal transparent visible={visible} animationType="fade">
