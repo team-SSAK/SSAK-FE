@@ -4,6 +4,8 @@ import { Platform } from "react-native";
 const ACCESS_TOKEN_KEY = "ACCESS_TOKEN";
 const REFRESH_TOKEN_KEY = "REFRESH_TOKEN";
 const LIKED_POST_IDS_KEY = "LIKED_POST_IDS";
+const OWNER_SIGNUP_CLICKED_KEY = "OWNER_SIGNUP_CLICKED";
+const SOCIAL_LOGIN_PENDING_KEY = "SOCIAL_LOGIN_PENDING";
 
 // Expo Go/RN 환경에서는 window가 있어도 web이 아닐 수 있으므로 Platform 기준으로 분기한다.
 const isWeb = Platform.OS === "web";
@@ -117,3 +119,25 @@ export const getLikedPostIds = async (): Promise<string[]> => {
 
 export const setLikedPostIds = async (postIds: string[]) =>
   await setJsonItem(LIKED_POST_IDS_KEY, postIds);
+
+export const getOwnerSignupClicked = async (): Promise<boolean> => {
+  const value = await getItem(OWNER_SIGNUP_CLICKED_KEY);
+  return value === "true";
+};
+
+export const setOwnerSignupClicked = async (clicked: boolean) =>
+  await setItem(OWNER_SIGNUP_CLICKED_KEY, clicked ? "true" : "false");
+
+export const clearOwnerSignupClicked = async () =>
+  await deleteItem(OWNER_SIGNUP_CLICKED_KEY);
+
+export const getSocialLoginPending = async (): Promise<boolean> => {
+  const value = await getItem(SOCIAL_LOGIN_PENDING_KEY);
+  return value === "true";
+};
+
+export const setSocialLoginPending = async (pending: boolean) =>
+  await setItem(SOCIAL_LOGIN_PENDING_KEY, pending ? "true" : "false");
+
+export const clearSocialLoginPending = async () =>
+  await deleteItem(SOCIAL_LOGIN_PENDING_KEY);

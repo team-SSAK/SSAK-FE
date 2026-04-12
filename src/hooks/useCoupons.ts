@@ -22,7 +22,7 @@ export interface CouponItem {
   image?: string;
 }
 
-export function useCoupons(status: CouponOption = "ISSUED") {
+export function useCoupons(status: CouponOption | null = null) {
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
   const [loading, setLoading] = useState(true);
 

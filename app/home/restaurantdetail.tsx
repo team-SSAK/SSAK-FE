@@ -12,6 +12,8 @@ import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronRightG from "../../assets/images/chevron-right-gray.svg";
 import Map from "../../assets/images/map.svg";
 
+import AlertPopupRadio from "@/components/alertpopupradio";
+import AlertPopup from "../../components/alertpopup";
 import Post from "../../components/post";
 
 import { useCommunity, useDeleteCommunity } from "../../src/hooks/useCommunity";
@@ -128,9 +130,14 @@ export default function RestaurantDetail() {
 
   const { data: communityPosts = [] } = useCommunity(restaurantId);
   const { mutate: deletePost } = useDeleteCommunity();
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
+  const [pendingDeletePostId, setPendingDeletePostId] = useState<
+    string | number | null
+  >(null);
   const { mutate: reportPost } = useReport();
   const { me } = useMe();
   const [showReportPopup, setShowReportPopup] = useState(false);
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
 
   const isDuplicateReportError = (error: unknown) => {
     const err = error as {
@@ -352,11 +359,8 @@ export default function RestaurantDetail() {
             date={formatPostDate(post.postCreateTime)}
             isMine={post.nickname.trim() === (me?.userNm ?? "").trim()}
             onDeletePress={() => {
-              if (!restaurantId) return;
-              deletePost({
-                postId: post.postId,
-                restaurantId,
-              });
+              setShowDeletePopup(true);
+              setPendingDeletePostId(post.postId);
             }}
             onEditPress={() => {
               router.push({
@@ -372,19 +376,7 @@ export default function RestaurantDetail() {
               });
             }}
             onReportPress={() => {
-              reportPost(
-                {
-                  postId: post.postId,
-                  reportContent: post.postContent,
-                },
-                {
-                  onError: (error) => {
-                    if (isDuplicateReportError(error)) {
-                      setShowReportPopup(true);
-                    }
-                  },
-                },
-              );
+              setShowReportPopup(true);
             }}
             onPress={() =>
               router.push({
@@ -405,6 +397,28 @@ export default function RestaurantDetail() {
             }
           />
         ))}
+        {showDeletePopup && (
+          <AlertPopup
+            visible={showDeletePopup}
+            title="글을 삭제하시겠습니까?"
+            description="삭제한 글은 복구할 수 없습니다"
+            onCancel={() => {
+              setShowDeletePopup(false);
+              setPendingDeletePostId(null);
+            }}
+            onConfirm={() => {
+              setShowDeletePopup(false);
+              if (!pendingDeletePostId || !restaurantId) return;
+              deletePost({
+                postId: pendingDeletePostId,
+                restaurantId,
+              });
+              setPendingDeletePostId(null);
+            }}
+            cancelText="취소"
+            confirmText="확인"
+          />
+        )}
       </ScrollView>
 
       {/* 하단 그라디언트 */}
@@ -414,7 +428,7 @@ export default function RestaurantDetail() {
 
       {/* 잔반 인증 버튼 */}
       <View className="absolute bottom-0 left-0 right-0 px-4 pb-[56px]">
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/home/camera")}>
           <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
             <Text className="text-center text-gray-50 text-lg font-medium leading-7">
               잔반 인증하러 가기
@@ -423,9 +437,21 @@ export default function RestaurantDetail() {
         </TouchableOpacity>
       </View>
 
-      <Popup
+      <AlertPopupRadio
         visible={showReportPopup}
-        onConfirm={() => setShowReportPopup(false)}
+        title="신고 사유를 선택해주세요"
+        onCancel={() => setShowReportPopup(false)}
+        onConfirm={() => {
+          setShowReportPopup(false);
+          setTimeout(() => setShowReportConfirm(true), 200); // 약간의 딜레이로 자연스럽게
+        }}
+      />
+
+      <Popup
+        visible={showReportConfirm}
+        title="신고가 완료되었습니다"
+        description="빠르게 검토 후 조치하겠습니다"
+        onConfirm={() => setShowReportConfirm(false)}
       />
     </View>
   );

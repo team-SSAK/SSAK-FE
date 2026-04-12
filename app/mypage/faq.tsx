@@ -258,7 +258,8 @@ export default function FAQ() {
                 </View>
               );
             })}
-            <View className="h-[84px]" />
+            {/* 카테고리 간 간격 */}
+            <View className="h-[30px]" />
           </View>
         ))}
         <View className="flex flex-col gap-[5px] mt-20 items-center">

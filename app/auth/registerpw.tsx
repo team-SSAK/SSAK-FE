@@ -12,6 +12,7 @@ import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
 import PopUp from "../../components/popup";
 import StepIndicator from "../../components/stepindicator";
+import { getOwnerSignupClicked } from "../../src/utils/storage";
 
 interface PWInputProps {
   placeholder: string;
@@ -75,12 +76,16 @@ export default function RegisterPW() {
 
   const isButtonEnabled = password.length > 0 && confirmPassword.length > 0;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (password !== confirmPassword) {
       setShowPopup(true);
     } else {
+      const isOwnerSignup = await getOwnerSignupClicked();
+
       router.push({
-        pathname: "/auth/registername",
+        pathname: isOwnerSignup
+          ? "/auth/registerrestaurant"
+          : "/auth/registername",
         params: {
           email,
           password,

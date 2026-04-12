@@ -15,6 +15,8 @@ import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ActionPopup from "@/components/actionpopup";
 import Post from "@/components/post";
 import SearchInput from "@/components/searchinput";
+import AlertPopup from "../../components/alertpopup";
+import AlertPopupRadio from "../../components/alertpopupradio";
 
 import ChevronDown from "../../assets/images/chevron-down.svg";
 
@@ -79,9 +81,14 @@ export default function Community() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: communityPosts = [] } = useCommunity(restaurantId);
   const { mutate: deletePost } = useDeleteCommunity();
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
+  const [pendingDeletePostId, setPendingDeletePostId] = useState<
+    string | number | null
+  >(null);
   const { mutate: reportPost } = useReport();
   const { me } = useMe();
   const [showReportPopup, setShowReportPopup] = useState(false);
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [sortPopupPosition, setSortPopupPosition] = useState({
     top: 0,
     left: 0,
@@ -280,14 +287,14 @@ export default function Community() {
         </View>
 
         <View className="flex flex-row justify-between items-center">
-          <Text className="text-gray-500 font-semibold leading-6">
+          <Text className="text-base text-gray-500 font-semibold leading-6">
             전체 {sortedPosts.length}
           </Text>
           <TouchableOpacity
             onPress={onOpenSortPopup}
             className="flex flex-row gap-0.5 items-center"
           >
-            <Text className="text-gray-500 font-semibold leading-6">
+            <Text className="text-base text-gray-500 font-semibold leading-6">
               {sortLabel}
             </Text>
             <ChevronDown width="18px" height="18px" />
@@ -309,11 +316,8 @@ export default function Community() {
             date={formatPostDate(post.postCreateTime)}
             isMine={post.nickname.trim() === (me?.userNm ?? "").trim()}
             onDeletePress={() => {
-              if (!restaurantId) return;
-              deletePost({
-                postId: post.postId,
-                restaurantId,
-              });
+              setShowDeletePopup(true);
+              setPendingDeletePostId(post.postId);
             }}
             onEditPress={() => {
               router.push({
@@ -329,19 +333,7 @@ export default function Community() {
               });
             }}
             onReportPress={() => {
-              reportPost(
-                {
-                  postId: post.postId,
-                  reportContent: post.postContent,
-                },
-                {
-                  onError: (error) => {
-                    if (isDuplicateReportError(error)) {
-                      setShowReportPopup(true);
-                    }
-                  },
-                },
-              );
+              setShowReportPopup(true);
             }}
             onPress={() =>
               router.push({
@@ -362,6 +354,28 @@ export default function Community() {
             }
           />
         ))}
+        {showDeletePopup && (
+          <AlertPopup
+            visible={showDeletePopup}
+            title="글을 삭제하시겠습니까?"
+            description="삭제한 글은 복구할 수 없습니다"
+            onCancel={() => {
+              setShowDeletePopup(false);
+              setPendingDeletePostId(null);
+            }}
+            onConfirm={() => {
+              setShowDeletePopup(false);
+              if (!pendingDeletePostId || !restaurantId) return;
+              deletePost({
+                postId: pendingDeletePostId,
+                restaurantId,
+              });
+              setPendingDeletePostId(null);
+            }}
+            cancelText="취소"
+            confirmText="확인"
+          />
+        )}
       </ScrollView>
 
       <Modal
@@ -408,10 +422,25 @@ export default function Community() {
         </Pressable>
       </Modal>
 
-      <Popup
-        visible={showReportPopup}
-        onConfirm={() => setShowReportPopup(false)}
-      />
+      {showReportPopup && (
+        <AlertPopupRadio
+          title="신고 사유를 선택해주세요"
+          onCancel={() => setShowReportPopup(false)}
+          onConfirm={() => {
+            setShowReportPopup(false);
+            setTimeout(() => setShowReportConfirm(true), 200);
+          }}
+        />
+      )}
+
+      {showReportConfirm && (
+        <AlertPopup
+          title="신고가 완료되었습니다"
+          description="빠르게 검토 후 조치하겠습니다"
+          onConfirm={() => setShowReportConfirm(false)}
+          confirmText="확인"
+        />
+      )}
 
       {/* 하단 그라디언트 */}
       <View

@@ -1,7 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
+import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Platform,
   TextInput as RNTextInput,
@@ -14,12 +15,18 @@ import Apple from "../../assets/images/Apple.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
 import Google from "../../assets/images/google.svg";
+import Logo from "../../assets/images/logo_green.svg";
 import client from "../../src/lib/api/client";
 import {
+  clearSocialLoginPending,
   getAccessToken,
   setAccessToken,
+  setOwnerSignupClicked,
   setRefreshToken,
+  setSocialLoginPending,
 } from "../../src/utils/storage";
+
+WebBrowser.maybeCompleteAuthSession();
 
 /* ================= OAuth URLs ================= */
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -46,6 +53,28 @@ const login = async (request: LoginRequest) => {
 
   return res.data;
 };
+
+const exchangeOAuthCode = async (code: string) => {
+  console.log("[OAuth] /api/auth/token 요청 시작", {
+    codePreview: `${code.slice(0, 8)}...`,
+    codeLength: code.length,
+  });
+
+  const res = await client.post("/api/auth/token", { code });
+
+  const accessToken = res.data.accessToken;
+  const refreshToken = res.data.refreshToken;
+
+  if (accessToken) await setAccessToken(accessToken);
+  if (refreshToken) await setRefreshToken(refreshToken);
+
+  console.log("[OAuth] /api/auth/token 응답 성공", {
+    hasAccessToken: Boolean(accessToken),
+    hasRefreshToken: Boolean(refreshToken),
+  });
+
+  return res.data;
+};
 /* ============================================== */
 
 interface IDInputProps {
@@ -56,11 +85,11 @@ interface IDInputProps {
 
 function IDInput({ placeholder, onChangeText, value }: IDInputProps) {
   return (
-    <View className="self-stretch p-4 bg-gray-100 rounded-lg justify-center items-start">
+    <View className="self-stretch p-4 bg-gray-100 rounded-lg flex flex-row items-center">
       <RNTextInput
         placeholder={placeholder}
         placeholderTextColor="#6B7280"
-        className="text-gray-900 font-medium leading-6"
+        className="text-gray-900 font-medium leading-6 flex-1 w-full"
         onChangeText={onChangeText}
         value={value}
         autoCapitalize="none"
@@ -102,6 +131,8 @@ function PWInput({ placeholder, onChangeText, value }: PWInputProps) {
 }
 
 export default function Landing() {
+  const incomingUrl = Linking.useURL();
+  const hasProcessedOAuthCode = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -117,6 +148,7 @@ export default function Landing() {
       const token = await getAccessToken();
       console.log("저장된 토큰:", token);
 
+      await clearSocialLoginPending();
       router.replace("/home/home");
     },
 
@@ -138,6 +170,83 @@ export default function Landing() {
     });
   };
 
+  const handleOAuthCode = async (code: string) => {
+    console.log("[OAuth] 인가 코드 수신", {
+      codePreview: `${code.slice(0, 8)}...`,
+      codeLength: code.length,
+      platform: Platform.OS,
+    });
+
+    hasProcessedOAuthCode.current = true;
+    setErrorMsg(null);
+
+    try {
+      await exchangeOAuthCode(code);
+      await setSocialLoginPending(true);
+
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+        window.history.replaceState({}, "", cleanUrl);
+      }
+
+      console.log("[OAuth] 토큰 저장 완료, 회원가입 화면으로 이동");
+      router.replace("/auth/registername?socialLogin=true");
+    } catch (err: any) {
+      console.log("[OAuth] 토큰 교환 실패", {
+        message: err?.message,
+        response: err?.response?.data,
+      });
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "소셜 로그인 토큰 발급에 실패했습니다.";
+      setErrorMsg(msg);
+      hasProcessedOAuthCode.current = false;
+    }
+  };
+
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const currentUrl =
+        Platform.OS === "web" && typeof window !== "undefined"
+          ? window.location.href
+          : incomingUrl;
+
+      console.log("[OAuth] 콜백 URL 감지", {
+        platform: Platform.OS,
+        hasUrl: Boolean(currentUrl),
+        currentUrl,
+      });
+
+      if (!currentUrl || hasProcessedOAuthCode.current) {
+        return;
+      }
+
+      const parsed = Linking.parse(currentUrl);
+      const code = parsed.queryParams?.code;
+      const error = parsed.queryParams?.error;
+
+      console.log("[OAuth] 콜백 파싱 결과", {
+        path: parsed.path,
+        hasCode: typeof code === "string" && code.trim().length > 0,
+        error,
+      });
+
+      if (typeof error === "string") {
+        setErrorMsg(`소셜 로그인에 실패했습니다. (${error})`);
+        return;
+      }
+
+      if (typeof code !== "string" || code.trim().length === 0) {
+        return;
+      }
+
+      await handleOAuthCode(code);
+    };
+
+    handleOAuthCallback();
+  }, [incomingUrl]);
+
   /* ============ OAuth Handlers ============ */
   const openOAuth = async (url: string) => {
     if (!API_BASE_URL) {
@@ -145,24 +254,88 @@ export default function Landing() {
       return;
     }
 
+    console.log("[OAuth] 로그인 시작", {
+      platform: Platform.OS,
+      requestUrl: url,
+    });
+
     if (Platform.OS === "web") {
       window.location.href = url;
     } else {
-      await WebBrowser.openBrowserAsync(url);
+      const redirectUri = Linking.createURL("/auth/landing");
+      const authUrl = `${url}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+      console.log("[OAuth] openAuthSessionAsync 호출", {
+        redirectUri,
+        authUrl,
+      });
+
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        redirectUri,
+      );
+
+      console.log("[OAuth] openAuthSessionAsync 결과", {
+        type: result.type,
+        resultUrl: result.type === "success" ? result.url : undefined,
+      });
+
+      if (result.type !== "success") {
+        return;
+      }
+
+      const parsed = Linking.parse(result.url);
+      const code = parsed.queryParams?.code;
+      const error = parsed.queryParams?.error;
+
+      if (typeof error === "string") {
+        setErrorMsg(`소셜 로그인에 실패했습니다. (${error})`);
+        return;
+      }
+
+      if (typeof code !== "string" || code.trim().length === 0) {
+        setErrorMsg("인가 코드(code)를 받지 못했습니다.");
+        return;
+      }
+
+      await handleOAuthCode(code);
     }
   };
 
   const onGoogleLogin = () => openOAuth(GOOGLE_OAUTH_URL);
   const onKakaoLogin = () => openOAuth(KAKAO_OAUTH_URL);
+
+  const onOwnerSignupPress = async () => {
+    await clearSocialLoginPending();
+    await setOwnerSignupClicked(true);
+    router.push("/auth/registeremail");
+  };
+
+  const onUserSignupPress = async () => {
+    await clearSocialLoginPending();
+    await setOwnerSignupClicked(false);
+    router.push("/auth/registeremail");
+  };
   /* ======================================== */
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-center p-4">
+      <View className="absolute left-4 right-4 top-[72px]">
+        <Text className="text-right text-gray-500 text-sm font-medium leading-6">
+          식당의 사장님이신가요?
+        </Text>
+        <TouchableOpacity onPress={onOwnerSignupPress} activeOpacity={0.7}>
+          <Text className="mt-[3px] text-right text-green-400 text-base font-semibold underline leading-6">
+            사장님 회원가입&gt;
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <View className="flex flex-col gap-3 justify-center items-center mb-[64.5px]">
         <Text className="text-green-400 text-sm font-medium leading-6">
           싹 비우고, 싹 틔우다
         </Text>
-        <Text className="text-green-500 text-7xl font-normal">싹</Text>
+        <Logo width={90} height={97} />
       </View>
 
       <View className="flex flex-col gap-2.5">
@@ -200,7 +373,7 @@ export default function Landing() {
             비밀번호 찾기
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/auth/registeremail")}>
+        <TouchableOpacity onPress={onUserSignupPress}>
           <Text className="text-green-500 font-medium underline">회원가입</Text>
         </TouchableOpacity>
       </View>

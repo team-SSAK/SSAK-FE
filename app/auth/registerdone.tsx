@@ -5,6 +5,11 @@ import ChevronRight from "../../assets/images/chevron-right.svg";
 import RadioButton from "../../assets/images/radio-button.svg";
 import TickCircle from "../../assets/images/tick-circle.svg";
 import { useSignup } from "../../src/hooks/useSignup";
+import { submitSocialNickname } from "../../src/services/auth/auth.service";
+import {
+  clearSocialLoginPending,
+  getSocialLoginPending,
+} from "../../src/utils/storage";
 
 interface CheckboxProps {
   label: string;
@@ -42,15 +47,28 @@ export default function RegisterDone() {
   const email = typeof params.email === "string" ? params.email : "";
   const password = typeof params.password === "string" ? params.password : "";
   const name = typeof params.name === "string" ? params.name : "";
+  const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
+  const isSocialLogin = params.socialLogin === "true" || isStoredSocialLogin;
 
   /* -----------------------------
      잘못된 접근 방어
   ----------------------------- */
   useEffect(() => {
-    if (!email || !password || !name) {
+    getSocialLoginPending()
+      .then(setIsStoredSocialLogin)
+      .catch(() => setIsStoredSocialLogin(false));
+  }, []);
+
+  useEffect(() => {
+    if ((!email || !password) && !isSocialLogin) {
+      router.replace("/auth/landing");
+      return;
+    }
+
+    if (!name) {
       router.replace("/auth/landing");
     }
-  }, []);
+  }, [email, isSocialLogin, name, password]);
 
   /* -----------------------------
      약관 상태
@@ -76,11 +94,31 @@ export default function RegisterDone() {
      signup 훅
   ----------------------------- */
   const { mutate: signupMutate, isPending } = useSignup();
+  const [isSocialPending, setIsSocialPending] = useState(false);
 
   const isRequiredAgreed = agreePrivacy && agreeLocation;
+  const isSubmitting = isPending || isSocialPending;
 
   const handleSignup = () => {
     if (!isRequiredAgreed) return;
+
+    if (isSocialLogin) {
+      setIsSocialPending(true);
+      submitSocialNickname(name)
+        .then(() => {
+          return clearSocialLoginPending();
+        })
+        .then(() => {
+          router.replace("/home/home");
+        })
+        .catch((err) => {
+          console.log("Social nickname update error:", err);
+        })
+        .finally(() => {
+          setIsSocialPending(false);
+        });
+      return;
+    }
 
     signupMutate(
       {
@@ -108,7 +146,7 @@ export default function RegisterDone() {
           <Text className="text-green-400 text-sm font-medium leading-6">
             싹 비우고, 싹 틔우다
           </Text>
-          <Text className="text-green-500 text-7xl font-normal font-Jalnan_2 leading-[79.10px]">
+          <Text className="text-green-500 text-7xl font-normal leading-[79.10px]">
             싹
           </Text>
         </View>
@@ -162,19 +200,19 @@ export default function RegisterDone() {
 
         {/* 가입 버튼 */}
         <TouchableOpacity
-          disabled={!isRequiredAgreed || isPending}
+          disabled={!isRequiredAgreed || isSubmitting}
           onPress={handleSignup}
         >
           <View
             className="self-stretch h-[52px] p-3 rounded-xl justify-center items-center"
             style={{
               backgroundColor:
-                isRequiredAgreed && !isPending ? "#45B310" : "#94A3B8",
-              opacity: isRequiredAgreed && !isPending ? 1 : 0.6,
+                isRequiredAgreed && !isSubmitting ? "#45B310" : "#94A3B8",
+              opacity: isRequiredAgreed && !isSubmitting ? 1 : 0.6,
             }}
           >
             <Text className="text-center text-white text-lg font-medium leading-7">
-              {isPending ? "가입 중..." : "가입 완료"}
+              {isSubmitting ? "가입 중..." : "가입 완료"}
             </Text>
           </View>
         </TouchableOpacity>

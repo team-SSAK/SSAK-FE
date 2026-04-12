@@ -4,10 +4,29 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo } from "react";
 import { Platform, Text, TextInput } from "react-native";
+import Animated from "react-native-reanimated";
 import "./global.css";
 
 const IOS_TEXT_SCALE = 1.1;
+const DEFAULT_FONT_FAMILY = "Pretendard-Variable";
 let typographyDefaultsApplied = false;
+
+function applyTextComponentDefaults(component: any) {
+  const componentDefaults = component.defaultProps || {};
+
+  component.defaultProps = {
+    ...componentDefaults,
+    allowFontScaling:
+      Platform.OS === "ios" ? false : componentDefaults.allowFontScaling,
+    maxFontSizeMultiplier:
+      Platform.OS === "ios" ? 1 : componentDefaults.maxFontSizeMultiplier,
+    style: [
+      componentDefaults.style,
+      { fontFamily: DEFAULT_FONT_FAMILY },
+      Platform.OS === "ios" ? { fontSize: 16 * IOS_TEXT_SCALE } : null,
+    ],
+  };
+}
 
 function applyGlobalTypographyDefaults() {
   if (typographyDefaultsApplied) {
@@ -16,33 +35,9 @@ function applyGlobalTypographyDefaults() {
 
   typographyDefaultsApplied = true;
 
-  const textDefaults = (Text as any).defaultProps || {};
-  (Text as any).defaultProps = {
-    ...textDefaults,
-    allowFontScaling:
-      Platform.OS === "ios" ? false : textDefaults.allowFontScaling,
-    maxFontSizeMultiplier:
-      Platform.OS === "ios" ? 1 : textDefaults.maxFontSizeMultiplier,
-    style: [
-      textDefaults.style,
-      { fontFamily: "Pretendard-Variable" },
-      Platform.OS === "ios" ? { fontSize: 16 * IOS_TEXT_SCALE } : null,
-    ],
-  };
-
-  const textInputDefaults = (TextInput as any).defaultProps || {};
-  (TextInput as any).defaultProps = {
-    ...textInputDefaults,
-    allowFontScaling:
-      Platform.OS === "ios" ? false : textInputDefaults.allowFontScaling,
-    maxFontSizeMultiplier:
-      Platform.OS === "ios" ? 1 : textInputDefaults.maxFontSizeMultiplier,
-    style: [
-      textInputDefaults.style,
-      { fontFamily: "Pretendard-Variable" },
-      Platform.OS === "ios" ? { fontSize: 16 * IOS_TEXT_SCALE } : null,
-    ],
-  };
+  applyTextComponentDefaults(Text as any);
+  applyTextComponentDefaults(TextInput as any);
+  applyTextComponentDefaults((Animated.Text as any) ?? {});
 }
 
 export default function RootLayout() {
@@ -50,7 +45,6 @@ export default function RootLayout() {
 
   // 앱 초기화 동안 스플래시가 자동으로 숨겨지지 않도록 설정
   useEffect(() => {
-    let mounted = true;
     async function prepare() {
       try {
         await SplashScreen.preventAutoHideAsync();
@@ -59,15 +53,10 @@ export default function RootLayout() {
       }
     }
     prepare();
-    return () => {
-      mounted = false;
-    };
   }, []);
 
   const [fontsLoaded, fontError] = useFonts({
-    "Pretendard-Variable": require("../assets/fonts/PretendardVariable.ttf"),
-    Jalnan_2: require("../assets/fonts/Jalnan2TTF.ttf"),
-    JalnanGothic: require("../assets/fonts/JalnanGothic.otf"),
+    [DEFAULT_FONT_FAMILY]: require("../assets/fonts/PretendardVariable.ttf"),
   });
 
   useEffect(() => {

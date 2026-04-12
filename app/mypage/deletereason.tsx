@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import AlertPopup from "../../components/alertpopup";
 import TextInput from "../../components/input/textinput";
 import {
   getWithdrawal,
@@ -19,6 +20,7 @@ export default function DeleteReason() {
   const [customReason, setCustomReason] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     const fetchReasons = async () => {
@@ -45,21 +47,22 @@ export default function DeleteReason() {
 
   const isButtonEnabled = !!selectedId;
 
-  const handleNext = async () => {
-    if (!selectedId) return;
+  const handleWithdraw = () => {
+    setShowPopup(true);
+  };
 
+  const handleConfirm = async () => {
+    if (!selectedId) return;
+    setShowPopup(false);
     try {
       setSubmitting(true);
-
       // 선택된 사유 객체 찾기
       const selectedReason = reasons.find((r) => r.wdReasonId === selectedId);
       const reasonContent =
         selectedId === "1"
           ? customReason.trim()
           : (selectedReason?.wdReasonContent ?? "");
-
       await postWithdrawal(selectedId, reasonContent);
-
       router.replace("/auth/landing?showPopup=true&type=delete");
     } catch (e) {
       console.log("탈퇴 실패", e);
@@ -138,7 +141,7 @@ export default function DeleteReason() {
 
         <TouchableOpacity
           disabled={!isButtonEnabled || submitting}
-          onPress={handleNext}
+          onPress={handleWithdraw}
           className="flex-1 h-[52px] rounded-xl items-center justify-center"
           style={{
             backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
@@ -151,6 +154,15 @@ export default function DeleteReason() {
             <Text className="text-white text-lg font-medium">탈퇴하기</Text>
           )}
         </TouchableOpacity>
+        <AlertPopup
+          visible={showPopup}
+          title="탈퇴하시겠습니까?"
+          description="회원 탈퇴 시 모아둔 포인트 내역을 복구할 수 없습니다"
+          cancelText="취소"
+          confirmText="탈퇴하기"
+          onCancel={() => setShowPopup(false)}
+          onConfirm={handleConfirm}
+        />
       </View>
     </View>
   );
