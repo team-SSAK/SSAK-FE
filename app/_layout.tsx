@@ -7,37 +7,25 @@ import { Platform, Text, TextInput } from "react-native";
 import Animated from "react-native-reanimated";
 import "./global.css";
 
-const IOS_TEXT_SCALE = 1.1;
-const DEFAULT_FONT_FAMILY = "Pretendard-Variable";
 let typographyDefaultsApplied = false;
-
-function applyTextComponentDefaults(component: any) {
-  const componentDefaults = component.defaultProps || {};
-
-  component.defaultProps = {
-    ...componentDefaults,
-    allowFontScaling:
-      Platform.OS === "ios" ? false : componentDefaults.allowFontScaling,
-    maxFontSizeMultiplier:
-      Platform.OS === "ios" ? 1 : componentDefaults.maxFontSizeMultiplier,
-    style: [
-      componentDefaults.style,
-      { fontFamily: DEFAULT_FONT_FAMILY },
-      Platform.OS === "ios" ? { fontSize: 16 * IOS_TEXT_SCALE } : null,
-    ],
-  };
-}
 
 function applyGlobalTypographyDefaults() {
   if (typographyDefaultsApplied) {
     return;
   }
-
   typographyDefaultsApplied = true;
 
-  applyTextComponentDefaults(Text as any);
-  applyTextComponentDefaults(TextInput as any);
-  applyTextComponentDefaults((Animated.Text as any) ?? {});
+  const textDefaults = (Text as any).defaultProps || {};
+  (Text as any).defaultProps = {
+    ...textDefaults,
+    style: [textDefaults.style, { fontFamily: "Pretendard-Variable" }],
+  };
+
+  const textInputDefaults = (TextInput as any).defaultProps || {};
+  (TextInput as any).defaultProps = {
+    ...textInputDefaults,
+    style: [textInputDefaults.style, { fontFamily: "Pretendard-Variable" }],
+  };
 }
 
 export default function RootLayout() {

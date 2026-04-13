@@ -1,75 +1,30 @@
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import AlertPopup from "../../components/alertpopup";
 import TextInput from "../../components/input/textinput";
-import {
-  getWithdrawal,
-  postWithdrawal,
-} from "../../src/services/mypage/withdrawal.service";
 
 interface WithdrawalReason {
   wdReasonId: string;
   wdReasonContent: string;
 }
 
+// 디자인QA: 하드코딩 사유 목록
+const REASONS: WithdrawalReason[] = [
+  { wdReasonId: "2", wdReasonContent: "서비스 이용 빈도가 낙았어요" },
+  { wdReasonId: "3", wdReasonContent: "원하는 기능이 없어요" },
+  { wdReasonId: "4", wdReasonContent: "개인정보 보호가 우려돼요" },
+  { wdReasonId: "5", wdReasonContent: "다른 서비스로 이전할 예정이에요" },
+  { wdReasonId: "1", wdReasonContent: "기타" },
+];
+
 export default function DeleteReason() {
-  const [reasons, setReasons] = useState<WithdrawalReason[]>([]);
+  const reasons = REASONS;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [customReason, setCustomReason] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
 
-  useEffect(() => {
-    const fetchReasons = async () => {
-      try {
-        const res = await getWithdrawal();
-        const ordered = [
-          ...res.filter((reason) => reason.wdReasonId !== "1"),
-          ...res.filter((reason) => reason.wdReasonId === "1"),
-        ];
-        setReasons(ordered);
-      } catch (e) {
-        console.log("탈퇴 사유 조회 실패", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReasons();
-  }, []);
-
-  const toggleReason = (id: string) => {
-    setSelectedId(id); // 단일 선택
-  };
-
-  const isButtonEnabled = !!selectedId;
-
-  const handleWithdraw = () => {
-    setShowPopup(true);
-  };
-
-  const handleConfirm = async () => {
-    if (!selectedId) return;
-    setShowPopup(false);
-    try {
-      setSubmitting(true);
-      // 선택된 사유 객체 찾기
-      const selectedReason = reasons.find((r) => r.wdReasonId === selectedId);
-      const reasonContent =
-        selectedId === "1"
-          ? customReason.trim()
-          : (selectedReason?.wdReasonContent ?? "");
-      await postWithdrawal(selectedId, reasonContent);
-      router.replace("/auth/landing?showPopup=true&type=delete");
-    } catch (e) {
-      console.log("탈퇴 실패", e);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const toggleReason = (id: string) => setSelectedId(id);
 
   return (
     <View className="flex-1 bg-white justify-between px-4 py-[56px]">
@@ -88,35 +43,28 @@ export default function DeleteReason() {
         <View className="h-7" />
 
         <View className="gap-[22px]">
-          {loading ? (
-            <ActivityIndicator />
-          ) : (
-            reasons.map((reason) => {
-              const selected = selectedId === reason.wdReasonId;
+          {reasons.map((reason) => {
+            const selected = selectedId === reason.wdReasonId;
 
-              return (
-                <TouchableOpacity
-                  key={reason.wdReasonId}
-                  onPress={() => toggleReason(reason.wdReasonId)}
-                  className="flex-row gap-3 items-center"
-                >
-                  {selected ? (
-                    <View className="w-5 h-5 bg-white rounded-full border-[6px] border-green-400" />
-                  ) : (
-                    <View className="w-5 h-5 bg-white rounded-full border border-gray-400" />
-                  )}
+            return (
+              <TouchableOpacity
+                key={reason.wdReasonId}
+                onPress={() => toggleReason(reason.wdReasonId)}
+                className="flex-row gap-3 items-center"
+              >
+                {selected ? (
+                  <View className="w-5 h-5 bg-white rounded-full border-[6px] border-green-400" />
+                ) : (
+                  <View className="w-5 h-5 bg-white rounded-full border border-gray-400" />
+                )}
 
-                  <Text className="text-gray-800 font-medium leading-6">
-                    {reason.wdReasonContent}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })
-          )}
+                <Text className="text-gray-800 font-medium leading-6">
+                  {reason.wdReasonContent}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-
-        <View className="h-2.5" />
-
         {selectedId === "1" ? (
           <>
             <View className="h-2.5" />
@@ -140,19 +88,10 @@ export default function DeleteReason() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          disabled={!isButtonEnabled || submitting}
-          onPress={handleWithdraw}
-          className="flex-1 h-[52px] rounded-xl items-center justify-center"
-          style={{
-            backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
-            opacity: isButtonEnabled ? 1 : 0.5,
-          }}
+          onPress={() => router.replace("/auth/landing")}
+          className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
         >
-          {submitting ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text className="text-white text-lg font-medium">탈퇴하기</Text>
-          )}
+          <Text className="text-white text-lg font-medium">탈퇴하기</Text>
         </TouchableOpacity>
         <AlertPopup
           visible={showPopup}

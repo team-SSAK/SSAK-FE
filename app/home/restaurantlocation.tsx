@@ -1,55 +1,14 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
-import RestaurantLocationMap from "../../components/restaurant-location-map";
-
-import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
-
-//////////////////////////////////////////////////////
-// 타입
-//////////////////////////////////////////////////////
-
-interface RestaurantWishResponse {
-  restaurantWishId: number;
-  restaurantId: number;
-  restaurantName: string;
-  restaurantLocation: string;
-  restaurantImgUrl: string;
-}
-
-const DEFAULT_PIN_COORD = {
-  latitude: 37.5665,
-  longitude: 126.978,
-};
-
-//////////////////////////////////////////////////////
-// 페이지
-//////////////////////////////////////////////////////
+import { MOCK_RESTAURANTS } from "../../constants/mock-data";
 
 export default function RestaurantLoacation() {
-  const { data } = useRestaurantWish();
   const { restaurantId } = useLocalSearchParams<{ restaurantId?: string }>();
-
-  const restaurants = useMemo(() => {
-    if (!Array.isArray(data)) return [];
-
-    return data.map((item: RestaurantWishResponse) => ({
-      id: item.restaurantId,
-      name: item.restaurantName,
-      address: item.restaurantLocation,
-      image: item.restaurantImgUrl,
-    }));
-  }, [data]);
-
-  const selectedRestaurantId =
-    typeof restaurantId === "string" ? Number(restaurantId) : NaN;
-
-  const selectedRestaurant = useMemo(
-    () =>
-      restaurants.find((restaurant) => restaurant.id === selectedRestaurantId),
-    [restaurants, selectedRestaurantId],
-  );
+  const selectedRestaurant =
+    MOCK_RESTAURANTS.find(
+      (restaurant) => String(restaurant.id) === String(restaurantId ?? ""),
+    ) ?? MOCK_RESTAURANTS[0];
 
   return (
     <View className="flex-1 bg-white">
@@ -78,7 +37,7 @@ export default function RestaurantLoacation() {
             </Text>
           </View>
           <Text className="justify-start text-gray-800 text-xl font-semibold leading-8">
-            {selectedRestaurant?.name ?? "식당 정보"}
+            {selectedRestaurant.name}
           </Text>
           <View className="flex flex-row mt-2.5 ">
             <View className="flex flex-col gap-1 mr-[19px]">
@@ -91,10 +50,10 @@ export default function RestaurantLoacation() {
             </View>
             <View className="flex flex-col gap-1">
               <Text className="text-gray-600 text-sm font-semibold leading-6 line-clamp-2">
-                {selectedRestaurant?.address ?? "식당 주소"}
+                {selectedRestaurant.address}
               </Text>
               <Text className="text-gray-600 text-sm font-semibold leading-6 line-clamp-2">
-                07:00 - 21:30
+                {selectedRestaurant.hours}
               </Text>
             </View>
           </View>

@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
@@ -8,14 +8,7 @@ import Map from "../../assets/images/map.svg";
 
 import { mockrestaurent } from "../../components/mockrestaurent";
 import SearchInput from "../../components/searchinput";
-import {
-  usePostRestaurantWish,
-  useRestaurant,
-} from "../../src/hooks/useRestaurant";
-
-//////////////////////////////////////////////////////
-// 타입
-//////////////////////////////////////////////////////
+import { MOCK_RESTAURANTS } from "../../constants/mock-data";
 
 interface ResCardProps {
   name?: string;
@@ -91,68 +84,18 @@ const isMatchedKeyword = (text: string, keyword: string) => {
     return true;
   }
 
-  return normalizedText.includes(normalizedKeyword);
-};
-
-//////////////////////////////////////////////////////
-// 페이지
-//////////////////////////////////////////////////////
-
 export default function Restaurant() {
-  const [activeTab, setActiveTab] = useState<"nearby" | "my">("nearby");
-  const [searchText, setSearchText] = useState("");
-  const { data = [] } = useRestaurant();
-  const { mutateAsync: postRestaurantWish } = usePostRestaurantWish();
-
-  const restaurants = useMemo(() => {
-    const source = data.length === 0 ? mockrestaurent : data;
-
-    return source.map((item) => ({
-      id: item.restaurantId,
-      name: item.restaurantName,
-      address: item.restaurantLocation,
-      image: item.restaurantImgUrl,
-      type: item.restaurantType ?? null,
-      wished: item.wished,
-    }));
-  }, [data]);
-
-  // 기본값: 전부 채워진 하트
+  const restaurants = MOCK_RESTAURANTS;
   const [selectedRestaurants, setSelectedRestaurants] = useState<
     Record<number, boolean>
-  >({});
+  >(() =>
+    Object.fromEntries(
+      MOCK_RESTAURANTS.map((restaurant) => [restaurant.id, true]),
+    ),
+  );
 
-  useEffect(() => {
-    if (restaurants.length > 0) {
-      const initialState = Object.fromEntries(
-        restaurants.map((r) => [r.id, r.wished]),
-      );
-      setSelectedRestaurants(initialState);
-    }
-  }, [restaurants]);
-
-  const toggle = async (id: number) => {
-    const currentSelected =
-      selectedRestaurants[id] ??
-      restaurants.find((restaurant) => restaurant.id === id)?.wished ??
-      false;
-    const nextSelected = !currentSelected;
-
-    setSelectedRestaurants((prev) => ({
-      ...prev,
-      [id]: nextSelected,
-    }));
-
-    try {
-      await postRestaurantWish(id);
-    } catch (error) {
-      console.error("식당 찜하기 실패:", error);
-
-      setSelectedRestaurants((prev) => ({
-        ...prev,
-        [id]: currentSelected,
-      }));
-    }
+  const toggle = (id: number) => {
+    setSelectedRestaurants((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const tabRestaurants = useMemo(() => {
@@ -227,25 +170,18 @@ export default function Restaurant() {
           gap: 10,
         }}
       >
-        {filteredRestaurants.map((restaurant) => (
+        {restaurants.map((restaurant) => (
           <ResCard
             key={restaurant.id}
             name={restaurant.name}
             address={restaurant.address}
             image={restaurant.image}
             selected={!!selectedRestaurants[restaurant.id]}
-            onToggle={() => {
-              void toggle(restaurant.id);
-            }}
+            onToggle={() => toggle(restaurant.id)}
             onPress={() =>
               router.push({
                 pathname: "/home/restaurantdetail",
-                params: {
-                  restaurantId: String(restaurant.id),
-                  restaurantImage: restaurant.image ?? "",
-                  restaurantType:
-                    restaurant.type === null ? "null" : restaurant.type,
-                },
+                params: { restaurantId: String(restaurant.id) },
               })
             }
           />

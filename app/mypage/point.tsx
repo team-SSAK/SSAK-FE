@@ -3,8 +3,7 @@ import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 
 import { useState } from "react";
-
-import { usePoint, usePoints } from "@/src/hooks/usePoint";
+import { MOCK_POINT_HISTORY, MOCK_PROFILE } from "../../constants/mock-data";
 
 interface FilterChipProps {
   label: string;
@@ -98,7 +97,6 @@ function PointHistoryItem({
   pointTime,
   showDate,
 }: PointHistoryItemProps) {
-  const { point } = usePoint();
   const hasValidTime =
     typeof pointTime === "string" &&
     !Number.isNaN(new Date(pointTime).getTime());
@@ -142,7 +140,7 @@ function PointHistoryItem({
           {pointAmount}P
         </Text>
         <Text className="text-gray-500 text-xs font-medium leading-5 line-clamp-1">
-          {point ?? 0}P
+          {MOCK_PROFILE.point}P
         </Text>
       </View>
     </View>
@@ -150,8 +148,10 @@ function PointHistoryItem({
 }
 
 export default function Point() {
-  const { point } = usePoint();
-  const { points, loading, isError } = usePoints();
+  const point = MOCK_PROFILE.point;
+  const points = MOCK_POINT_HISTORY;
+  const loading = false;
+  const isError = false;
   const [activeFilter, setActiveFilter] = useState<FilterType>("전체");
 
   const filteredData = points.filter((item) => {

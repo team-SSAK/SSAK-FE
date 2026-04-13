@@ -21,9 +21,7 @@ import TopGradientSVG from "../../assets/images/TopGradient.svg";
 import { BottomNav } from "../../components/bottomnav";
 
 import AnouncementCard from "../../components/anouncementcard";
-import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
-
-import Logo from "../../assets/images/logo_green.svg";
+import { MOCK_RESTAURANTS } from "../../constants/mock-data";
 
 const headerImageSource = require("../../assets/images/SSAK.png");
 const headerImageAsset = Asset.fromModule(headerImageSource);
@@ -32,24 +30,18 @@ const headerAspectRatio =
     ? headerImageAsset.width / headerImageAsset.height
     : 1.6;
 
-const ANNOUNCEMENT_URL =
-  "https://www.notion.so/31fc1339dd7680e6add1d62805ab8dba?source=copy_link";
-//////////////////////////////////////////////////////
-// 타입
-//////////////////////////////////////////////////////
-
 //////////////////////////////////////////////////////
 // 식당 배너 (API 기반)
 //////////////////////////////////////////////////////
 
 const ResBanner = ({
   name,
-  address,
-  image,
+  mealType,
+  menu,
 }: {
   name: string;
-  address: string;
-  image?: string;
+  mealType: string;
+  menu: string;
 }) => {
   return (
     <View className="w-60 px-4 py-4 bg-slate-100 rounded-2xl gap-5">
@@ -61,10 +53,10 @@ const ResBanner = ({
       </Text>
       <View>
         <Text className="text-gray-800 text-xs font-semibold leading-5">
-          중식
+          {mealType}
         </Text>
         <Text className="text-gray-500 text-xs font-medium" numberOfLines={1}>
-          제육볶음, 쌀밥, 미역국 김치찌개, 요구르트
+          {menu}
         </Text>
       </View>
     </View>
@@ -84,15 +76,7 @@ export default function Home() {
   const newsCards = [1, 2, 3, 4];
   const [newsPage, setNewsPage] = useState(0);
 
-  // 즐겨찾기 식당 (개수 제한 없음)
-  const { data: restaurantData = [] } = useRestaurantWish();
-
-  const restaurants = restaurantData.map((item) => ({
-    id: item.restaurantId,
-    name: item.restaurantName,
-    address: item.restaurantLocation,
-    image: item.restaurantImgUrl,
-  }));
+  const restaurants = MOCK_RESTAURANTS;
 
   const handleNewsScrollEnd = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
@@ -221,29 +205,15 @@ export default function Home() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ gap: 15 }}
               >
-                {restaurants.map((restaurant) => (
-                  <TouchableOpacity
-                    key={restaurant.id}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/home/restaurantdetail",
-                        params: {
-                          restaurantId: String(restaurant.id),
-                          restaurantImage: restaurant.image ?? "",
-                        },
-                      })
-                    }
-                  >
-                    <ResBanner
-                      name={restaurant.name}
-                      address={restaurant.address}
-                      image={restaurant.image}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-          </View>
+                <ResBanner
+                  name={restaurant.name}
+                  mealType={restaurant.mealType}
+                  menu={restaurant.menu}
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
           <View className="h-6" />
 

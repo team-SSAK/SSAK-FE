@@ -1,204 +1,18 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import {
-  Image,
-  Modal,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronRightG from "../../assets/images/chevron-right-gray.svg";
 import Map from "../../assets/images/map.svg";
 
-import AlertPopupRadio from "@/components/alertpopupradio";
-import AlertPopup from "../../components/alertpopup";
-import Post from "../../components/post";
-
-import { useCommunity, useDeleteCommunity } from "../../src/hooks/useCommunity";
-import { useMe } from "../../src/hooks/useMe";
-import { useReport } from "../../src/hooks/useReport";
-import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
-
-function Popup({
-  title = "이미 신고된 글입니다",
-  description = "현재 검토가 진행중입니다",
-  onCancel,
-  onConfirm,
-  visible = false,
-}: {
-  title?: string;
-  description?: string;
-  onCancel?: () => void;
-  onConfirm?: () => void;
-  visible?: boolean;
-}) {
-  return (
-    <Modal transparent visible={visible}>
-      <View
-        className="flex-1 justify-center items-center"
-        style={{ backgroundColor: "rgba(0,0,0,0.1)" }}
-      >
-        <View className="w-72 p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
-          <View className="self-stretch flex-col justify-start items-start gap-1">
-            <Text className="self-stretch text-slate-800 text-lg font-semibold leading-7">
-              {title}
-            </Text>
-            <Text className="self-stretch text-slate-500 text-sm font-medium leading-6">
-              {description}
-            </Text>
-          </View>
-
-          <View className="self-stretch flex-row justify-start items-center gap-2">
-            <TouchableOpacity
-              onPress={onConfirm}
-              className="flex-1 h-10 px-2 py-2 bg-green-400 rounded-[10px] justify-center items-center"
-            >
-              <Text className="text-white text-base font-medium leading-6">
-                확인
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-//////////////////////////////////////////////////////
-// 타입
-//////////////////////////////////////////////////////
-
-interface RestaurantWishResponse {
-  restaurantWishId: number;
-  restaurantId: number;
-  restaurantName: string;
-  restaurantLocation: string;
-  restaurantImgUrl: string;
-  restaurantType?: string | null;
-}
-
-//////////////////////////////////////////////////////
-// 페이지
-//////////////////////////////////////////////////////
+import MockPost from "../../components/mockpost";
+import { MOCK_RESTAURANTS } from "../../constants/mock-data";
 
 export default function RestaurantDetail() {
-  const { data } = useRestaurantWish();
-  const { restaurantId, restaurantImage, restaurantType } =
-    useLocalSearchParams<{
-      restaurantId?: string;
-      restaurantImage?: string;
-      restaurantType?: string;
-    }>();
-
-  const restaurants = useMemo(() => {
-    if (!Array.isArray(data)) return [];
-
-    return data.map((item: RestaurantWishResponse) => ({
-      id: item.restaurantId,
-      name: item.restaurantName,
-      address: item.restaurantLocation,
-      image: item.restaurantImgUrl,
-      type: item.restaurantType ?? null,
-    }));
-  }, [data]);
-
-  const selectedRestaurantId =
-    typeof restaurantId === "string" ? Number(restaurantId) : NaN;
-
-  const selectedRestaurant = useMemo(
-    () =>
-      restaurants.find((restaurant) => restaurant.id === selectedRestaurantId),
-    [restaurants, selectedRestaurantId],
-  );
-
-  const detailImage =
-    typeof restaurantImage === "string" && restaurantImage.length > 0
-      ? restaurantImage
-      : selectedRestaurant?.image;
-
-  const selectedRestaurantType =
-    restaurantType === "null"
-      ? null
-      : typeof restaurantType === "string" && restaurantType.length > 0
-        ? restaurantType
-        : (selectedRestaurant?.type ?? null);
-
-  const restaurantTypeLabel =
-    selectedRestaurantType === null ? "자율배식형" : selectedRestaurantType;
-
-  const { data: communityPosts = [] } = useCommunity(restaurantId);
-  const { mutate: deletePost } = useDeleteCommunity();
-  const [showDeletePopup, setShowDeletePopup] = useState(false);
-  const [pendingDeletePostId, setPendingDeletePostId] = useState<
-    string | number | null
-  >(null);
-  const { mutate: reportPost } = useReport();
-  const { me } = useMe();
-  const [showReportPopup, setShowReportPopup] = useState(false);
-  const [showReportConfirm, setShowReportConfirm] = useState(false);
-
-  const isDuplicateReportError = (error: unknown) => {
-    const err = error as {
-      response?: { status?: number; data?: { message?: string } };
-      message?: string;
-    };
-
-    const responseMessage = err.response?.data?.message ?? "";
-    const fallbackMessage = err.message ?? "";
-
-    return (
-      err.response?.status === 409 ||
-      responseMessage.includes("이미 신고") ||
-      fallbackMessage.includes("이미 신고")
-    );
-  };
-
-  const visibleCommunityPosts = useMemo(() => {
-    const myNickname = (me?.userNm ?? "").trim();
-
-    return communityPosts.filter((post) => {
-      const isMine =
-        myNickname.length > 0 && post.nickname.trim() === myNickname;
-      return post.postVisibility || isMine;
-    });
-  }, [communityPosts, me?.userNm]);
-
-  const formatPostDate = (isoDate: string) => {
-    const date = new Date(isoDate);
-
-    if (Number.isNaN(date.getTime())) {
-      return "";
-    }
-
-    const yy = String(date.getFullYear()).slice(-2);
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const dd = String(date.getDate()).padStart(2, "0");
-
-    return `${yy}.${mm}.${dd}`;
-  };
-
-  // 기본값: 전부 채워진 하트
-  const [selectedRestaurants, setSelectedRestaurants] = useState<
-    Record<number, boolean>
-  >({});
-
-  useEffect(() => {
-    if (restaurants.length > 0) {
-      const initialState = Object.fromEntries(
-        restaurants.map((r) => [r.id, true]),
-      );
-      setSelectedRestaurants(initialState);
-    }
-  }, [restaurants]);
-
-  const toggle = (id: number) => {
-    setSelectedRestaurants((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
+  const { restaurantId } = useLocalSearchParams<{ restaurantId?: string }>();
+  const selectedRestaurant =
+    MOCK_RESTAURANTS.find(
+      (restaurant) => String(restaurant.id) === String(restaurantId ?? ""),
+    ) ?? MOCK_RESTAURANTS[0];
 
   return (
     <View className="flex-1 bg-white">
@@ -254,7 +68,7 @@ export default function RestaurantDetail() {
             </Text>
           </View>
           <Text className="justify-start text-gray-800 text-xl font-semibold leading-8">
-            {selectedRestaurant?.name ?? "식당 정보"}
+            {selectedRestaurant.name}
           </Text>
           <View className="flex flex-row mt-2.5 ">
             <View className="flex flex-col gap-1 mr-[19px]">
@@ -267,10 +81,10 @@ export default function RestaurantDetail() {
             </View>
             <View className="flex flex-col gap-1">
               <Text className="text-gray-600 text-sm font-semibold leading-6 line-clamp-2">
-                {selectedRestaurant?.address ?? "식당 주소"}
+                {selectedRestaurant.address}
               </Text>
               <Text className="text-gray-600 text-sm font-semibold leading-6 line-clamp-2">
-                07:00 - 21:30
+                {selectedRestaurant.hours}
               </Text>
             </View>
           </View>
@@ -298,14 +112,13 @@ export default function RestaurantDetail() {
             <View className="self-start w-64 p-3.5 bg-gray-50 rounded-[10px] flex flex-col justify-center items-start gap-2.5">
               <View className="self-stretch flex flex-col justify-start items-start gap-7">
                 <Text className="self-stretch text-gray-800 text-sm font-semibold leading-6">
-                  중식
+                  {selectedRestaurant.mealType}
                 </Text>
                 <Text
                   className="self-stretch text-gray-500 text-sm font-medium leading-6"
                   numberOfLines={2}
                 >
-                  제육볶음, 쌀밥, 미역국 김치찌개, 요구르트, 제육볶음, 쌀밥,
-                  미역국 김치찌개, 요구르트,요구르트
+                  {selectedRestaurant.menu}
                 </Text>
               </View>
             </View>
