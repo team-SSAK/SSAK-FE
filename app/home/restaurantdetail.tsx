@@ -47,15 +47,24 @@ export default function RestaurantDetail() {
           </TouchableOpacity>
         </View>
 
-        <View
-          className="h-[196px] bg-gray-400"
-          style={{ marginHorizontal: -16 }}
-        />
+        {detailImage ? (
+          <Image
+            source={{ uri: detailImage }}
+            className="h-[196px]"
+            style={{ marginHorizontal: -16 }}
+            resizeMode="cover"
+          />
+        ) : (
+          <View
+            className="h-[196px] bg-gray-400"
+            style={{ marginHorizontal: -16 }}
+          />
+        )}
 
         <View className="pt-4 flex flex-col">
           <View className="self-start px-2.5 py-0.5 bg-green-300 rounded-md justify-center items-center mb-1 ">
             <Text className="text-white text-xs font-semibold leading-5">
-              자율배식형
+              {restaurantTypeLabel}
             </Text>
           </View>
           <Text className="justify-start text-gray-800 text-xl font-semibold leading-8">
@@ -136,13 +145,93 @@ export default function RestaurantDetail() {
             식당 커뮤니티
           </Text>
 
-          <TouchableOpacity onPress={() => router.push("/home/community")}>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/home/community",
+                params:
+                  typeof restaurantId === "string" ? { restaurantId } : {},
+              })
+            }
+          >
             <ChevronRightG />
           </TouchableOpacity>
         </View>
-        <MockPost onPress={() => router.push("/home/post")} />
-        <MockPost showBadge={false} onPress={() => router.push("/home/post")} />
-        <MockPost showBadge={false} onPress={() => router.push("/home/post")} />
+        {visibleCommunityPosts.map((post) => (
+          <Post
+            key={post.postId}
+            showBadge={!post.postVisibility}
+            badge="비공개"
+            author={post.nickname}
+            title={post.postTitle}
+            content={post.postContent}
+            image={post.imageUrls?.[0]}
+            likedPostId={post.postId}
+            likeCount={post.postLikeCnt}
+            commentCount={post.postCommentCnt}
+            date={formatPostDate(post.postCreateTime)}
+            isMine={post.nickname.trim() === (me?.userNm ?? "").trim()}
+            onDeletePress={() => {
+              setShowDeletePopup(true);
+              setPendingDeletePostId(post.postId);
+            }}
+            onEditPress={() => {
+              router.push({
+                pathname: "/home/writepost",
+                params: {
+                  restaurantId: String(restaurantId ?? ""),
+                  postId: String(post.postId),
+                  postTitle: post.postTitle ?? "",
+                  postContent: post.postContent,
+                  postVisibility: String(post.postVisibility),
+                  postImages: JSON.stringify(post.imageUrls ?? []),
+                },
+              });
+            }}
+            onReportPress={() => {
+              setShowReportPopup(true);
+            }}
+            onPress={() =>
+              router.push({
+                pathname: "/home/post",
+                params: {
+                  postId: String(post.postId),
+                  restaurantId: String(restaurantId ?? ""),
+                  postTitle: post.postTitle ?? "",
+                  postContent: post.postContent,
+                  nickname: post.nickname,
+                  postCreateTime: post.postCreateTime,
+                  postLikeCnt: String(post.postLikeCnt),
+                  postCommentCnt: String(post.postCommentCnt),
+                  postImage: post.imageUrls?.[0] ?? "",
+                  postImages: JSON.stringify(post.imageUrls ?? []),
+                },
+              })
+            }
+          />
+        ))}
+        {showDeletePopup && (
+          <AlertPopup
+            visible={showDeletePopup}
+            title="글을 삭제하시겠습니까?"
+            description="삭제한 글은 복구할 수 없습니다"
+            onCancel={() => {
+              setShowDeletePopup(false);
+              setPendingDeletePostId(null);
+            }}
+            onConfirm={() => {
+              setShowDeletePopup(false);
+              if (!pendingDeletePostId || !restaurantId) return;
+              deletePost({
+                postId: pendingDeletePostId,
+                restaurantId,
+              });
+              setPendingDeletePostId(null);
+            }}
+            cancelText="취소"
+            confirmText="확인"
+          />
+        )}
       </ScrollView>
 
       {/* 하단 그라디언트 */}
@@ -152,7 +241,7 @@ export default function RestaurantDetail() {
 
       {/* 잔반 인증 버튼 */}
       <View className="absolute bottom-0 left-0 right-0 px-4 pb-[56px]">
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/home/camera")}>
           <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
             <Text className="text-center text-gray-50 text-lg font-medium leading-7">
               잔반 인증하러 가기
@@ -160,6 +249,23 @@ export default function RestaurantDetail() {
           </View>
         </TouchableOpacity>
       </View>
+
+      <AlertPopupRadio
+        visible={showReportPopup}
+        title="신고 사유를 선택해주세요"
+        onCancel={() => setShowReportPopup(false)}
+        onConfirm={() => {
+          setShowReportPopup(false);
+          setTimeout(() => setShowReportConfirm(true), 200); // 약간의 딜레이로 자연스럽게
+        }}
+      />
+
+      <Popup
+        visible={showReportConfirm}
+        title="신고가 완료되었습니다"
+        description="빠르게 검토 후 조치하겠습니다"
+        onConfirm={() => setShowReportConfirm(false)}
+      />
     </View>
   );
 }

@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import AlertPopup from "../../components/alertpopup";
 import TextInput from "../../components/input/textinput";
 
 interface WithdrawalReason {
@@ -92,6 +93,15 @@ export default function DeleteReason() {
         >
           <Text className="text-white text-lg font-medium">탈퇴하기</Text>
         </TouchableOpacity>
+        <AlertPopup
+          visible={showPopup}
+          title="탈퇴하시겠습니까?"
+          description="회원 탈퇴 시 모아둔 포인트 내역을 복구할 수 없습니다"
+          cancelText="취소"
+          confirmText="탈퇴하기"
+          onCancel={() => setShowPopup(false)}
+          onConfirm={handleConfirm}
+        />
       </View>
     </View>
   );

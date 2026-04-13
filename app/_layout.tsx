@@ -3,7 +3,8 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo } from "react";
-import { Text, TextInput } from "react-native";
+import { Platform, Text, TextInput } from "react-native";
+import Animated from "react-native-reanimated";
 import "./global.css";
 
 let typographyDefaultsApplied = false;
@@ -32,7 +33,6 @@ export default function RootLayout() {
 
   // 앱 초기화 동안 스플래시가 자동으로 숨겨지지 않도록 설정
   useEffect(() => {
-    let mounted = true;
     async function prepare() {
       try {
         await SplashScreen.preventAutoHideAsync();
@@ -41,14 +41,10 @@ export default function RootLayout() {
       }
     }
     prepare();
-    return () => {
-      mounted = false;
-    };
   }, []);
 
   const [fontsLoaded, fontError] = useFonts({
-    "Pretendard-Variable": require("../assets/fonts/PretendardVariable.ttf"),
-    Jalnan_2: require("../assets/fonts/Jalnan2TTF.ttf"),
+    [DEFAULT_FONT_FAMILY]: require("../assets/fonts/PretendardVariable.ttf"),
   });
 
   useEffect(() => {

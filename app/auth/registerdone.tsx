@@ -41,6 +41,8 @@ export default function RegisterDone() {
   const email = typeof params.email === "string" ? params.email : "";
   const password = typeof params.password === "string" ? params.password : "";
   const name = typeof params.name === "string" ? params.name : "";
+  const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
+  const isSocialLogin = params.socialLogin === "true" || isStoredSocialLogin;
 
   /* -----------------------------
      약관 상태
@@ -70,7 +72,7 @@ export default function RegisterDone() {
           <Text className="text-green-400 text-sm font-medium leading-6">
             싹 비우고, 싹 틔우다
           </Text>
-          <Text className="text-green-500 text-7xl font-normal font-Jalnan_2 leading-[79.10px]">
+          <Text className="text-green-500 text-7xl font-normal leading-[79.10px]">
             싹
           </Text>
         </View>

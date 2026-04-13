@@ -7,6 +7,7 @@ import ChevronRightG from "../../assets/images/chevron-right-gray.svg";
 import ChevronRightW from "../../assets/images/chevron-right-white.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
+import Logo from "../../assets/images/logo_green.svg";
 import Setting from "../../assets/images/setting.svg";
 
 import { BottomNav } from "../../components/bottomnav";
@@ -27,6 +28,7 @@ interface CouponCardProps {
   selected?: boolean;
   image?: string;
   onToggle?: () => void;
+  onPress?: () => void;
 }
 
 const CouponCard = ({
@@ -36,19 +38,33 @@ const CouponCard = ({
   selected = false,
   image,
   onToggle,
+  onPress,
 }: CouponCardProps) => {
   return (
-    <View className="flex-col gap-2.5">
-      <View className="w-40 h-40 p-1 rounded-md bg-slate-100 justify-end items-end overflow-hidden">
+    <TouchableOpacity
+      className="flex-col gap-2.5"
+      activeOpacity={0.9}
+      onPress={onPress}
+    >
+      <View className="relative w-40 h-40 rounded-md bg-slate-100 overflow-hidden">
         {image ? (
           <Image
             source={{ uri: image }}
-            style={{ width: "100%", height: "100%", position: "absolute" }}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
             resizeMode="cover"
           />
         ) : null}
 
-        <TouchableOpacity className="m-3.5" onPress={onToggle}>
+        <TouchableOpacity
+          className="absolute right-3.5 bottom-3.5"
+          onPress={onToggle}
+        >
           {selected ? <HeartFilled /> : <Heart />}
         </TouchableOpacity>
       </View>
@@ -58,14 +74,14 @@ const CouponCard = ({
           {storeName}
         </Text>
         <Text
-          className="text-slate-500 text-sm font-semibold"
+          className="text-slate-500 text-sm font-semibold leading-6 h-12"
           numberOfLines={2}
         >
           {title}
         </Text>
         <Text className="text-slate-900 text-lg font-bold">{price}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -128,7 +144,7 @@ export default function Main() {
       >
         {/* 헤더 */}
         <View className="pt-[56px] pb-4 flex-row justify-between items-center">
-          <Text className="text-green-500 text-lg font-bold">SSAK</Text>
+          <Logo />
           <TouchableOpacity onPress={() => router.push("/mypage/setting")}>
             <Setting width={24} height={24} />
           </TouchableOpacity>
@@ -173,12 +189,17 @@ export default function Main() {
 
         {/* 쿠폰 */}
         <View className="gap-3 mb-10">
-          <View className="flex-row justify-between">
-            <Text className="text-gray-800 text-lg font-semibold">내 쿠폰</Text>
-            <TouchableOpacity onPress={() => router.push("/mypage/coupon")}>
+          <TouchableOpacity
+            onPress={() => router.push("/mypage/coupon")}
+            activeOpacity={0.7}
+          >
+            <View className="flex-row justify-between items-center w-full">
+              <Text className="text-gray-800 text-lg font-semibold">
+                내 쿠폰
+              </Text>
               <ChevronRightG />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
 
           <ScrollView
             horizontal
@@ -206,12 +227,17 @@ export default function Main() {
 
         {/* 식당 */}
         <View className="gap-3">
-          <View className="flex-row justify-between">
-            <Text className="text-gray-800 text-lg font-semibold">내 식당</Text>
-            <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
+          <TouchableOpacity
+            onPress={() => router.push("/mypage/restaurant")}
+            activeOpacity={0.7}
+          >
+            <View className="flex-row justify-between items-center w-full">
+              <Text className="text-gray-800 text-lg font-semibold">
+                내 식당
+              </Text>
               <ChevronRightG />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
 
           <ScrollView
             horizontal

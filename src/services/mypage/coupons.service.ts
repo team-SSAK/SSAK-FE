@@ -3,16 +3,17 @@ import client from "../../lib/api/client";
 /**
  * 쿠폰 상태
  */
-export type CouponOption = "ISSUED" | "USED";
+export type CouponOption = "CAFE" | "CONVENIENT_STORE" | "MEAL" | "CERTIFICATE";
 
 /**
  * 쿠폰 조회 API
  *
- * GET /api/coupons?option=ISSUED
+ * GET /api/coupons/my?option=CAFE
+ * option이 null이면 전체 조회
  */
-export const getCoupons = async (option: CouponOption) => {
+export const getCoupons = async (option: CouponOption | null = null) => {
   const res = await client.get("/api/coupons/my", {
-    params: { option },
+    params: option == null ? undefined : { option },
   });
 
   return res.data;

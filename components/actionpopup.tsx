@@ -8,7 +8,6 @@ interface ActionOption {
 
 interface ActionPopupProps {
   options?: ActionOption[];
-  dark?: boolean;
 }
 
 export default function ActionPopup({
@@ -16,10 +15,9 @@ export default function ActionPopup({
     { label: "수정하기", color: "text-gray-800" },
     { label: "삭제하기", color: "text-red-700" },
   ],
-  dark = false,
 }: ActionPopupProps) {
-  const containerBg = dark ? "#111827" : "#ffffff";
-  const dividerColor = dark ? "#1f2937" : "#F5F7FA";
+  const containerBg = "#ffffff";
+  const dividerColor = "#f5f7fa";
 
   return (
     <View
@@ -39,7 +37,7 @@ export default function ActionPopup({
             className="self-stretch px-[10px] py-3 justify-center items-center"
           >
             <Text
-              className={`text-base font-medium leading-6 ${option.color ?? (dark ? "text-white" : "text-gray-800")}`}
+              className={`text-base font-medium leading-6 ${option.color ?? "text-gray-800"}`}
               style={{ lineHeight: 25.6 }}
             >
               {option.label}

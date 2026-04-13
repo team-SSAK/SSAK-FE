@@ -3,9 +3,9 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Image,
+  Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -67,7 +67,7 @@ const ResBanner = ({
 // 메인 페이지
 //////////////////////////////////////////////////////
 
-export default function Main() {
+export default function Home() {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const newsCardGap = 16;
@@ -86,19 +86,12 @@ export default function Main() {
     const clampedPage = Math.max(0, Math.min(newsCards.length - 1, page));
     setNewsPage(clampedPage);
   };
-
-  //////////////////////////////////////////////////////
-  // UI
-  //////////////////////////////////////////////////////
   return (
     <View className="flex-1 bg-white">
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-      >
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* 헤더 */}
         <View
-          className="-mt-4 -mx-4 justify-start overflow-hidden items-between"
+          className="w-full flex-1 overflow-hidden"
           style={{
             width: screenWidth,
             aspectRatio: headerAspectRatio,
@@ -108,8 +101,12 @@ export default function Main() {
         >
           <Image
             source={headerImageSource}
-            resizeMode={Platform.OS === "web" ? "contain" : "cover"}
-            style={{ width: "100%", height: "100%" }}
+            resizeMode="cover"
+            style={{
+              width: "100%",
+              height: "100%",
+              transform: [{ scale: 1.7 }],
+            }}
           />
 
           {/* 탑 그라디언트 */}
@@ -119,6 +116,7 @@ export default function Main() {
               top: 0,
               left: 0,
               right: 0,
+              zIndex: 2,
             }}
             width="100%"
             preserveAspectRatio="none"
@@ -131,21 +129,24 @@ export default function Main() {
               bottom: 0,
               left: 0,
               right: 0,
-              transform: [{ rotate: "180deg" }],
+              zIndex: 2,
             }}
             width="100%"
             preserveAspectRatio="none"
           />
 
-          <View className="absolute inset-0 px-4 pt-[56px] pb-4 flex-col justify-between">
+          <View
+            className="absolute inset-0 px-4 pt-[56px] pb-4 flex-col justify-between"
+            style={{ zIndex: 3 }}
+          >
             <View className="py-4 flex-row justify-between items-center">
-              <Text className="text-white text-lg font-bold">SSAK</Text>
+              <Logo />
               <TouchableOpacity onPress={() => router.push("/mypage/setting")}>
                 <HorizontalEllipsis />
               </TouchableOpacity>
             </View>
             <View className="flex flex-col gap-[2px]">
-              <Text className="text-white text-xl font-normal leading-8">
+              <Text className="text-[22px] leading-[30.8px] text-white">
                 잔반 인증하고
                 {"\n"}
                 함께 싹 틔워요!
@@ -157,36 +158,52 @@ export default function Main() {
           </View>
         </View>
 
-        {/* 잔반 인증하러 가기 */}
-        <TouchableOpacity onPress={() => router.push("/home/restaurant")}>
-          <View className="h-[52px] p-3 mt-4 mb-[30px] bg-green-400 rounded-xl justify-center items-center">
-            <Text className="text-center text-gray-50 text-lg font-medium leading-7">
-              잔반 인증하러 가기
-            </Text>
-          </View>
-        </TouchableOpacity>
-        {/* 식당 */}
-        <View className="gap-3">
-          <View className="flex-row justify-between">
-            <Text className="text-gray-800 text-lg font-semibold">내 식당</Text>
-            <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
-              <ChevronRightG />
+        {/* 헤더 아래 컨텐츠에만 패딩 적용 */}
+        <View style={{ paddingHorizontal: 16, paddingBottom: 120 }}>
+          {/* 잔반 인증하러 가기 */}
+          <TouchableOpacity onPress={() => router.push("/home/restaurant")}>
+            <View className="h-[52px] p-3 mt-4 mb-[30px] bg-green-400 rounded-xl justify-center items-center">
+              <Text className="text-center text-gray-50 text-lg font-medium leading-7">
+                잔반 인증하러 가기
+              </Text>
+            </View>
+          </TouchableOpacity>
+          {/* 식당 */}
+          <View className="gap-2">
+            <TouchableOpacity
+              onPress={() => router.push("/mypage/restaurant")}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row justify-between items-center w-full">
+                <Text className="text-gray-800 text-lg font-semibold">
+                  내 식당
+                </Text>
+                <ChevronRightG />
+              </View>
             </TouchableOpacity>
-          </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 15 }}
-          >
-            {restaurants.map((restaurant) => (
-              <TouchableOpacity
-                key={restaurant.id}
-                onPress={() =>
-                  router.push(
-                    `/home/restaurantdetail?restaurantId=${restaurant.id}`,
-                  )
-                }
+            {restaurants.length === 0 ? (
+              <View className="w-full h-[114px] px-4 py-4 bg-gray-50 rounded-2xl flex flex-col justify-center items-center gap-2.5 mx-auto">
+                <View className="self-stretch flex flex-col justify-center items-center">
+                  <Text
+                    className="self-stretch text-center justify-start text-gray-400 text-base font-semibold leading-6"
+                    numberOfLines={1}
+                  >
+                    아직 등록된 식당이 없어요 !
+                  </Text>
+                  <Text
+                    className="justify-start text-gray-400 text-xs font-medium leading-5"
+                    numberOfLines={1}
+                  >
+                    자주 이용하는 식당을 즐겨찾기에 추가해보세요
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 15 }}
               >
                 <ResBanner
                   name={restaurant.name}
@@ -198,64 +215,80 @@ export default function Main() {
           </ScrollView>
         </View>
 
-        <View className="h-6" />
+          <View className="h-6" />
 
-        {/* 주목할 소식 */}
-        <View className="gap-3">
-          <Text className="text-gray-800 text-lg font-semibold">
-            주목할 소식
-          </Text>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            decelerationRate="fast"
-            disableIntervalMomentum
-            snapToInterval={newsPageInterval}
-            snapToAlignment="start"
-            onMomentumScrollEnd={handleNewsScrollEnd}
-          >
-            {newsCards.map((card, index) => (
-              <View
-                key={card}
-                style={{
-                  width: newsCardWidth,
-                  marginRight: index === newsCards.length - 1 ? 0 : newsCardGap,
-                }}
-                className="h-28 rounded-lg bg-gray-500"
-              />
-            ))}
-          </ScrollView>
-
-          <View className="flex flex-row gap-2 items-center justify-center">
-            {newsCards.map((_, index) => (
-              <View
-                key={index}
-                className={`w-1.5 h-1.5 rounded-full ${index === newsPage ? "bg-green-500" : "bg-gray-200"}`}
-              />
-            ))}
-          </View>
-        </View>
-
-        <View className="h-6" />
-
-        {/* 공지사항 */}
-        <View className="gap-3">
-          <View className="flex-row justify-between">
+          {/* 주목할 소식 */}
+          <View className="gap-3">
             <Text className="text-gray-800 text-lg font-semibold">
-              공지사항
+              주목할 소식
             </Text>
 
-            <TouchableOpacity onPress={() => router.push("/home/anouncement")}>
-              <ChevronRightG />
-            </TouchableOpacity>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              disableIntervalMomentum
+              snapToInterval={newsPageInterval}
+              snapToAlignment="start"
+              onMomentumScrollEnd={handleNewsScrollEnd}
+            >
+              {newsCards.map((card, index) => (
+                <View
+                  key={card}
+                  style={{
+                    width: newsCardWidth,
+                    marginRight:
+                      index === newsCards.length - 1 ? 0 : newsCardGap,
+                  }}
+                  className="h-28 rounded-lg bg-gray-500"
+                />
+              ))}
+            </ScrollView>
+
+            <View className="flex flex-row gap-2 items-center justify-center">
+              {newsCards.map((_, index) => (
+                <View
+                  key={index}
+                  className={`w-1.5 h-1.5 rounded-full ${index === newsPage ? "bg-green-500" : "bg-gray-200"}`}
+                />
+              ))}
+            </View>
           </View>
 
-          <>
-            <AnouncementCard />
-            <AnouncementCard />
-            <AnouncementCard />
-          </>
+          <View className="h-6" />
+
+          {/* 공지사항 */}
+          <View className="gap-3">
+            <TouchableOpacity
+              onPress={() => router.push("/home/anouncement")}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row justify-between items-center w-full">
+                <Text className="text-gray-800 text-lg font-semibold">
+                  공지사항
+                </Text>
+                <ChevronRightG />
+              </View>
+            </TouchableOpacity>
+
+            <>
+              <TouchableOpacity
+                onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}
+              >
+                <AnouncementCard />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}
+              >
+                <AnouncementCard />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}
+              >
+                <AnouncementCard />
+              </TouchableOpacity>
+            </>
+          </View>
         </View>
       </ScrollView>
 

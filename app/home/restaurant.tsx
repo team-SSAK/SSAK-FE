@@ -6,6 +6,7 @@ import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
 import Map from "../../assets/images/map.svg";
 
+import { mockrestaurent } from "../../components/mockrestaurent";
 import SearchInput from "../../components/searchinput";
 import { MOCK_RESTAURANTS } from "../../constants/mock-data";
 
@@ -72,9 +73,16 @@ function ResCard({
   );
 }
 
-//////////////////////////////////////////////////////
-// 빈 메시지
-//////////////////////////////////////////////////////
+const normalizeSearchText = (text: string) =>
+  text.replace(/\s+/g, "").toLowerCase();
+
+const isMatchedKeyword = (text: string, keyword: string) => {
+  const normalizedText = normalizeSearchText(text);
+  const normalizedKeyword = normalizeSearchText(keyword);
+
+  if (!normalizedKeyword) {
+    return true;
+  }
 
 export default function Restaurant() {
   const restaurants = MOCK_RESTAURANTS;
@@ -90,6 +98,27 @@ export default function Restaurant() {
     setSelectedRestaurants((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const tabRestaurants = useMemo(() => {
+    if (activeTab === "nearby") {
+      return restaurants;
+    }
+
+    return restaurants.filter((restaurant) => {
+      const isMyRestaurant =
+        selectedRestaurants[restaurant.id] ?? restaurant.wished;
+
+      return isMyRestaurant;
+    });
+  }, [activeTab, restaurants, selectedRestaurants]);
+
+  const filteredRestaurants = useMemo(() => {
+    return tabRestaurants.filter(
+      (restaurant) =>
+        isMatchedKeyword(restaurant.name, searchText) ||
+        isMatchedKeyword(restaurant.address, searchText),
+    );
+  }, [searchText, tabRestaurants]);
+
   return (
     <View className="flex-1 bg-white px-4 py-[56px]">
       {/* 헤더 */}
@@ -102,31 +131,43 @@ export default function Restaurant() {
             식당 선택하기
           </Text>
         </View>
-        <TouchableOpacity onPress={() => router.push("/mypage/restaurant")}>
+        <TouchableOpacity onPress={() => router.push("/home/location")}>
           <Map />
         </TouchableOpacity>
       </View>
 
-      <SearchInput placeholder="식당을 검색해주세요." />
+      <SearchInput
+        placeholder="식당을 검색해주세요."
+        value={searchText}
+        onChangeText={setSearchText}
+      />
 
       <View
         className="flex flex-row gap-1.5 items-center"
         style={{ marginTop: 16, marginBottom: 10 }}
       >
-        <Text className="p-2 text-gray-900 text-sm font-semibold leading-6">
-          가까운 식당
-        </Text>
-        <View className="w-0 h-3 outline outline-[1.20px] outline-offset-[-0.60px] outline-gray-400" />
-        <Text className="p-2 text-gray-400 text-sm font-semibold leading-6">
-          내 식당
-        </Text>
+        <TouchableOpacity onPress={() => setActiveTab("nearby")}>
+          <Text
+            className={`p-2 text-sm font-semibold leading-6 ${activeTab === "nearby" ? "text-gray-900" : "text-gray-400"}`}
+          >
+            가까운 식당
+          </Text>
+        </TouchableOpacity>
+        <View className="w-[1.8px] h-3 bg-gray-400 rounded-full" />
+        <TouchableOpacity onPress={() => setActiveTab("my")}>
+          <Text
+            className={`p-2 text-sm font-semibold leading-6 ${activeTab === "my" ? "text-gray-900" : "text-gray-400"}`}
+          >
+            내 식당
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* 내용 */}
       <ScrollView
         contentContainerStyle={{
           paddingBottom: 140,
-          gap: 6,
+          gap: 10,
         }}
       >
         {restaurants.map((restaurant) => (

@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -14,6 +15,7 @@ interface CouponCardProps {
   used?: boolean;
   image?: string;
   onToggle?: () => void;
+  onPress?: () => void;
 }
 
 const CouponCard = ({
@@ -24,15 +26,24 @@ const CouponCard = ({
   used = false,
   image,
   onToggle,
+  onPress,
 }: CouponCardProps) => {
   return (
-    <View className="flex-col gap-2.5 w-full">
-      <View className="w-full aspect-square p-1 rounded-md bg-slate-100 justify-end items-end">
+    <TouchableOpacity
+      className="flex-col gap-2.5 w-full"
+      activeOpacity={0.9}
+      onPress={onPress}
+    >
+      <View
+        className="relative w-full rounded-md bg-slate-100 overflow-hidden"
+        style={{ aspectRatio: 1 }}
+      >
         {image ? (
           <Image
-            source={{ uri: image }}
-            className="absolute inset-0 w-full h-full rounded-md"
-            resizeMode="cover"
+            source={image}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            contentPosition="center"
           />
         ) : null}
 
@@ -47,7 +58,10 @@ const CouponCard = ({
         )}
 
         {!used && (
-          <TouchableOpacity className="m-3.5" onPress={onToggle}>
+          <TouchableOpacity
+            className="absolute right-3.5 bottom-3.5"
+            onPress={onToggle}
+          >
             {selected ? <HeartFilled /> : <Heart />}
           </TouchableOpacity>
         )}
@@ -58,7 +72,7 @@ const CouponCard = ({
           {storeName}
         </Text>
         <Text
-          className="text-slate-500 text-sm font-semibold leading-6"
+          className="text-slate-500 text-sm font-semibold leading-6 h-12"
           numberOfLines={2}
         >
           {title}
@@ -67,7 +81,7 @@ const CouponCard = ({
           {price}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -172,6 +186,18 @@ export default function Coupon() {
                   selected={!!selectedCoupons[coupon.id]}
                   image={coupon.image}
                   onToggle={() => toggle(coupon.id)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/store/mycoupon",
+                      params: {
+                        couponId: String(coupon.id),
+                        storeName: coupon.storeName,
+                        title: coupon.title,
+                        price: coupon.price,
+                        image: coupon.image ?? "",
+                      },
+                    })
+                  }
                 />
               </View>
             ))}

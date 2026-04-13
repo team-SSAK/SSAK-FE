@@ -4,59 +4,9 @@ import { Image, Modal, Text, TouchableOpacity, View } from "react-native";
 import Avatar from "../../assets/images/avatar.svg";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import EditBtn from "../../assets/images/editbtn.svg";
+import AlertPopup from "../../components/alertpopup";
 import TextInput from "../../components/input/textinput";
 import { MOCK_PROFILE } from "../../constants/mock-data";
-
-function Popup({
-  title = "변경사항 미저장",
-  description = "지금 나가면 수정한 내용이 사라집니다",
-  onCancel,
-  onConfirm,
-  visible = false,
-}: {
-  title?: string;
-  description?: string;
-  onCancel?: () => void;
-  onConfirm?: () => void;
-  visible?: boolean;
-}) {
-  return (
-    <Modal transparent visible={visible} animationType="fade">
-      <View className="flex-1 bg-black/50 justify-center items-center">
-        <View className="w-72 p-5 bg-white rounded-[20px] gap-4">
-          <View className="gap-1">
-            <Text className="text-slate-800 text-lg font-semibold leading-7">
-              {title}
-            </Text>
-            <Text className="text-slate-500 text-sm font-medium leading-6">
-              {description}
-            </Text>
-          </View>
-
-          <View className="flex-row gap-2">
-            <TouchableOpacity
-              onPress={onCancel}
-              className="flex-1 h-10 bg-slate-100 rounded-[10px] justify-center items-center"
-            >
-              <Text className="text-slate-800 text-base font-medium leading-6">
-                취소
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={onConfirm}
-              className="flex-1 h-10 bg-lime-600 rounded-[10px] justify-center items-center"
-            >
-              <Text className="text-white text-base font-medium leading-6">
-                나가기
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
 
 const MAX_LENGTH = 8;
 
@@ -122,13 +72,17 @@ export default function EditProfile() {
       </TouchableOpacity>
 
       {/* Popup */}
-      <Popup
+      <AlertPopup
+        title="변경사항 미저장"
+        description="지금 나가면 수정한 내용이 사라집니다"
         visible={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         onConfirm={() => {
           setIsModalVisible(false);
           router.replace("/mypage/main");
         }}
+        cancelText="취소"
+        confirmText="나가기"
       />
     </View>
   );

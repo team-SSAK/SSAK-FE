@@ -11,6 +11,7 @@ import ChevronLeft from "../../assets/images/chevron-left.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
 import StepIndicator from "../../components/stepindicator";
+import { getOwnerSignupClicked } from "../../src/utils/storage";
 
 interface PWInputProps {
   placeholder: string;

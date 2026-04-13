@@ -1,5 +1,5 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useMemo, useState } from "react";
 import {
   Dimensions,
   GestureResponderEvent,
@@ -13,25 +13,180 @@ import {
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 
 import ActionPopup from "@/components/actionpopup";
-import MockPost from "@/components/mockpost";
+import Post from "@/components/post";
 import SearchInput from "@/components/searchinput";
+import AlertPopup from "../../components/alertpopup";
+import AlertPopupRadio from "../../components/alertpopupradio";
 
 import ChevronDown from "../../assets/images/chevron-down.svg";
 
 import Pen from "../../assets/images/pen.svg";
 import SearchB from "../../assets/images/searchB.svg";
+import { useCommunity, useDeleteCommunity } from "../../src/hooks/useCommunity";
+import { useMe } from "../../src/hooks/useMe";
+import { useReport } from "../../src/hooks/useReport";
+
+function Popup({
+  title = "이미 신고된 글입니다",
+  description = "현재 검토가 진행중입니다",
+  onConfirm,
+  visible = false,
+}: {
+  title?: string;
+  description?: string;
+  onConfirm?: () => void;
+  visible?: boolean;
+}) {
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <View
+        className="flex-1 justify-center items-center"
+        style={{ backgroundColor: "rgba(0,0,0,0.1)" }}
+      >
+        <View className="w-72 p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
+          <View className="self-stretch flex-col justify-start items-start gap-1">
+            <Text className="self-stretch text-slate-800 text-lg font-semibold leading-7">
+              {title}
+            </Text>
+            <Text className="self-stretch text-slate-500 text-sm font-medium leading-6">
+              {description}
+            </Text>
+          </View>
+
+          <View className="self-stretch flex-row justify-start items-center gap-2">
+            <TouchableOpacity
+              onPress={onConfirm}
+              className="flex-1 h-10 px-2 py-2 bg-lime-600 rounded-[10px] justify-center items-center"
+            >
+              <Text className="text-white text-base font-medium leading-6">
+                확인
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 //////////////////////////////////////////////////////
 // 페이지
 //////////////////////////////////////////////////////
 
 export default function Community() {
+  const { restaurantId } = useLocalSearchParams<{ restaurantId?: string }>();
+  const [postFilter, setPostFilter] = useState<"all" | "mine">("all");
   const [sortLabel, setSortLabel] = useState("최신순");
   const [showSortPopup, setShowSortPopup] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { data: communityPosts = [] } = useCommunity(restaurantId);
+  const { mutate: deletePost } = useDeleteCommunity();
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
+  const [pendingDeletePostId, setPendingDeletePostId] = useState<
+    string | number | null
+  >(null);
+  const { mutate: reportPost } = useReport();
+  const { me } = useMe();
+  const [showReportPopup, setShowReportPopup] = useState(false);
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [sortPopupPosition, setSortPopupPosition] = useState({
     top: 0,
     left: 0,
   });
+
+  const isDuplicateReportError = (error: unknown) => {
+    const err = error as {
+      response?: { status?: number; data?: { message?: string } };
+      message?: string;
+    };
+
+    const responseMessage = err.response?.data?.message ?? "";
+    const fallbackMessage = err.message ?? "";
+
+    return (
+      err.response?.status === 409 ||
+      responseMessage.includes("이미 신고") ||
+      fallbackMessage.includes("이미 신고")
+    );
+  };
+
+  const formatPostDate = (isoDate: string) => {
+    const date = new Date(isoDate);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    const yy = String(date.getFullYear()).slice(-2);
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+
+    return `${yy}.${mm}.${dd}`;
+  };
+
+  const filteredPosts = useMemo(() => {
+    const myNickname = (me?.userNm ?? "").trim();
+
+    const visiblePosts = communityPosts.filter((post) => {
+      const isMine =
+        myNickname.length > 0 && post.nickname.trim() === myNickname;
+      return post.postVisibility || isMine;
+    });
+
+    if (postFilter === "all") {
+      return visiblePosts;
+    }
+
+    if (!myNickname) {
+      return [];
+    }
+
+    return visiblePosts.filter((post) => post.nickname.trim() === myNickname);
+  }, [communityPosts, me?.userNm, postFilter]);
+
+  const searchedPosts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+
+    if (!q) {
+      return filteredPosts;
+    }
+
+    return filteredPosts.filter((post) => {
+      const author = (post.nickname ?? "").toLowerCase();
+      const title = (post.postTitle ?? "").toLowerCase();
+      const content = (post.postContent ?? "").toLowerCase();
+
+      return author.includes(q) || title.includes(q) || content.includes(q);
+    });
+  }, [filteredPosts, searchQuery]);
+
+  const sortedPosts = useMemo(() => {
+    const posts = [...searchedPosts];
+
+    if (sortLabel === "인기순") {
+      posts.sort(
+        (a, b) =>
+          b.postLikeCnt + b.postCommentCnt - (a.postLikeCnt + a.postCommentCnt),
+      );
+      return posts;
+    }
+
+    if (sortLabel === "오래된순") {
+      posts.sort(
+        (a, b) =>
+          new Date(a.postCreateTime).getTime() -
+          new Date(b.postCreateTime).getTime(),
+      );
+      return posts;
+    }
+
+    posts.sort(
+      (a, b) =>
+        new Date(b.postCreateTime).getTime() -
+        new Date(a.postCreateTime).getTime(),
+    );
+    return posts;
+  }, [searchedPosts, sortLabel]);
 
   const onOpenSortPopup = (event: GestureResponderEvent) => {
     const { pageX, pageY } = event.nativeEvent;
@@ -75,7 +230,13 @@ export default function Community() {
             </TouchableOpacity>
             {isSearchMode ? (
               <View className="flex-1">
-                <SearchInput placeholder="게시글을 검색해주세요." />
+                <SearchInput
+                  placeholder="게시글을 검색해주세요."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                  onBlur={() => setIsSearchMode(false)}
+                />
               </View>
             ) : (
               <Text className="text-gray-800 text-xl font-semibold">
@@ -88,7 +249,14 @@ export default function Community() {
               <TouchableOpacity onPress={() => setIsSearchMode(true)}>
                 <SearchB />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push("/home/writepost")}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/home/writepost",
+                    params: { restaurantId },
+                  })
+                }
+              >
                 <Pen />
               </TouchableOpacity>
             </View>
@@ -96,35 +264,118 @@ export default function Community() {
         </View>
 
         <View className="py-4 flex flex-row gap-2.5">
-          <View className="px-4 py-1 bg-gray-600 rounded-[999px] inline-flex justify-center items-center">
-            <Text className="text-white text-sm font-semibold leading-6">
+          <TouchableOpacity
+            onPress={() => setPostFilter("all")}
+            className={`px-4 py-1 rounded-[999px] inline-flex justify-center items-center ${postFilter === "all" ? "bg-gray-600" : "bg-gray-100"}`}
+          >
+            <Text
+              className={`text-sm font-semibold leading-6 ${postFilter === "all" ? "text-white" : "text-gray-500"}`}
+            >
               전체
             </Text>
-          </View>
-          <View className="px-4 py-1 bg-gray-100 rounded-[999px] inline-flex justify-center items-center">
-            <Text className="text-gray-500 text-sm font-semibold leading-6">
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setPostFilter("mine")}
+            className={`px-4 py-1 rounded-[999px] inline-flex justify-center items-center ${postFilter === "mine" ? "bg-gray-600" : "bg-gray-100"}`}
+          >
+            <Text
+              className={`text-sm font-semibold leading-6 ${postFilter === "mine" ? "text-white" : "text-gray-500"}`}
+            >
               나의 글
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         <View className="flex flex-row justify-between items-center">
-          <Text className="text-gray-500 font-semibold leading-6">전체 20</Text>
+          <Text className="text-base text-gray-500 font-semibold leading-6">
+            전체 {sortedPosts.length}
+          </Text>
           <TouchableOpacity
             onPress={onOpenSortPopup}
             className="flex flex-row gap-0.5 items-center"
           >
-            <Text className="text-gray-500 font-semibold leading-6">
+            <Text className="text-base text-gray-500 font-semibold leading-6">
               {sortLabel}
             </Text>
             <ChevronDown width="18px" height="18px" />
           </TouchableOpacity>
         </View>
 
-        <MockPost onPress={() => router.push("/home/post")} />
-        <MockPost showBadge={false} onPress={() => router.push("/home/post")} />
-        <MockPost showBadge={false} onPress={() => router.push("/home/post")} />
-        <MockPost showBadge={false} onPress={() => router.push("/home/post")} />
+        {sortedPosts.map((post) => (
+          <Post
+            key={post.postId}
+            showBadge={!post.postVisibility}
+            badge="비공개"
+            author={post.nickname}
+            title={post.postTitle}
+            content={post.postContent}
+            image={post.imageUrls?.[0]}
+            likedPostId={post.postId}
+            likeCount={post.postLikeCnt}
+            commentCount={post.postCommentCnt}
+            date={formatPostDate(post.postCreateTime)}
+            isMine={post.nickname.trim() === (me?.userNm ?? "").trim()}
+            onDeletePress={() => {
+              setShowDeletePopup(true);
+              setPendingDeletePostId(post.postId);
+            }}
+            onEditPress={() => {
+              router.push({
+                pathname: "/home/writepost",
+                params: {
+                  restaurantId: String(restaurantId ?? ""),
+                  postId: String(post.postId),
+                  postTitle: post.postTitle ?? "",
+                  postContent: post.postContent,
+                  postVisibility: String(post.postVisibility),
+                  postImages: JSON.stringify(post.imageUrls ?? []),
+                },
+              });
+            }}
+            onReportPress={() => {
+              setShowReportPopup(true);
+            }}
+            onPress={() =>
+              router.push({
+                pathname: "/home/post",
+                params: {
+                  postId: String(post.postId),
+                  restaurantId: String(restaurantId ?? ""),
+                  postTitle: post.postTitle ?? "",
+                  postContent: post.postContent,
+                  nickname: post.nickname,
+                  postCreateTime: post.postCreateTime,
+                  postLikeCnt: String(post.postLikeCnt),
+                  postCommentCnt: String(post.postCommentCnt),
+                  postImage: post.imageUrls?.[0] ?? "",
+                  postImages: JSON.stringify(post.imageUrls ?? []),
+                },
+              })
+            }
+          />
+        ))}
+        {showDeletePopup && (
+          <AlertPopup
+            visible={showDeletePopup}
+            title="글을 삭제하시겠습니까?"
+            description="삭제한 글은 복구할 수 없습니다"
+            onCancel={() => {
+              setShowDeletePopup(false);
+              setPendingDeletePostId(null);
+            }}
+            onConfirm={() => {
+              setShowDeletePopup(false);
+              if (!pendingDeletePostId || !restaurantId) return;
+              deletePost({
+                postId: pendingDeletePostId,
+                restaurantId,
+              });
+              setPendingDeletePostId(null);
+            }}
+            cancelText="취소"
+            confirmText="확인"
+          />
+        )}
       </ScrollView>
 
       <Modal
@@ -170,6 +421,26 @@ export default function Community() {
           </View>
         </Pressable>
       </Modal>
+
+      {showReportPopup && (
+        <AlertPopupRadio
+          title="신고 사유를 선택해주세요"
+          onCancel={() => setShowReportPopup(false)}
+          onConfirm={() => {
+            setShowReportPopup(false);
+            setTimeout(() => setShowReportConfirm(true), 200);
+          }}
+        />
+      )}
+
+      {showReportConfirm && (
+        <AlertPopup
+          title="신고가 완료되었습니다"
+          description="빠르게 검토 후 조치하겠습니다"
+          onConfirm={() => setShowReportConfirm(false)}
+          confirmText="확인"
+        />
+      )}
 
       {/* 하단 그라디언트 */}
       <View

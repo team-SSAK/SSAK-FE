@@ -21,11 +21,11 @@ interface IDInputProps {
 
 function IDInput({ placeholder, onChangeText, value }: IDInputProps) {
   return (
-    <View className="self-stretch p-4 bg-gray-100 rounded-lg justify-center items-start">
+    <View className="self-stretch p-4 bg-gray-100 rounded-lg flex flex-row items-center">
       <RNTextInput
         placeholder={placeholder}
         placeholderTextColor="#6B7280"
-        className="text-gray-900 font-medium leading-6"
+        className="text-gray-900 font-medium leading-6 flex-1 w-full"
         onChangeText={onChangeText}
         value={value}
         autoCapitalize="none"
@@ -67,16 +67,29 @@ function PWInput({ placeholder, onChangeText, value }: PWInputProps) {
 }
 
 export default function Landing() {
+  const incomingUrl = Linking.useURL();
+  const hasProcessedOAuthCode = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-center p-4">
+      <View className="absolute left-4 right-4 top-[72px]">
+        <Text className="text-right text-gray-500 text-sm font-medium leading-6">
+          식당의 사장님이신가요?
+        </Text>
+        <TouchableOpacity onPress={onOwnerSignupPress} activeOpacity={0.7}>
+          <Text className="mt-[3px] text-right text-green-400 text-base font-semibold underline leading-6">
+            사장님 회원가입&gt;
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <View className="flex flex-col gap-3 justify-center items-center mb-[64.5px]">
         <Text className="text-green-400 text-sm font-medium leading-6">
           싹 비우고, 싹 틔우다
         </Text>
-        <Text className="text-green-500 text-7xl font-normal">싹</Text>
+        <Logo width={90} height={97} />
       </View>
 
       <View className="flex flex-col gap-2.5">
@@ -108,7 +121,7 @@ export default function Landing() {
             비밀번호 찾기
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/auth/registeremail")}>
+        <TouchableOpacity onPress={onUserSignupPress}>
           <Text className="text-green-500 font-medium underline">회원가입</Text>
         </TouchableOpacity>
       </View>

@@ -1,17 +1,28 @@
 import TextInput from "@/components/input/textinput";
 import StepIndicator from "@/components/stepindicator";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import { getSocialLoginPending } from "../../src/utils/storage";
 
 export default function RegisterName() {
   const [name, setName] = useState("");
+  const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
 
   const { email, password } = useLocalSearchParams<{
     email: string;
     password: string;
+    socialLogin?: string;
   }>();
+
+  useEffect(() => {
+    getSocialLoginPending()
+      .then(setIsStoredSocialLogin)
+      .catch(() => setIsStoredSocialLogin(false));
+  }, []);
+
+  const isSocialLogin = socialLogin === "true" || isStoredSocialLogin;
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -57,6 +68,7 @@ export default function RegisterName() {
                 email,
                 password,
                 name,
+                socialLogin: isSocialLogin ? "true" : undefined,
               },
             })
           }

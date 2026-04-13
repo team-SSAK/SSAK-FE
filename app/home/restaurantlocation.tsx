@@ -21,10 +21,14 @@ export default function RestaurantLoacation() {
           <Text className="text-gray-800 text-xl font-semibold">매장 상세</Text>
         </View>
 
-        <View
-          className="flex-1 bg-gray-400"
-          style={{ marginHorizontal: -16 }}
-        />
+        <View className="flex-1" style={{ marginHorizontal: -16 }}>
+          <RestaurantLocationMap
+            latitude={DEFAULT_PIN_COORD.latitude}
+            longitude={DEFAULT_PIN_COORD.longitude}
+            title={selectedRestaurant?.name ?? "식당 정보"}
+            description={selectedRestaurant?.address ?? "식당 주소"}
+          />
+        </View>
 
         <View className="pt-4 flex flex-col">
           <View className="self-start px-2.5 py-0.5 bg-green-300 rounded-md justify-center items-center mb-1 ">

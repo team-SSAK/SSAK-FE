@@ -1,8 +1,4 @@
-import {
-  TouchableOpacity,
-  View,
-  type TouchableOpacityProps,
-} from "react-native";
+import { TouchableOpacity, type TouchableOpacityProps } from "react-native";
 
 import Add from "../assets/images/add.svg";
 
@@ -13,9 +9,11 @@ export default function AddBtn({ style, ...props }: AddBtnProps) {
     <TouchableOpacity
       accessibilityRole="button"
       activeOpacity={0.85}
-      className="p-4 bg-green-300 rounded-[999px] inline-flex justify-start items-center"
+      className="bg-green-300 rounded-full justify-center items-center"
       style={[
         {
+          width: 56,
+          height: 56,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.2,
@@ -26,9 +24,7 @@ export default function AddBtn({ style, ...props }: AddBtnProps) {
       ]}
       {...props}
     >
-      <View className="w-8 h-8 relative overflow-hidden">
-        <Add />
-      </View>
+      <Add width={32} height={32} />
     </TouchableOpacity>
   );
 }
