@@ -22,7 +22,7 @@ export interface CouponItem {
   image?: string;
 }
 
-export function useCoupons(status: CouponOption | null = null) {
+export function useCoupons(status: CouponOption = "ISSUED") {
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -64,7 +64,7 @@ export function useCoupons(status: CouponOption | null = null) {
     }
   };
 
-  return { coupons, loading, addWish };
+  return { coupons, loading, isLoading: loading, addWish };
 }
 
 export function useCouponWishes() {

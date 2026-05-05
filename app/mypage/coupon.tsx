@@ -208,7 +208,8 @@ export default function Coupon() {
 
       try {
         const used = activeTab === "사용 완료";
-        const data = await getCoupons(null);
+        const option = used ? "USED" : "ISSUED";
+        const data = await getCoupons(option);
 
         console.log("API 응답:", data);
 

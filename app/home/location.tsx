@@ -1,4 +1,6 @@
+import * as Location from "expo-location";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import RestaurantLocationMap from "../../components/restaurant-location-map";
@@ -9,6 +11,19 @@ const DEFAULT_PIN_COORD = {
 };
 
 export default function Loacation() {
+  const [coord, setCoord] = useState(DEFAULT_PIN_COORD);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") return;
+      const loc = await Location.getCurrentPositionAsync({});
+      setCoord({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+    })();
+  }, []);
   return (
     <View className="flex-1 bg-white">
       <View className="flex-1 px-4 pt-[56px]">
@@ -22,8 +37,8 @@ export default function Loacation() {
 
         <View className="flex-1" style={{ marginHorizontal: -16 }}>
           <RestaurantLocationMap
-            latitude={DEFAULT_PIN_COORD.latitude}
-            longitude={DEFAULT_PIN_COORD.longitude}
+            latitude={coord.latitude}
+            longitude={coord.longitude}
             title="내 위치"
             description="현재 위치 기준"
           />

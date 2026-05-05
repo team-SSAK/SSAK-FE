@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getRestaurant,
+  getRestaurantById,
   postRestaurantWish,
 } from "../services/home/restaurent.service";
 
@@ -54,6 +55,38 @@ export const useRestaurant = () =>
     queryKey: ["restaurant"],
     queryFn: getRestaurant,
     select: normalizeRestaurants,
+  });
+
+export interface RestaurantDetail {
+  restaurantId: number;
+  restaurantName: string;
+  restaurantLocation: string;
+  restaurantType: RestaurantType;
+  restaurantImgUrl: string;
+  openTime: { hour: number; minute: number } | null;
+  closeTime: { hour: number; minute: number } | null;
+}
+
+const normalizeRestaurantDetail = (res: unknown): RestaurantDetail | null => {
+  if (typeof res !== "object" || res === null) return null;
+  const d = res as Record<string, any>;
+  return {
+    restaurantId: d.restaurantId,
+    restaurantName: d.restaurantName ?? "",
+    restaurantLocation: d.restaurantLocation ?? "",
+    restaurantType: d.restaurantType ?? null,
+    restaurantImgUrl: d.restaurantImgUrl ?? "",
+    openTime: d.openTime ?? null,
+    closeTime: d.closeTime ?? null,
+  };
+};
+
+export const useRestaurantDetail = (restaurantId: number) =>
+  useQuery({
+    queryKey: ["restaurant", restaurantId],
+    queryFn: () => getRestaurantById(restaurantId),
+    select: normalizeRestaurantDetail,
+    enabled: !isNaN(restaurantId),
   });
 
 export const usePostRestaurantWish = () => {

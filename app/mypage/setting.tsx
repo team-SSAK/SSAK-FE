@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { Linking, Modal, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronRightG from "../../assets/images/chevron-right-darkgray.svg";
 import { useLogout } from "../../src/hooks/useLogout";
@@ -85,7 +85,7 @@ export default function Setting() {
               {isLoading ? "로딩 중..." : (me?.userEmail ?? "")}
             </Text>
           </View>
-          {/*알림 설정*/}
+          {/*알림 설정
           <TouchableOpacity
             onPress={() => router.push("/mypage/notification")}
             className="flex flex-row justify-between py-3.5 px-[19] bg-gray-50 rounded-lg"
@@ -95,6 +95,7 @@ export default function Setting() {
             </Text>
             <ChevronRightG />
           </TouchableOpacity>
+          */}
 
           <View className="bg-gray-50 rounded-lg overflow-hidden">
             {/*이용약관*/}
@@ -113,7 +114,12 @@ export default function Setting() {
               <ChevronRightG />
             </TouchableOpacity>
             {/*1:1 문의하기*/}
-            <TouchableOpacity className="flex flex-row px-4 py-3.5 inline-flex justify-between items-center gap-2.5">
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL("https://open.kakao.com/o/sBvSiDsi")
+              }
+              className="flex flex-row px-4 py-3.5 inline-flex justify-between items-center gap-2.5"
+            >
               <Text className="text-gray-700 font-medium leading-6">
                 1:1 문의하기
               </Text>

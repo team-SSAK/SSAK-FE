@@ -81,7 +81,12 @@ export default function Home() {
   const newsCardGap = 16;
   const newsCardWidth = screenWidth - 32;
   const newsPageInterval = newsCardWidth + newsCardGap;
-  const newsCards = [1, 2, 3, 4];
+  const newsCards = [
+    require("../../assets/images/banner_1.png"),
+    require("../../assets/images/banner_2.png"),
+    require("../../assets/images/banner_3.png"),
+    require("../../assets/images/banner_4.png"),
+  ];
   const [newsPage, setNewsPage] = useState(0);
 
   // 즐겨찾기 식당 (개수 제한 없음)
@@ -229,6 +234,8 @@ export default function Home() {
                         pathname: "/home/restaurantdetail",
                         params: {
                           restaurantId: String(restaurant.id),
+                          restaurantName: restaurant.name,
+                          restaurantLocation: restaurant.address,
                           restaurantImage: restaurant.image ?? "",
                         },
                       })
@@ -262,15 +269,18 @@ export default function Home() {
               snapToAlignment="start"
               onMomentumScrollEnd={handleNewsScrollEnd}
             >
-              {newsCards.map((card, index) => (
-                <View
-                  key={card}
+              {newsCards.map((source, index) => (
+                <Image
+                  key={index}
+                  source={source}
                   style={{
                     width: newsCardWidth,
+                    height: 112,
                     marginRight:
                       index === newsCards.length - 1 ? 0 : newsCardGap,
+                    borderRadius: 8,
                   }}
-                  className="h-28 rounded-lg bg-gray-500"
+                  resizeMode="cover"
                 />
               ))}
             </ScrollView>

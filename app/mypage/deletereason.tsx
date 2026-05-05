@@ -6,6 +6,7 @@ import AlertPopup from "../../components/alertpopup";
 import TextInput from "../../components/input/textinput";
 import {
   getWithdrawal,
+  postAuthWithdrawal,
   postWithdrawal,
 } from "../../src/services/mypage/withdrawal.service";
 
@@ -63,6 +64,7 @@ export default function DeleteReason() {
           ? customReason.trim()
           : (selectedReason?.wdReasonContent ?? "");
       await postWithdrawal(selectedId, reasonContent);
+      await postAuthWithdrawal();
       router.replace("/auth/landing?showPopup=true&type=delete");
     } catch (e) {
       console.log("탈퇴 실패", e);

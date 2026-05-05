@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Platform,
   TextInput as RNTextInput,
@@ -33,6 +33,7 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 const GOOGLE_OAUTH_URL = `${API_BASE_URL}/oauth2/authorization/google`;
 const KAKAO_OAUTH_URL = `${API_BASE_URL}/oauth2/authorization/kakao`;
+const APPLE_OAUTH_URL = `${API_BASE_URL}/oauth2/authorization/login/apple`;
 /* ============================================== */
 
 /* ================= Login API ================== */
@@ -131,13 +132,21 @@ function PWInput({ placeholder, onChangeText, value }: PWInputProps) {
 }
 
 export default function Landing() {
+  const router = useRouter();
   const incomingUrl = Linking.useURL();
   const hasProcessedOAuthCode = useRef(false);
+  const isMountedRef = useRef(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isLoginEnabled = email.length > 7 && password.length > 7;
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   /* ============ Login Mutation ============ */
   const { mutate: loginMutate, isPending } = useMutation({
@@ -149,7 +158,9 @@ export default function Landing() {
       console.log("저장된 토큰:", token);
 
       await clearSocialLoginPending();
-      router.replace("/home/home");
+      if (isMountedRef.current) {
+        router.replace("/home/home");
+      }
     },
 
     onError: (err: any) => {
@@ -170,40 +181,45 @@ export default function Landing() {
     });
   };
 
-  const handleOAuthCode = async (code: string) => {
-    console.log("[OAuth] 인가 코드 수신", {
-      codePreview: `${code.slice(0, 8)}...`,
-      codeLength: code.length,
-      platform: Platform.OS,
-    });
-
-    hasProcessedOAuthCode.current = true;
-    setErrorMsg(null);
-
-    try {
-      await exchangeOAuthCode(code);
-      await setSocialLoginPending(true);
-
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        const cleanUrl = `${window.location.origin}${window.location.pathname}`;
-        window.history.replaceState({}, "", cleanUrl);
-      }
-
-      console.log("[OAuth] 토큰 저장 완료, 회원가입 화면으로 이동");
-      router.replace("/auth/registername?socialLogin=true");
-    } catch (err: any) {
-      console.log("[OAuth] 토큰 교환 실패", {
-        message: err?.message,
-        response: err?.response?.data,
+  const handleOAuthCode = useCallback(
+    async (code: string) => {
+      console.log("[OAuth] 인가 코드 수신", {
+        codePreview: `${code.slice(0, 8)}...`,
+        codeLength: code.length,
+        platform: Platform.OS,
       });
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "소셜 로그인 토큰 발급에 실패했습니다.";
-      setErrorMsg(msg);
-      hasProcessedOAuthCode.current = false;
-    }
-  };
+
+      hasProcessedOAuthCode.current = true;
+      setErrorMsg(null);
+
+      try {
+        await exchangeOAuthCode(code);
+        await setSocialLoginPending(true);
+
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+          window.history.replaceState({}, "", cleanUrl);
+        }
+
+        console.log("[OAuth] 토큰 저장 완료, 회원가입 화면으로 이동");
+        if (isMountedRef.current) {
+          router.replace("/auth/registername?socialLogin=true");
+        }
+      } catch (err: any) {
+        console.log("[OAuth] 토큰 교환 실패", {
+          message: err?.message,
+          response: err?.response?.data,
+        });
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "소셜 로그인 토큰 발급에 실패했습니다.";
+        setErrorMsg(msg);
+        hasProcessedOAuthCode.current = false;
+      }
+    },
+    [router],
+  );
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -245,7 +261,7 @@ export default function Landing() {
     };
 
     handleOAuthCallback();
-  }, [incomingUrl]);
+  }, [handleOAuthCode, incomingUrl]);
 
   /* ============ OAuth Handlers ============ */
   const openOAuth = async (url: string) => {
@@ -304,6 +320,7 @@ export default function Landing() {
 
   const onGoogleLogin = () => openOAuth(GOOGLE_OAUTH_URL);
   const onKakaoLogin = () => openOAuth(KAKAO_OAUTH_URL);
+  const onAppleLogin = () => openOAuth(APPLE_OAUTH_URL);
 
   const onOwnerSignupPress = async () => {
     await clearSocialLoginPending();
@@ -320,6 +337,7 @@ export default function Landing() {
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-center p-4">
+      {/* 사장님 로그인 -> 진입 못하게 주석 처리
       <View className="absolute left-4 right-4 top-[72px]">
         <Text className="text-right text-gray-500 text-sm font-medium leading-6">
           식당의 사장님이신가요?
@@ -330,6 +348,7 @@ export default function Landing() {
           </Text>
         </TouchableOpacity>
       </View>
+     */}
 
       <View className="flex flex-col gap-3 justify-center items-center mb-[64.5px]">
         <Text className="text-green-400 text-sm font-medium leading-6">
@@ -387,9 +406,12 @@ export default function Landing() {
           <Google width={16} height={16} />
         </TouchableOpacity>
 
-        <View className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow flex justify-center items-center">
+        <TouchableOpacity
+          onPress={onAppleLogin}
+          className="w-28 h-12 px-11 py-3.5 bg-white rounded-3xl shadow flex justify-center items-center"
+        >
           <Apple width={16} height={16} />
-        </View>
+        </TouchableOpacity>
 
         <TouchableOpacity
           onPress={onKakaoLogin}

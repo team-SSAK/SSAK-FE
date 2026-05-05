@@ -1,7 +1,8 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -17,18 +18,31 @@ import Info from "../../assets/images/info-circle.svg";
 import Modal1 from "../../assets/images/modal_1.png";
 import Modal2 from "../../assets/images/modal_2.png";
 import RadioButton from "../../assets/images/radio-button.svg";
+import { useMeasure } from "../../src/hooks/useMeasure";
+import {
+  getCameraGuideSkip,
+  setCameraGuideSkip,
+} from "../../src/utils/storage";
 
 const CameraViewCompat: any = CameraView;
 
 export default function Camera() {
+  const cameraRef = useRef<any>(null);
+  const { mutateAsync: measure, isPending } = useMeasure();
   const [permission, requestPermission] = useCameraPermissions();
-  const [isGuideVisible, setIsGuideVisible] = useState(true);
+  const [isGuideVisible, setIsGuideVisible] = useState(false);
   const [currentGuidePage, setCurrentGuidePage] = useState(0);
   const [skipGuide, setSkipGuide] = useState(false);
   const { width: screenWidth } = useWindowDimensions();
 
   const guideViewportWidth = screenWidth;
   const guideHorizontalPadding = Math.max(0, (guideViewportWidth - 328) / 2);
+
+  useEffect(() => {
+    void getCameraGuideSkip().then((skipped) => {
+      if (!skipped) setIsGuideVisible(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (!permission) {
@@ -55,7 +69,9 @@ export default function Camera() {
       );
     }
 
-    return <CameraViewCompat style={{ flex: 1 }} facing="back" />;
+    return (
+      <CameraViewCompat ref={cameraRef} style={{ flex: 1 }} facing="back" />
+    );
   };
 
   const handleGuideScrollEnd = (
@@ -193,7 +209,14 @@ export default function Camera() {
           </View>
 
           <View className="self-stretch gap-[14px]">
-            <TouchableOpacity onPress={() => setIsGuideVisible(false)}>
+            <TouchableOpacity
+              onPress={() => {
+                if (skipGuide) {
+                  void setCameraGuideSkip(true);
+                }
+                setIsGuideVisible(false);
+              }}
+            >
               <View className="self-stretch h-12 p-3 bg-[#45B310] rounded-xl justify-center items-center">
                 <Text className="text-white text-lg font-medium leading-7">
                   확인했어요
@@ -245,11 +268,42 @@ export default function Camera() {
       </View>
 
       <View className="absolute bottom-0 left-0 right-0 px-4 pb-[56px]">
-        <TouchableOpacity onPress={() => router.push("/home/camerasucceeded")}>
-          <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
-            <Text className="text-center text-gray-50 text-lg font-medium leading-7">
-              잔반 인식하기
-            </Text>
+        <TouchableOpacity
+          disabled={isPending}
+          onPress={async () => {
+            if (!cameraRef.current) return;
+            try {
+              const photo = await (cameraRef.current as any).takePictureAsync({
+                quality: 0.8,
+                skipProcessing: false,
+              });
+              const result = await measure(photo.uri);
+              const r = result as {
+                addedPoint?: number;
+                currentPoint?: number;
+                leftoverRatio?: number;
+              };
+              router.push({
+                pathname: "/home/camerasucceeded",
+                params: {
+                  addedPoint: String(r.addedPoint ?? 0),
+                  currentPoint: String(r.currentPoint ?? 0),
+                  leftoverRatio: String(r.leftoverRatio ?? 0),
+                },
+              });
+            } catch (e) {
+              console.error("잔반 인식 실패:", e);
+            }
+          }}
+        >
+          <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center flex-row gap-2">
+            {isPending ? (
+              <ActivityIndicator color="#f9fafb" />
+            ) : (
+              <Text className="text-center text-gray-50 text-lg font-medium leading-7">
+                잔반 인식하기
+              </Text>
+            )}
           </View>
         </TouchableOpacity>
       </View>

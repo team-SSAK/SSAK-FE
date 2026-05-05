@@ -16,22 +16,22 @@ const ONBOARDING_PAGES = [
   {
     title: "잔반 인증하고, 포인트로 바꿔보세요!",
     subtitle: "버리지 않은 한 끼가, 보상이 됩니다",
-    graphicSource: require("../../assets/images/onbording_1.png"),
+    graphicSource: require("../../assets/images/onboarding_1.png"),
   },
   {
     title: "다 먹은 식판, 간편하게 인증해요",
     subtitle: "싹 AI로 가볍게 인증해요!",
-    graphicSource: require("../../assets/images/onbording_2.png"),
+    graphicSource: require("../../assets/images/onboarding_2.png"),
   },
   {
     title: "남김없는 한 끼가 더 큰 보상이 돼요",
     subtitle: "잔반을 남기지 않을수록 포인트가 더 쌓여요",
-    graphicSource: require("../../assets/images/onbording_3.png"),
+    graphicSource: require("../../assets/images/onboarding_3.png"),
   },
   {
     title: "모은 포인트를 각종 쿠폰으로 !",
     subtitle: "포인트는 각종 쿠폰으로 교환 가능해요",
-    graphicSource: require("../../assets/images/onbording_4.png"),
+    graphicSource: require("../../assets/images/onboarding_4.png"),
   },
 ] as const;
 

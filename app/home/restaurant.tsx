@@ -1,3 +1,4 @@
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -12,6 +13,23 @@ import {
   usePostRestaurantWish,
   useRestaurant,
 } from "../../src/hooks/useRestaurant";
+import { getRestaurantById } from "../../src/services/home/restaurent.service";
+
+function haversineDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 //////////////////////////////////////////////////////
 // 타입
@@ -103,6 +121,26 @@ export default function Restaurant() {
   const [searchText, setSearchText] = useState("");
   const { data = [] } = useRestaurant();
   const { mutateAsync: postRestaurantWish } = usePostRestaurantWish();
+  const [coordsMap, setCoordsMap] = useState<
+    Record<number, { lat: number; lon: number }>
+  >({});
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const loc = await Location.getCurrentPositionAsync({});
+        setUserLocation({
+          lat: loc.coords.latitude,
+          lon: loc.coords.longitude,
+        });
+      }
+    })();
+  }, []);
 
   const restaurants = useMemo(() => {
     const source = data.length === 0 ? mockrestaurent : data;
@@ -116,6 +154,32 @@ export default function Restaurant() {
       wished: item.wished,
     }));
   }, [data]);
+
+  // 식당 좌표 일괄 fetch
+  useEffect(() => {
+    if (restaurants.length === 0) return;
+    const fetchCoords = async () => {
+      const results = await Promise.allSettled(
+        restaurants.map((r) => getRestaurantById(r.id)),
+      );
+      const map: Record<number, { lat: number; lon: number }> = {};
+      results.forEach((result, i) => {
+        if (result.status === "fulfilled") {
+          const coord = result.value?.restaurantCoord;
+          if (
+            coord &&
+            typeof coord.x === "number" &&
+            typeof coord.y === "number"
+          ) {
+            // JTS Point: x = 경도(longitude), y = 위도(latitude)
+            map[restaurants[i].id] = { lat: coord.y, lon: coord.x };
+          }
+        }
+      });
+      setCoordsMap(map);
+    };
+    fetchCoords();
+  }, [restaurants]);
 
   // 기본값: 전부 채워진 하트
   const [selectedRestaurants, setSelectedRestaurants] = useState<
@@ -157,7 +221,27 @@ export default function Restaurant() {
 
   const tabRestaurants = useMemo(() => {
     if (activeTab === "nearby") {
-      return restaurants;
+      if (!userLocation) return restaurants;
+      return [...restaurants].sort((a, b) => {
+        const coordA = coordsMap[a.id];
+        const coordB = coordsMap[b.id];
+        if (!coordA && !coordB) return 0;
+        if (!coordA) return 1;
+        if (!coordB) return -1;
+        const distA = haversineDistance(
+          userLocation.lat,
+          userLocation.lon,
+          coordA.lat,
+          coordA.lon,
+        );
+        const distB = haversineDistance(
+          userLocation.lat,
+          userLocation.lon,
+          coordB.lat,
+          coordB.lon,
+        );
+        return distA - distB;
+      });
     }
 
     return restaurants.filter((restaurant) => {
@@ -166,7 +250,7 @@ export default function Restaurant() {
 
       return isMyRestaurant;
     });
-  }, [activeTab, restaurants, selectedRestaurants]);
+  }, [activeTab, restaurants, selectedRestaurants, coordsMap, userLocation]);
 
   const filteredRestaurants = useMemo(() => {
     return tabRestaurants.filter(
@@ -242,9 +326,10 @@ export default function Restaurant() {
                 pathname: "/home/restaurantdetail",
                 params: {
                   restaurantId: String(restaurant.id),
+                  restaurantName: restaurant.name,
+                  restaurantLocation: restaurant.address,
                   restaurantImage: restaurant.image ?? "",
-                  restaurantType:
-                    restaurant.type === null ? "null" : restaurant.type,
+                  restaurantType: restaurant.type ?? "",
                 },
               })
             }

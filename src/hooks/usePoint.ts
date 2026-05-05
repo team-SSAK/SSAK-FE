@@ -54,7 +54,9 @@ export function usePoint() {
       try {
         const res = await getCurrentPoint();
         const currentPoint =
-          typeof res === "number" ? res : (res?.point ?? res?.data ?? 0);
+          typeof res === "number"
+            ? res
+            : (res?.currentPoint ?? res?.point ?? res?.data ?? 0);
 
         setPoint(currentPoint);
       } catch (e) {

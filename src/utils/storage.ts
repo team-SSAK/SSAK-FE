@@ -6,6 +6,7 @@ const REFRESH_TOKEN_KEY = "REFRESH_TOKEN";
 const LIKED_POST_IDS_KEY = "LIKED_POST_IDS";
 const OWNER_SIGNUP_CLICKED_KEY = "OWNER_SIGNUP_CLICKED";
 const SOCIAL_LOGIN_PENDING_KEY = "SOCIAL_LOGIN_PENDING";
+const CAMERA_GUIDE_SKIP_KEY = "CAMERA_GUIDE_SKIP";
 
 // Expo Go/RN 환경에서는 window가 있어도 web이 아닐 수 있으므로 Platform 기준으로 분기한다.
 const isWeb = Platform.OS === "web";
@@ -107,6 +108,7 @@ export const clearAll = async () => {
   await deleteAccessToken();
   await deleteRefreshToken();
   await deleteItem(LIKED_POST_IDS_KEY);
+  await deleteItem(CAMERA_GUIDE_SKIP_KEY);
 };
 
 export const getLikedPostIds = async (): Promise<string[]> => {
@@ -127,6 +129,14 @@ export const getOwnerSignupClicked = async (): Promise<boolean> => {
 
 export const setOwnerSignupClicked = async (clicked: boolean) =>
   await setItem(OWNER_SIGNUP_CLICKED_KEY, clicked ? "true" : "false");
+
+export const getCameraGuideSkip = async (): Promise<boolean> => {
+  const value = await getItem(CAMERA_GUIDE_SKIP_KEY);
+  return value === "true";
+};
+
+export const setCameraGuideSkip = async (skip: boolean) =>
+  await setItem(CAMERA_GUIDE_SKIP_KEY, skip ? "true" : "false");
 
 export const clearOwnerSignupClicked = async () =>
   await deleteItem(OWNER_SIGNUP_CLICKED_KEY);

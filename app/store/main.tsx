@@ -19,8 +19,9 @@ import ActionPopup from "../../components/actionpopup";
 import { BottomNav } from "../../components/bottomnav";
 import SearchInput from "../../components/searchinput";
 
-import { useCoupons } from "@/src/hooks/useCoupons";
+import { useStoreCoupons } from "@/src/hooks/useStoreCoupons";
 import { postCouponWish } from "../../src/services/mypage/coupons.service";
+import { StoreCouponType } from "../../src/services/store/coupons.service";
 
 import ChevronDown from "../../assets/images/chevron-down.svg";
 
@@ -103,15 +104,15 @@ const EMPTY_MESSAGE = "사용 가능한 쿠폰이 없습니다";
 export default function Main() {
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<
-    "all" | "cafe" | "convenience" | "meal" | "gift"
-  >("all");
+  const [selectedFilter, setSelectedFilter] = useState<StoreCouponType | null>(
+    null,
+  );
 
   const [selectedCoupons, setSelectedCoupons] = useState<
     Record<number, boolean>
   >({});
 
-  const { coupons, loading } = useCoupons("ISSUED");
+  const { coupons, loading } = useStoreCoupons(selectedFilter);
 
   const filteredCoupons = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -126,6 +127,11 @@ export default function Main() {
   }, [coupons, searchQuery]);
 
   const toggleCouponWish = async (id: number) => {
+    if (id <= 0) {
+      console.log("쿠폰 id가 없어 찜하기를 수행할 수 없습니다.");
+      return;
+    }
+
     const isCurrentlySelected = !!selectedCoupons[id];
 
     if (!isCurrentlySelected) {
@@ -188,53 +194,63 @@ export default function Main() {
         {/* sorting chips */}
         <View className="py-4 flex flex-row gap-2.5">
           <TouchableOpacity
-            onPress={() => setSelectedFilter("all")}
-            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === "all" ? "bg-gray-600" : "bg-gray-100"}`}
+            onPress={() => setSelectedFilter(null)}
+            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === null ? "bg-gray-600" : "bg-gray-100"}`}
           >
             <Text
-              className={`text-sm font-semibold leading-6 ${selectedFilter === "all" ? "text-white" : "text-gray-500"}`}
+              className={`text-sm font-semibold leading-6 ${selectedFilter === null ? "text-white" : "text-gray-500"}`}
             >
               전체
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setSelectedFilter("cafe")}
-            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === "cafe" ? "bg-gray-600" : "bg-gray-100"}`}
+            onPress={() => setSelectedFilter("CAFE")}
+            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === "CAFE" ? "bg-gray-600" : "bg-gray-100"}`}
           >
             <Text
-              className={`text-sm font-semibold leading-6 ${selectedFilter === "cafe" ? "text-white" : "text-gray-500"}`}
+              className={`text-sm font-semibold leading-6 ${selectedFilter === "CAFE" ? "text-white" : "text-gray-500"}`}
             >
               카페
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setSelectedFilter("convenience")}
-            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === "convenience" ? "bg-gray-600" : "bg-gray-100"}`}
+            onPress={() => setSelectedFilter("CONVENIENT_STORE")}
+            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === "CONVENIENT_STORE" ? "bg-gray-600" : "bg-gray-100"}`}
           >
             <Text
-              className={`text-sm font-semibold leading-6 ${selectedFilter === "convenience" ? "text-white" : "text-gray-500"}`}
+              className={`text-sm font-semibold leading-6 ${selectedFilter === "CONVENIENT_STORE" ? "text-white" : "text-gray-500"}`}
             >
               편의점
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setSelectedFilter("meal")}
-            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === "meal" ? "bg-gray-600" : "bg-gray-100"}`}
+            onPress={() => setSelectedFilter("MEAL")}
+            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === "MEAL" ? "bg-gray-600" : "bg-gray-100"}`}
           >
             <Text
-              className={`text-sm font-semibold leading-6 ${selectedFilter === "meal" ? "text-white" : "text-gray-500"}`}
+              className={`text-sm font-semibold leading-6 ${selectedFilter === "MEAL" ? "text-white" : "text-gray-500"}`}
             >
               식사
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setSelectedFilter("gift")}
-            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === "gift" ? "bg-gray-600" : "bg-gray-100"}`}
+            onPress={() => setSelectedFilter("CERTIFICATE")}
+            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === "CERTIFICATE" ? "bg-gray-600" : "bg-gray-100"}`}
           >
             <Text
-              className={`text-sm font-semibold leading-6 ${selectedFilter === "gift" ? "text-white" : "text-gray-500"}`}
+              className={`text-sm font-semibold leading-6 ${selectedFilter === "CERTIFICATE" ? "text-white" : "text-gray-500"}`}
             >
               상품권
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSelectedFilter("ETC")}
+            className={`px-4 py-2 rounded-[999px] inline-flex justify-center items-center ${selectedFilter === "ETC" ? "bg-gray-600" : "bg-gray-100"}`}
+          >
+            <Text
+              className={`text-sm font-semibold leading-6 ${selectedFilter === "ETC" ? "text-white" : "text-gray-500"}`}
+            >
+              기타
             </Text>
           </TouchableOpacity>
         </View>

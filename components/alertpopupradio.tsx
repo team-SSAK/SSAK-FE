@@ -4,7 +4,7 @@ import { Modal, Text, TouchableOpacity, View } from "react-native";
 interface AlertPopupRadioProps {
   title?: string;
   description?: string;
-
+  visible?: boolean;
   onCancel?: () => void;
   onConfirm?: () => void;
   cancelText?: string;

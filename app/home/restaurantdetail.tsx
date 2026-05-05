@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Image,
   Modal,
@@ -18,8 +18,6 @@ import Post from "../../components/post";
 
 import { useCommunity, useDeleteCommunity } from "../../src/hooks/useCommunity";
 import { useMe } from "../../src/hooks/useMe";
-import { useReport } from "../../src/hooks/useReport";
-import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
 
 function Popup({
   title = "이미 신고된 글입니다",
@@ -67,93 +65,40 @@ function Popup({
 }
 
 //////////////////////////////////////////////////////
-// 타입
-//////////////////////////////////////////////////////
-
-interface RestaurantWishResponse {
-  restaurantWishId: number;
-  restaurantId: number;
-  restaurantName: string;
-  restaurantLocation: string;
-  restaurantImgUrl: string;
-  restaurantType?: string | null;
-}
-
-//////////////////////////////////////////////////////
 // 페이지
 //////////////////////////////////////////////////////
 
 export default function RestaurantDetail() {
-  const { data } = useRestaurantWish();
-  const { restaurantId, restaurantImage, restaurantType } =
-    useLocalSearchParams<{
-      restaurantId?: string;
-      restaurantImage?: string;
-      restaurantType?: string;
-    }>();
-
-  const restaurants = useMemo(() => {
-    if (!Array.isArray(data)) return [];
-
-    return data.map((item: RestaurantWishResponse) => ({
-      id: item.restaurantId,
-      name: item.restaurantName,
-      address: item.restaurantLocation,
-      image: item.restaurantImgUrl,
-      type: item.restaurantType ?? null,
-    }));
-  }, [data]);
-
-  const selectedRestaurantId =
-    typeof restaurantId === "string" ? Number(restaurantId) : NaN;
-
-  const selectedRestaurant = useMemo(
-    () =>
-      restaurants.find((restaurant) => restaurant.id === selectedRestaurantId),
-    [restaurants, selectedRestaurantId],
-  );
-
-  const detailImage =
-    typeof restaurantImage === "string" && restaurantImage.length > 0
-      ? restaurantImage
-      : selectedRestaurant?.image;
-
-  const selectedRestaurantType =
-    restaurantType === "null"
-      ? null
-      : typeof restaurantType === "string" && restaurantType.length > 0
-        ? restaurantType
-        : (selectedRestaurant?.type ?? null);
+  const {
+    restaurantId,
+    restaurantName,
+    restaurantLocation,
+    restaurantImage,
+    restaurantType,
+  } = useLocalSearchParams<{
+    restaurantId?: string;
+    restaurantName?: string;
+    restaurantLocation?: string;
+    restaurantImage?: string;
+    restaurantType?: string;
+  }>();
 
   const restaurantTypeLabel =
-    selectedRestaurantType === null ? "자율배식형" : selectedRestaurantType;
+    typeof restaurantType === "string" && restaurantType.length > 0
+      ? restaurantType
+      : "자율배식형";
+
+  const operatingHours = "운영시간 정보 없음";
 
   const { data: communityPosts = [] } = useCommunity(restaurantId);
   const { mutate: deletePost } = useDeleteCommunity();
   const [showDeletePopup, setShowDeletePopup] = useState(false);
-  const [pendingDeletePostId, setPendingDeletePostId] = useState<
-    string | number | null
-  >(null);
-  const { mutate: reportPost } = useReport();
+  const [pendingDeletePostId, setPendingDeletePostId] = useState<number | null>(
+    null,
+  );
   const { me } = useMe();
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
-
-  const isDuplicateReportError = (error: unknown) => {
-    const err = error as {
-      response?: { status?: number; data?: { message?: string } };
-      message?: string;
-    };
-
-    const responseMessage = err.response?.data?.message ?? "";
-    const fallbackMessage = err.message ?? "";
-
-    return (
-      err.response?.status === 409 ||
-      responseMessage.includes("이미 신고") ||
-      fallbackMessage.includes("이미 신고")
-    );
-  };
 
   const visibleCommunityPosts = useMemo(() => {
     const myNickname = (me?.userNm ?? "").trim();
@@ -177,27 +122,6 @@ export default function RestaurantDetail() {
     const dd = String(date.getDate()).padStart(2, "0");
 
     return `${yy}.${mm}.${dd}`;
-  };
-
-  // 기본값: 전부 채워진 하트
-  const [selectedRestaurants, setSelectedRestaurants] = useState<
-    Record<number, boolean>
-  >({});
-
-  useEffect(() => {
-    if (restaurants.length > 0) {
-      const initialState = Object.fromEntries(
-        restaurants.map((r) => [r.id, true]),
-      );
-      setSelectedRestaurants(initialState);
-    }
-  }, [restaurants]);
-
-  const toggle = (id: number) => {
-    setSelectedRestaurants((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
   };
 
   return (
@@ -233,9 +157,9 @@ export default function RestaurantDetail() {
           </TouchableOpacity>
         </View>
 
-        {detailImage ? (
+        {typeof restaurantImage === "string" && restaurantImage.length > 0 ? (
           <Image
-            source={{ uri: detailImage }}
+            source={{ uri: restaurantImage }}
             className="h-[196px]"
             style={{ marginHorizontal: -16 }}
             resizeMode="cover"
@@ -254,7 +178,9 @@ export default function RestaurantDetail() {
             </Text>
           </View>
           <Text className="justify-start text-gray-800 text-xl font-semibold leading-8">
-            {selectedRestaurant?.name ?? "식당 정보"}
+            {typeof restaurantName === "string" && restaurantName.length > 0
+              ? restaurantName
+              : "식당 정보"}
           </Text>
           <View className="flex flex-row mt-2.5 ">
             <View className="flex flex-col gap-1 mr-[19px]">
@@ -267,10 +193,13 @@ export default function RestaurantDetail() {
             </View>
             <View className="flex flex-col gap-1">
               <Text className="text-gray-600 text-sm font-semibold leading-6 line-clamp-2">
-                {selectedRestaurant?.address ?? "식당 주소"}
+                {typeof restaurantLocation === "string" &&
+                restaurantLocation.length > 0
+                  ? restaurantLocation
+                  : "식당 주소"}
               </Text>
               <Text className="text-gray-600 text-sm font-semibold leading-6 line-clamp-2">
-                07:00 - 21:30
+                {operatingHours}
               </Text>
             </View>
           </View>

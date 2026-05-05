@@ -1,11 +1,17 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import Succeeded from "../../assets/images/succeeded.png";
-import { usePoint } from "../../src/hooks/usePoint";
 
 export default function CameraSucceeded() {
-  const { point } = usePoint();
+  const { addedPoint, currentPoint, leftoverRatio } = useLocalSearchParams<{
+    addedPoint: string;
+    currentPoint: string;
+    leftoverRatio: string;
+  }>();
+
+  const leftoverPct = Math.round((1 - Number(leftoverRatio ?? 1)) * 100);
+  const certPct = `${leftoverPct}%`;
 
   return (
     <View className="flex-1 bg-white">
@@ -37,7 +43,7 @@ export default function CameraSucceeded() {
             인증률
           </Text>
           <Text className="text-gray-900 text-lg font-semibold leading-7">
-            100%
+            {certPct}
           </Text>
         </View>
         <View className="mt-[12px] self-stretch px-4 py-3 bg-gray-50 rounded-[10px] flex-col items-end gap-1">
@@ -46,12 +52,12 @@ export default function CameraSucceeded() {
               내 포인트
             </Text>
             <Text className="text-gray-900 text-lg font-semibold leading-7">
-              {point}
+              {currentPoint}
             </Text>
           </View>
           <View className="px-2.5 py-0.5 bg-green-300 rounded-md items-center justify-center">
             <Text className="text-white text-xs font-semibold leading-5">
-              +200
+              +{addedPoint}
             </Text>
           </View>
         </View>
