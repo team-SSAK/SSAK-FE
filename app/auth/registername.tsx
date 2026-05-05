@@ -10,9 +10,7 @@ export default function RegisterName() {
   const [name, setName] = useState("");
   const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
 
-  const isButtonEnabled = name.length > 0;
-
-  const { email, password, socialLogin } = useLocalSearchParams<{
+  const { email, password } = useLocalSearchParams<{
     email: string;
     password: string;
     socialLogin?: string;
@@ -62,12 +60,7 @@ export default function RegisterName() {
 
         {/* 다음: flex-1 */}
         <TouchableOpacity
-          disabled={!isButtonEnabled}
-          className="flex-1 h-[52px] rounded-xl items-center justify-center"
-          style={{
-            backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
-            opacity: isButtonEnabled ? 1 : 0.5,
-          }}
+          className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
           onPress={() =>
             router.push({
               pathname: "/auth/registerdone",

@@ -1,42 +1,13 @@
-import { useNotification } from "@/src/hooks/useNotification";
-import { patchNotification } from "@/src/services/mypage/notification.service";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import { Toggle } from "../../components/toggle";
 
 export default function Notification() {
-  const { data, isLoading } = useNotification();
-
   const [communityOn, setCommunityOn] = useState(false);
   const [eventOn, setEventOn] = useState(false);
   const [nightOn, setNightOn] = useState(false);
-
-  // API 데이터 들어오면 토글 초기화
-  useEffect(() => {
-    if (data) {
-      setCommunityOn(data.communityYn);
-      setEventOn(data.eventNotiYn);
-      setNightOn(data.nightYn);
-    }
-  }, [data]);
-
-  const updateNotification = async (
-    nextCommunity: boolean,
-    nextEvent: boolean,
-    nextNight: boolean,
-  ) => {
-    try {
-      await patchNotification({
-        communityYn: nextCommunity,
-        eventNotiYn: nextEvent,
-        nightYn: nextNight,
-      });
-    } catch (e) {
-      console.log("알림 설정 수정 실패", e);
-    }
-  };
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -48,56 +19,32 @@ export default function Notification() {
           <Text className="text-gray-800 text-xl font-semibold">알림 설정</Text>
         </View>
 
-        {isLoading ? (
-          <Text className="text-gray-400">불러오는 중...</Text>
-        ) : (
-          <View className="flex flex-col gap-2.5">
-            <Text className="text-gray-800 font-semibold">서비스 알림</Text>
+        <View className="flex flex-col gap-2.5">
+          <Text className="text-gray-800 font-semibold">서비스 알림</Text>
 
-            <View className="flex flex-row justify-between py-3.5 px-4 bg-gray-50 rounded-lg">
-              <Text className="text-gray-700 font-medium">커뮤니티 알림</Text>
-              <Toggle
-                value={communityOn}
-                onChange={(value) => {
-                  setCommunityOn(value);
-                  updateNotification(value, eventOn, nightOn);
-                }}
-              />
-            </View>
-
-            <View className="h-[18px]" />
-
-            <Text className="text-gray-800 font-semibold">
-              마케팅 정보 수신
-            </Text>
-
-            <View className="self-stretch h-14 px-4 py-3.5 bg-gray-50 rounded-tl-lg rounded-tr-lg flex-row justify-start items-center gap-2.5">
-              <Text className="flex-1 text-gray-700 font-medium leading-6">
-                이벤트 및 혜택 알림
-              </Text>
-              <Toggle
-                value={eventOn}
-                onChange={(value) => {
-                  setEventOn(value);
-                  updateNotification(communityOn, value, nightOn);
-                }}
-              />
-            </View>
-
-            <View className="flex flex-row justify-between py-3.5 px-4 bg-gray-50 rounded-lg">
-              <Text className="text-gray-700 font-medium">
-                야간 혜택 알림 (21시~8시)
-              </Text>
-              <Toggle
-                value={nightOn}
-                onChange={(value) => {
-                  setNightOn(value);
-                  updateNotification(communityOn, eventOn, value);
-                }}
-              />
-            </View>
+          <View className="flex flex-row justify-between py-3.5 px-4 bg-gray-50 rounded-lg">
+            <Text className="text-gray-700 font-medium">커뮤니티 알림</Text>
+            <Toggle value={communityOn} onChange={setCommunityOn} />
           </View>
-        )}
+
+          <View className="h-[18px]" />
+
+          <Text className="text-gray-800 font-semibold">마케팅 정보 수신</Text>
+
+          <View className="self-stretch h-14 px-4 py-3.5 bg-gray-50 rounded-tl-lg rounded-tr-lg flex-row justify-start items-center gap-2.5">
+            <Text className="flex-1 text-gray-700 font-medium leading-6">
+              이벤트 및 혜택 알림
+            </Text>
+            <Toggle value={eventOn} onChange={setEventOn} />
+          </View>
+
+          <View className="flex flex-row justify-between py-3.5 px-4 bg-gray-50 rounded-lg">
+            <Text className="text-gray-700 font-medium">
+              야간 혜택 알림 (21시~8시)
+            </Text>
+            <Toggle value={nightOn} onChange={setNightOn} />
+          </View>
+        </View>
       </View>
     </View>
   );

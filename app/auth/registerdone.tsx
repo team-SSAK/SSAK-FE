@@ -1,15 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronRight from "../../assets/images/chevron-right.svg";
 import RadioButton from "../../assets/images/radio-button.svg";
 import TickCircle from "../../assets/images/tick-circle.svg";
-import { useSignup } from "../../src/hooks/useSignup";
-import { submitSocialNickname } from "../../src/services/auth/auth.service";
-import {
-  clearSocialLoginPending,
-  getSocialLoginPending,
-} from "../../src/utils/storage";
 
 interface CheckboxProps {
   label: string;
@@ -51,26 +45,6 @@ export default function RegisterDone() {
   const isSocialLogin = params.socialLogin === "true" || isStoredSocialLogin;
 
   /* -----------------------------
-     잘못된 접근 방어
-  ----------------------------- */
-  useEffect(() => {
-    getSocialLoginPending()
-      .then(setIsStoredSocialLogin)
-      .catch(() => setIsStoredSocialLogin(false));
-  }, []);
-
-  useEffect(() => {
-    if ((!email || !password) && !isSocialLogin) {
-      router.replace("/auth/landing");
-      return;
-    }
-
-    if (!name) {
-      router.replace("/auth/landing");
-    }
-  }, [email, isSocialLogin, name, password]);
-
-  /* -----------------------------
      약관 상태
   ----------------------------- */
   const [agreeAll, setAgreeAll] = useState(false);
@@ -88,54 +62,6 @@ export default function RegisterDone() {
 
   const syncAll = (privacy: boolean, location: boolean, marketing: boolean) => {
     setAgreeAll(privacy && location && marketing);
-  };
-
-  /* -----------------------------
-     signup 훅
-  ----------------------------- */
-  const { mutate: signupMutate, isPending } = useSignup();
-  const [isSocialPending, setIsSocialPending] = useState(false);
-
-  const isRequiredAgreed = agreePrivacy && agreeLocation;
-  const isSubmitting = isPending || isSocialPending;
-
-  const handleSignup = () => {
-    if (!isRequiredAgreed) return;
-
-    if (isSocialLogin) {
-      setIsSocialPending(true);
-      submitSocialNickname(name)
-        .then(() => {
-          return clearSocialLoginPending();
-        })
-        .then(() => {
-          router.replace("/home/home");
-        })
-        .catch((err) => {
-          console.log("Social nickname update error:", err);
-        })
-        .finally(() => {
-          setIsSocialPending(false);
-        });
-      return;
-    }
-
-    signupMutate(
-      {
-        userEmail: email,
-        userPw: password,
-        userNm: name,
-        marketAgreeYn: agreeMarketing,
-      },
-      {
-        onSuccess: () => {
-          router.replace("/auth/landing");
-        },
-        onError: (err: any) => {
-          console.log("Signup error:", err);
-        },
-      },
-    );
   };
 
   return (
@@ -199,20 +125,10 @@ export default function RegisterDone() {
         <View className="h-[34px]" />
 
         {/* 가입 버튼 */}
-        <TouchableOpacity
-          disabled={!isRequiredAgreed || isSubmitting}
-          onPress={handleSignup}
-        >
-          <View
-            className="self-stretch h-[52px] p-3 rounded-xl justify-center items-center"
-            style={{
-              backgroundColor:
-                isRequiredAgreed && !isSubmitting ? "#45B310" : "#94A3B8",
-              opacity: isRequiredAgreed && !isSubmitting ? 1 : 0.6,
-            }}
-          >
+        <TouchableOpacity onPress={() => router.replace("/auth/landing")}>
+          <View className="self-stretch h-[52px] p-3 rounded-xl justify-center items-center bg-[#45B310]">
             <Text className="text-center text-white text-lg font-medium leading-7">
-              {isSubmitting ? "가입 중..." : "가입 완료"}
+              가입 완료
             </Text>
           </View>
         </TouchableOpacity>
