@@ -29,7 +29,7 @@ export default function ReplyCard({
   onMenuPress,
   onLikePress,
 }: ReplyCardProps) {
-  const displayedLikeCount = likeCount + (isLiked ? 1 : 0);
+  const displayedLikeCount = likeCount;
 
   return (
     <View className="self-stretch py-3.5 bg-white border-b border-gray-100 flex-row justify-start items-start">

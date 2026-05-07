@@ -485,7 +485,12 @@ export default function Camera() {
         >
           <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center flex-row gap-2">
             {isPending ? (
-              <ActivityIndicator color="#f9fafb" />
+              <>
+                <ActivityIndicator color="#f9fafb" />
+                <Text className="text-center text-gray-50 text-lg font-medium leading-7">
+                  인식 중입니다
+                </Text>
+              </>
             ) : (
               <Text className="text-center text-gray-50 text-lg font-medium leading-7">
                 잔반 인식하기

@@ -39,19 +39,13 @@ client.interceptors.request.use(async (config) => {
   }
 
   if (SHOULD_LOG) {
-    const isFormData =
-      typeof FormData !== "undefined" && config.data instanceof FormData;
-    const requestBody = isFormData
-      ? { formDataParts: (config.data as any)?._parts }
-      : config.data;
-
     console.log("================================");
     console.log("API REQUEST");
     console.log("URL:", `${config.baseURL}${config.url}`);
     console.log("Method:", config.method);
     console.log("Headers:", config.headers);
     console.log("Params:", config.params);
-    console.log("Body:", requestBody);
+    console.log("Body:", config.data);
     console.log("================================");
   }
 

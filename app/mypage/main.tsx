@@ -266,6 +266,12 @@ export default function Main() {
                   price={coupon.price}
                   image={coupon.image}
                   selected={!!selectedCoupons[coupon.id]}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/store/mycoupon",
+                      params: { couponId: String(coupon.id) },
+                    })
+                  }
                   onToggle={() =>
                     setSelectedCoupons((prev) => ({
                       ...prev,

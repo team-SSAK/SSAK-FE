@@ -133,6 +133,9 @@ export default function Post() {
   const { data: likedCommentIds = [] } = useLikedCommentIds();
   const isLiked = useIsPostLiked(post?.postId ?? postId);
   const { me } = useMe();
+  const [imageSizes, setImageSizes] = useState<
+    Record<string, { width: number; height: number }>
+  >({});
   const [commentText, setCommentText] = useState("");
   const [replyTargetId, setReplyTargetId] = useState<number | null>(null);
   const [replyTargetAuthor, setReplyTargetAuthor] = useState<string | null>(
@@ -335,6 +338,44 @@ export default function Post() {
   const isMine = myNickname.length > 0 && currentAuthor === myNickname;
   const displayedLikeCount = post?.postLikeCnt ?? 0;
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    imageUris.forEach((uri) => {
+      if (imageSizes[uri]) {
+        return;
+      }
+
+      Image.getSize(
+        uri,
+        (width: number, height: number) => {
+          if (isCancelled) {
+            return;
+          }
+
+          setImageSizes((prev) => ({
+            ...prev,
+            [uri]: { width, height },
+          }));
+        },
+        () => {
+          if (isCancelled) {
+            return;
+          }
+
+          setImageSizes((prev) => ({
+            ...prev,
+            [uri]: { width: 1, height: 1 },
+          }));
+        },
+      );
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [imageSizes, imageUris]);
+
   const handlePostLikePress = () => {
     const resolvedPostId = post?.postId ?? postId;
 
@@ -491,14 +532,24 @@ export default function Post() {
 
           {imageUris.length > 0 ? (
             <View className="gap-2">
-              {imageUris.map((uri, index) => (
-                <Image
-                  key={`${uri}-${index}`}
-                  source={{ uri }}
-                  className="self-stretch h-56 rounded-md"
-                  resizeMode="cover"
-                />
-              ))}
+              {imageUris.map((uri, index) => {
+                const imageSize = imageSizes[uri];
+
+                return (
+                  <Image
+                    key={`${uri}-${index}`}
+                    source={{ uri }}
+                    className="w-full rounded-md"
+                    style={{
+                      width: "100%",
+                      aspectRatio: imageSize
+                        ? imageSize.width / imageSize.height
+                        : 1,
+                    }}
+                    resizeMode="cover"
+                  />
+                );
+              })}
             </View>
           ) : null}
 
@@ -540,6 +591,7 @@ export default function Post() {
               <CommentCard
                 author={comment.nickname}
                 content={comment.commentContent}
+                likeCount={comment.commentLikeCnt ?? 0}
                 date={commentDate}
                 isLiked={likedCommentIds.includes(String(comment.commentId))}
                 isMine={isMyComment}
@@ -568,6 +620,7 @@ export default function Post() {
                     key={child.commentId}
                     author={child.nickname}
                     content={child.commentContent}
+                    likeCount={child.commentLikeCnt ?? 0}
                     date={childDate}
                     isLiked={likedCommentIds.includes(String(child.commentId))}
                     isMine={isMyReply}

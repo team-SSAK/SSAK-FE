@@ -5,7 +5,9 @@ import { normalizeImageList } from "../utils/image";
 export interface CommentItem {
   commentId: number;
   commentContent: string;
+  commentVisibility?: boolean;
   nickname: string;
+  commentLikeCnt?: number;
   commentCreateTime: string;
   childrenComments?: CommentItem[];
 }

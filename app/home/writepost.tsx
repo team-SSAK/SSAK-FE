@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -139,9 +139,9 @@ export default function WritePost() {
   const [newImages, setNewImages] = useState<string[]>([]);
   const LINE_HEIGHT = 24; // leading-6 = 24px
   const [contentHeight, setContentHeight] = useState(LINE_HEIGHT * 2);
-  const [imageSizes, setImageSizes] = useState<
-    { width: number; height: number }[]
-  >([]);
+  const [imageSizesByUri, setImageSizesByUri] = useState<
+    Record<string, { width: number; height: number }>
+  >({});
   const [showExitPopup, setShowExitPopup] = useState(false);
   const isSubmitting = isPending || isPatchPending;
   const canSubmit = title.trim().length > 0 && content.trim().length > 0;
@@ -150,6 +150,44 @@ export default function WritePost() {
     content.trim().length > 0 ||
     newImages.length > 0 ||
     existingImages.length > 0;
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    [...existingImages, ...newImages].forEach((uri) => {
+      if (imageSizesByUri[uri]) {
+        return;
+      }
+
+      RNImage.getSize(
+        uri,
+        (width: number, height: number) => {
+          if (isCancelled) {
+            return;
+          }
+
+          setImageSizesByUri((prev) => ({
+            ...prev,
+            [uri]: { width, height },
+          }));
+        },
+        () => {
+          if (isCancelled) {
+            return;
+          }
+
+          setImageSizesByUri((prev) => ({
+            ...prev,
+            [uri]: { width: 1, height: 1 },
+          }));
+        },
+      );
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [existingImages, imageSizesByUri, newImages]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -161,11 +199,21 @@ export default function WritePost() {
     if (!result.canceled) {
       const uris = result.assets.map((asset) => asset.uri);
       setNewImages((prev) => [...prev, ...uris]);
-      const sizes = result.assets.map((asset) => ({
-        width: asset.width,
-        height: asset.height,
-      }));
-      setImageSizes((prev) => [...prev, ...sizes]);
+
+      setImageSizesByUri((prev) => {
+        const next = { ...prev };
+
+        result.assets.forEach((asset) => {
+          if (asset.width && asset.height) {
+            next[asset.uri] = {
+              width: asset.width,
+              height: asset.height,
+            };
+          }
+        });
+
+        return next;
+      });
     }
   };
 
@@ -303,7 +351,13 @@ export default function WritePost() {
                       <RNImage
                         source={{ uri }}
                         className="w-full rounded-md"
-                        style={{ width: "100%", aspectRatio: 1 }}
+                        style={{
+                          width: "100%",
+                          aspectRatio: imageSizesByUri[uri]
+                            ? imageSizesByUri[uri].width /
+                              imageSizesByUri[uri].height
+                            : 1,
+                        }}
                         resizeMode="cover"
                       />
                       {/* PostGradient overlay */}
@@ -356,8 +410,9 @@ export default function WritePost() {
                       className="w-full rounded-md"
                       style={{
                         width: "100%",
-                        aspectRatio: imageSizes[idx]
-                          ? imageSizes[idx].width / imageSizes[idx].height
+                        aspectRatio: imageSizesByUri[uri]
+                          ? imageSizesByUri[uri].width /
+                            imageSizesByUri[uri].height
                           : 1,
                       }}
                       resizeMode="cover"
@@ -466,9 +521,6 @@ export default function WritePost() {
               ]);
             } else if (deleteImageInfo.type === "new") {
               setNewImages((prev) =>
-                prev.filter((_, i) => i !== deleteImageInfo.idx),
-              );
-              setImageSizes((prev) =>
                 prev.filter((_, i) => i !== deleteImageInfo.idx),
               );
             }

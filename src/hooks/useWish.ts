@@ -52,6 +52,45 @@ const updateCommunityCounts = (
   );
 };
 
+const updateCommentLikeCounts = (
+  post: PostDetailItem | null | undefined,
+  targetCommentId: string,
+  delta: number,
+) => {
+  if (!post || !post.comments) {
+    return post;
+  }
+
+  return {
+    ...post,
+    comments: post.comments.map((comment) => {
+      const isTargetComment = String(comment.commentId) === targetCommentId;
+      const nextCommentLikeCnt = isTargetComment
+        ? Math.max(0, (comment.commentLikeCnt ?? 0) + delta)
+        : comment.commentLikeCnt;
+
+      const nextChildrenComments = comment.childrenComments?.map((child) => {
+        const isTargetChild = String(child.commentId) === targetCommentId;
+
+        if (!isTargetChild) {
+          return child;
+        }
+
+        return {
+          ...child,
+          commentLikeCnt: Math.max(0, (child.commentLikeCnt ?? 0) + delta),
+        };
+      });
+
+      return {
+        ...comment,
+        commentLikeCnt: nextCommentLikeCnt,
+        childrenComments: nextChildrenComments,
+      };
+    }),
+  };
+};
+
 export const useLikedPostIds = () =>
   useQuery({
     queryKey: POST_LIKED_IDS_QUERY_KEY,
@@ -184,9 +223,10 @@ export const useCommentWish = () => {
     },
     onMutate: async (variables) => {
       const normalizedCommentId = normalizeCommentId(variables.likedCommentId);
+      const normalizedPostId = normalizePostId(variables.postId);
 
       if (!normalizedCommentId) {
-        return { previousLikedCommentIds: [] };
+        return { previousLikedCommentIds: [], previousPost: undefined };
       }
 
       await queryClient.cancelQueries({
@@ -196,6 +236,7 @@ export const useCommentWish = () => {
       const previousLikedCommentIds =
         queryClient.getQueryData<string[]>(COMMENT_LIKED_IDS_QUERY_KEY) ?? [];
       const wasLiked = previousLikedCommentIds.includes(normalizedCommentId);
+      const delta = wasLiked ? -1 : 1;
       const nextLikedCommentIds = wasLiked
         ? previousLikedCommentIds.filter(
             (commentId) => commentId !== normalizedCommentId,
@@ -208,7 +249,23 @@ export const useCommentWish = () => {
       );
       void setLikedCommentIds(nextLikedCommentIds);
 
-      return { previousLikedCommentIds };
+      const previousPost = normalizedPostId
+        ? queryClient.getQueryData<PostDetailItem | null>([
+            "post",
+            normalizedPostId,
+          ])
+        : undefined;
+
+      if (normalizedPostId) {
+        queryClient.setQueryData<PostDetailItem | null>(
+          ["post", normalizedPostId],
+          (oldPost) =>
+            updateCommentLikeCounts(oldPost, normalizedCommentId, delta) ??
+            null,
+        );
+      }
+
+      return { previousLikedCommentIds, previousPost };
     },
     onSuccess: (_, variables) => {
       if (typeof __DEV__ !== "undefined" && __DEV__) {
@@ -237,6 +294,14 @@ export const useCommentWish = () => {
         context.previousLikedCommentIds,
       );
       await setLikedCommentIds(context.previousLikedCommentIds);
+
+      const normalizedPostId = normalizePostId(variables.postId);
+      if (normalizedPostId) {
+        queryClient.setQueryData(
+          ["post", normalizedPostId],
+          context.previousPost,
+        );
+      }
     },
   });
 };

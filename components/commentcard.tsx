@@ -31,7 +31,7 @@ export default function CommentCard({
   onReplyPress,
   onLikePress,
 }: CommentCardProps) {
-  const displayedLikeCount = likeCount + (isLiked ? 1 : 0);
+  const displayedLikeCount = likeCount;
 
   return (
     <View className="self-stretch py-4 bg-white border-b border-gray-100 flex-col justify-start items-start">

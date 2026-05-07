@@ -1,5 +1,27 @@
 import client from "../../lib/api/client";
 
+const LOCAL_URI_PREFIXES = [
+  "file://",
+  "content://",
+  "ph://",
+  "assets-library://",
+];
+
+const isLocalImageUri = (uri: string) =>
+  LOCAL_URI_PREFIXES.some((prefix) => uri.startsWith(prefix));
+
+const createImagePart = (uri: string, index: number) => {
+  const filename = uri.split("/").pop() ?? `image_${index}.jpg`;
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";
+  const mimeType = ext === "png" ? "image/png" : "image/jpeg";
+
+  return {
+    uri,
+    name: filename,
+    type: mimeType,
+  };
+};
+
 /**
  * 식당별 커뮤니티 조회 API
  * GET /api/community/{restId}
@@ -37,23 +59,38 @@ export const postCommunity = async (
 
   for (let index = 0; index < payload.images.length; index += 1) {
     const uri = payload.images[index];
-    const filename = uri.split("/").pop() ?? `image_${index}.jpg`;
-    const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";
-    const mimeType = ext === "png" ? "image/png" : "image/jpeg";
+    const filePart = createImagePart(uri, index);
 
-    const fileResponse = await fetch(uri);
-    const fileBlob = await fileResponse.blob();
-    const typedBlob =
-      fileBlob.type === mimeType
-        ? fileBlob
-        : fileBlob.slice(0, fileBlob.size, mimeType);
+    try {
+      if (isLocalImageUri(uri)) {
+        formData.append("images", filePart as any);
+      } else {
+        const fileResponse = await fetch(uri);
 
-    formData.append("images", typedBlob, filename);
+        if (!fileResponse.ok) {
+          throw new Error(
+            `Fetch failed: ${fileResponse.status} ${fileResponse.statusText}`,
+          );
+        }
+
+        const fileBlob = await fileResponse.blob();
+        const finalBlob =
+          fileBlob.type === filePart.type
+            ? fileBlob
+            : new Blob([fileBlob], { type: filePart.type });
+
+        formData.append("images", finalBlob, filePart.name);
+      }
+    } catch (error) {
+      throw error;
+    }
   }
-
   const res = await client.post(
     `/api/community/${encodeURIComponent(restId)}`,
     formData,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+    },
   );
   return res.data;
 };
