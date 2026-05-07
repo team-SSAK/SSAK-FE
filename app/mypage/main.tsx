@@ -1,6 +1,13 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import Avatar from "../../assets/images/avatar.svg";
 import ChevronRightG from "../../assets/images/chevron-right-gray.svg";
@@ -11,11 +18,10 @@ import Logo from "../../assets/images/logo_green.svg";
 import Setting from "../../assets/images/setting.svg";
 
 import { BottomNav } from "../../components/bottomnav";
-import {
-  MOCK_COUPONS,
-  MOCK_PROFILE,
-  MOCK_RESTAURANTS,
-} from "../../constants/mock-data";
+import { useCoupons } from "../../src/hooks/useCoupons";
+import { useMe } from "../../src/hooks/useMe";
+import { usePoint } from "../../src/hooks/usePoint";
+import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
 
 //////////////////////////////////////////////////////
 // 쿠폰 카드
@@ -85,17 +91,9 @@ const CouponCard = ({
   );
 };
 
-const ResBanner = ({
-  name,
-  mealType,
-  menu,
-}: {
-  name: string;
-  mealType: string;
-  menu: string;
-}) => {
+const ResBanner = ({ name, address }: { name: string; address: string }) => {
   return (
-    <View className="w-60 px-4 py-4 bg-slate-100 rounded-2xl gap-3">
+    <View className="w-60 px-4 py-4 bg-slate-100 rounded-2xl gap-5">
       <Text
         className="text-slate-800 text-base font-semibold"
         numberOfLines={1}
@@ -104,10 +102,10 @@ const ResBanner = ({
       </Text>
       <View>
         <Text className="text-gray-800 text-xs font-semibold leading-5">
-          {mealType}
+          중식
         </Text>
         <Text className="text-gray-500 text-xs font-medium" numberOfLines={1}>
-          {menu}
+          제육볶음, 쌀밥, 미역국 김치찌개, 요구르트
         </Text>
       </View>
     </View>
@@ -124,14 +122,36 @@ const ResBanner = ({
 
 export default function Main() {
   const router = useRouter();
+  const { me, isLoading: isMeLoading } = useMe();
+  const { point, isLoading: isPointLoading } = usePoint();
+  const { coupons, isLoading: isCouponsLoading } = useCoupons("ISSUED");
+  const { data: restaurants = [], isLoading: isRestaurantsLoading } =
+    useRestaurantWish();
+  const restaurantBanners = restaurants.map((item) => ({
+    id: item.restaurantId,
+    name: item.restaurantName,
+    address: item.restaurantLocation,
+    image: item.restaurantImgUrl,
+  }));
 
   const [selectedCoupons, setSelectedCoupons] = useState<
     Record<number, boolean>
   >({});
+  const previewCoupons = coupons.slice(0, 3);
+  const resolvedProfileImageUri = (() => {
+    const raw = me?.userProfileImg?.trim();
+    if (!raw) {
+      return null;
+    }
 
-  const coupons = MOCK_COUPONS.slice(0, 3);
-  const restaurants = MOCK_RESTAURANTS;
-  const point = MOCK_PROFILE.point;
+    if (/^https?:\/\//i.test(raw) || raw.startsWith("file://")) {
+      return raw;
+    }
+
+    const base = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
+    const path = raw.startsWith("/") ? raw : `/${raw}`;
+    return base ? `${base}${path}` : raw;
+  })();
 
   //////////////////////////////////////////////////////
   // UI
@@ -152,11 +172,19 @@ export default function Main() {
 
         {/* 프로필 */}
         <View className="flex-row items-center mt-2.5 mb-[18px]">
-          <Avatar />
+          {resolvedProfileImageUri ? (
+            <Image
+              source={{ uri: resolvedProfileImageUri }}
+              className="w-20 h-20 rounded-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <Avatar />
+          )}
 
           <View className="flex-1 flex-row items-end gap-0.5 ml-3.5">
             <Text className="text-2xl font-semibold text-black">
-              {MOCK_PROFILE.nickname}
+              {me?.userNm ?? ""}
             </Text>
             <Text className="text-base font-semibold text-black">님</Text>
           </View>
@@ -178,9 +206,13 @@ export default function Main() {
             <View className="px-4 py-3.5 bg-green-300 rounded-xl">
               <Text className="text-white text-sm font-medium">내 포인트</Text>
               <View className="flex-row items-center">
-                <Text className="text-white text-xl font-semibold">
-                  {point}P
-                </Text>
+                {isPointLoading ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Text className="text-white text-xl font-semibold">
+                    {point}P
+                  </Text>
+                )}
                 <ChevronRightW />
               </View>
             </View>
@@ -201,28 +233,49 @@ export default function Main() {
             </View>
           </TouchableOpacity>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 15 }}
-          >
-            {coupons.map((coupon) => (
-              <CouponCard
-                key={coupon.id}
-                storeName={coupon.storeName}
-                title={coupon.title}
-                price={coupon.price}
-                image={coupon.image}
-                selected={!!selectedCoupons[coupon.id]}
-                onToggle={() =>
-                  setSelectedCoupons((prev) => ({
-                    ...prev,
-                    [coupon.id]: !prev[coupon.id],
-                  }))
-                }
-              />
-            ))}
-          </ScrollView>
+          {isCouponsLoading ? (
+            <ActivityIndicator />
+          ) : previewCoupons.length === 0 ? (
+            <View className="w-full h-64 px-20 py-9 bg-slate-100 rounded-2xl inline-flex flex-col justify-center items-center gap-2.5">
+              <View className="self-stretch flex flex-col justify-center items-center">
+                <Text
+                  className="self-stretch text-center justify-start text-slate-300 text-base font-semibold leading-6"
+                  numberOfLines={1}
+                >
+                  보유중인 쿠폰이 없어요!
+                </Text>
+                <Text
+                  className="justify-start text-slate-300 text-xs font-medium leading-5"
+                  numberOfLines={1}
+                >
+                  포인트를 통해 쿠폰을 교환해보세요
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 15 }}
+            >
+              {previewCoupons.map((coupon) => (
+                <CouponCard
+                  key={coupon.id}
+                  storeName={coupon.storeName}
+                  title={coupon.title}
+                  price={coupon.price}
+                  image={coupon.image}
+                  selected={!!selectedCoupons[coupon.id]}
+                  onToggle={() =>
+                    setSelectedCoupons((prev) => ({
+                      ...prev,
+                      [coupon.id]: !prev[coupon.id],
+                    }))
+                  }
+                />
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         {/* 식당 */}
@@ -239,20 +292,52 @@ export default function Main() {
             </View>
           </TouchableOpacity>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 15 }}
-          >
-            {restaurants.map((restaurant) => (
-              <ResBanner
-                key={restaurant.id}
-                name={restaurant.name}
-                mealType={restaurant.mealType}
-                menu={restaurant.menu}
-              />
-            ))}
-          </ScrollView>
+          {isRestaurantsLoading || isMeLoading ? (
+            <ActivityIndicator />
+          ) : restaurantBanners.length === 0 ? (
+            <View className="w-full h-[114px] px-4 py-4 bg-gray-50 rounded-2xl flex flex-col justify-center items-center gap-2.5 mx-auto">
+              <View className="self-stretch flex flex-col justify-center items-center">
+                <Text
+                  className="self-stretch text-center justify-start text-gray-400 text-base font-semibold leading-6"
+                  numberOfLines={1}
+                >
+                  아직 등록된 식당이 없어요 !
+                </Text>
+                <Text
+                  className="justify-start text-gray-400 text-xs font-medium leading-5"
+                  numberOfLines={1}
+                >
+                  자주 이용하는 식당을 즐겨찾기에 추가해보세요
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 15 }}
+            >
+              {restaurantBanners.map((restaurant) => (
+                <TouchableOpacity
+                  key={restaurant.id}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/home/restaurantdetail",
+                      params: {
+                        restaurantId: String(restaurant.id),
+                      },
+                    })
+                  }
+                  activeOpacity={0.8}
+                >
+                  <ResBanner
+                    name={restaurant.name}
+                    address={restaurant.address}
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
       </ScrollView>
 

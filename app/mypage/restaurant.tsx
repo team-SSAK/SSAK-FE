@@ -186,9 +186,6 @@ export default function Restaurant() {
                   pathname: "/home/restaurantdetail",
                   params: {
                     restaurantId: String(restaurant.id),
-                    restaurantName: restaurant.name,
-                    restaurantLocation: restaurant.address,
-                    restaurantImage: restaurant.image ?? "",
                   },
                 })
               }

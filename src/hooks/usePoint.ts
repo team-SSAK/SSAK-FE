@@ -48,27 +48,53 @@ const normalizePointHistories = (res: unknown): PointHistory[] => {
 
 export function usePoint() {
   const [point, setPoint] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+
+  const resolveCurrentPoint = (res: any): number => {
+    const candidate =
+      typeof res === "number"
+        ? res
+        : (res?.currentPoint ??
+          res?.point ??
+          res?.data?.currentPoint ??
+          res?.data?.point ??
+          res?.data);
+
+    if (typeof candidate === "number" && Number.isFinite(candidate)) {
+      return candidate;
+    }
+
+    if (typeof candidate === "string") {
+      const parsed = Number(candidate);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+
+    return 0;
+  };
 
   useEffect(() => {
     const fetchPoint = async () => {
       try {
+        setIsLoading(true);
         const res = await getCurrentPoint();
-        const currentPoint =
-          typeof res === "number"
-            ? res
-            : (res?.currentPoint ?? res?.point ?? res?.data ?? 0);
-
-        setPoint(currentPoint);
+        setPoint(resolveCurrentPoint(res));
+        setIsError(false);
       } catch (e) {
         console.log("포인트 조회 실패", e);
         setPoint(0);
+        setIsError(true);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchPoint();
   }, []);
 
-  return { point };
+  return { point, isLoading, isError };
 }
 
 export function usePoints(option?: PointOption) {

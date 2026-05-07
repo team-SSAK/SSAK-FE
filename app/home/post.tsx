@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dimensions,
   GestureResponderEvent,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -34,11 +35,60 @@ import { useDeleteCommunity } from "../../src/hooks/useCommunity";
 import { useMe } from "../../src/hooks/useMe";
 import { usePost, usePostComment } from "../../src/hooks/usePost";
 import { useReport, useReportComment } from "../../src/hooks/useReport";
-import { useIsPostLiked, usePostWish } from "../../src/hooks/useWish";
+import {
+  useCommentWish,
+  useIsPostLiked,
+  useLikedCommentIds,
+  usePostWish,
+} from "../../src/hooks/useWish";
+import { normalizeImageList, resolveImageUri } from "../../src/utils/image";
 
 //////////////////////////////////////////////////////
 // 페이지
 //////////////////////////////////////////////////////
+
+function Popup({
+  title = "이미 신고된 글입니다",
+  description = "현재 검토가 진행중입니다",
+  onConfirm,
+  visible = false,
+}: {
+  title?: string;
+  description?: string;
+  onConfirm?: () => void;
+  visible?: boolean;
+}) {
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <View
+        className="flex-1 justify-center items-center"
+        style={{ backgroundColor: "rgba(0,0,0,0.1)" }}
+      >
+        <View className="w-72 p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
+          <View className="self-stretch flex-col justify-start items-start gap-1">
+            <Text className="self-stretch text-slate-800 text-lg font-semibold leading-7">
+              {title}
+            </Text>
+            <Text className="self-stretch text-slate-500 text-sm font-medium leading-6">
+              {description}
+            </Text>
+          </View>
+
+          <View className="self-stretch flex-row justify-start items-center gap-2">
+            <TouchableOpacity
+              onPress={onConfirm}
+              className="flex-1 h-10 px-2 py-2 bg-green-400 rounded-[10px] justify-center items-center"
+            >
+              <Text className="text-white text-base font-medium leading-6">
+                확인
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 export default function Post() {
   type CommentMenuTarget = {
@@ -53,6 +103,7 @@ export default function Post() {
     postTitle,
     postContent,
     nickname,
+    authorProfileImg,
     postCreateTime,
     postCommentCnt,
     postImage,
@@ -63,6 +114,7 @@ export default function Post() {
     postTitle?: string;
     postContent?: string;
     nickname?: string;
+    authorProfileImg?: string;
     postCreateTime?: string;
     postCommentCnt?: string;
     postImage?: string;
@@ -77,6 +129,8 @@ export default function Post() {
   const { mutate: reportPost } = useReport();
   const { mutate: reportComment } = useReportComment();
   const { mutate: postWish, isPending: isPostWishPending } = usePostWish();
+  const { mutate: commentWish } = useCommentWish();
+  const { data: likedCommentIds = [] } = useLikedCommentIds();
   const isLiked = useIsPostLiked(post?.postId ?? postId);
   const { me } = useMe();
   const [commentText, setCommentText] = useState("");
@@ -103,8 +157,28 @@ export default function Post() {
     top: 0,
     left: 0,
   });
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [commentMenuTarget, setCommentMenuTarget] =
     useState<CommentMenuTarget | null>(null);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, () => {
+      setIsKeyboardVisible(true);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const isDuplicateReportError = (error: unknown) => {
     const err = error as {
@@ -246,14 +320,15 @@ export default function Post() {
           ? [postImage.trim()]
           : [];
 
-  const imageUris = rawImages
-    .map((value) => value.trim())
-    .filter((value) => value.length > 0)
-    .map((value) =>
-      value.startsWith("http") || value.startsWith("data:image")
-        ? value
-        : `data:image/jpeg;base64,${value}`,
-    );
+  const imageUris = normalizeImageList(rawImages);
+  const resolvedAuthorProfileImage =
+    typeof post?.authorProfileImg === "string" &&
+    post.authorProfileImg.trim().length > 0
+      ? resolveImageUri(post.authorProfileImg)
+      : typeof authorProfileImg === "string" &&
+          authorProfileImg.trim().length > 0
+        ? resolveImageUri(authorProfileImg)
+        : null;
 
   const currentAuthor = (post?.nickname ?? nickname ?? "").trim();
   const myNickname = (me?.userNm ?? "").trim();
@@ -268,6 +343,20 @@ export default function Post() {
     }
 
     postWish({ likedPostId: resolvedPostId });
+  };
+
+  const handleCommentLikePress = (likedCommentId: number) => {
+    if (typeof __DEV__ !== "undefined" && __DEV__) {
+      console.log("[POST] comment like press", {
+        likedCommentId,
+        postId: post?.postId ?? postId,
+      });
+    }
+
+    commentWish({
+      likedCommentId,
+      postId: post?.postId ?? postId,
+    });
   };
 
   const handleCommentReportPress = () => {
@@ -372,7 +461,14 @@ export default function Post() {
         <View className="py-5 gap-3">
           <View className="flex flex-row justify-between items-start">
             <View className="flex flex-row gap-2">
-              <Avatar width="30px" height="30px" />
+              {resolvedAuthorProfileImage ? (
+                <Image
+                  source={{ uri: resolvedAuthorProfileImage }}
+                  className="w-[30px] h-[30px] rounded-full bg-slate-100"
+                />
+              ) : (
+                <Avatar width="30px" height="30px" />
+              )}
               <Text className="text-gray-700 font-semibold leading-6">
                 {post?.nickname ?? nickname ?? "화여니"}
               </Text>
@@ -445,7 +541,9 @@ export default function Post() {
                 author={comment.nickname}
                 content={comment.commentContent}
                 date={commentDate}
+                isLiked={likedCommentIds.includes(String(comment.commentId))}
                 isMine={isMyComment}
+                onLikePress={() => handleCommentLikePress(comment.commentId)}
                 onMenuPress={(event) =>
                   onOpenCommentMenuPopup(event, {
                     commentId: comment.commentId,
@@ -471,7 +569,9 @@ export default function Post() {
                     author={child.nickname}
                     content={child.commentContent}
                     date={childDate}
+                    isLiked={likedCommentIds.includes(String(child.commentId))}
                     isMine={isMyReply}
+                    onLikePress={() => handleCommentLikePress(child.commentId)}
                     onMenuPress={(event) =>
                       onOpenCommentMenuPopup(event, {
                         commentId: child.commentId,
@@ -570,25 +670,38 @@ export default function Post() {
         </Pressable>
       </Modal>
 
-      {showReportPopup && (
-        <AlertPopupRadio
-          title="신고 사유를 선택해주세요"
-          onCancel={() => setShowReportPopup(false)}
-          onConfirm={() => {
+      <AlertPopupRadio
+        visible={showReportPopup}
+        title="신고 사유를 선택해주세요"
+        onCancel={() => setShowReportPopup(false)}
+        onConfirm={() => {
+          const resolvedPostId = post?.postId ?? postId;
+          if (!resolvedPostId) {
             setShowReportPopup(false);
-            setTimeout(() => setShowReportConfirm(true), 200);
-          }}
-        />
-      )}
+            return;
+          }
 
-      {showReportConfirm && (
-        <AlertPopup
-          title="신고가 완료되었습니다"
-          description="빠르게 검토 후 조치하겠습니다"
-          onConfirm={() => setShowReportConfirm(false)}
-          confirmText="확인"
-        />
-      )}
+          setShowReportPopup(false);
+          reportPost(
+            {
+              postId: resolvedPostId,
+              reportContent: "string",
+            },
+            {
+              onSuccess: () => {
+                setShowReportConfirm(true);
+              },
+            },
+          );
+        }}
+      />
+
+      <Popup
+        visible={showReportConfirm}
+        title="신고가 완료되었습니다"
+        description="빠르게 검토 후 조치하겠습니다"
+        onConfirm={() => setShowReportConfirm(false)}
+      />
 
       {showDeletePopup && (
         <AlertPopup
@@ -710,7 +823,13 @@ export default function Post() {
         keyboardVerticalOffset={0}
         className="absolute bottom-0 left-0 right-0"
       >
-        <View className="bg-white pb-[56px]">
+        <View
+          className="bg-white"
+          style={{
+            paddingTop: isKeyboardVisible ? 0 : 12,
+            paddingBottom: isKeyboardVisible ? 0 : 32,
+          }}
+        >
           <ReplyInput
             value={commentText}
             onChangeText={setCommentText}

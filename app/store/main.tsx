@@ -1,6 +1,7 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -22,6 +23,11 @@ import SearchInput from "../../components/searchinput";
 import { useStoreCoupons } from "@/src/hooks/useStoreCoupons";
 import { postCouponWish } from "../../src/services/mypage/coupons.service";
 import { StoreCouponType } from "../../src/services/store/coupons.service";
+import {
+  addWishedCouponId,
+  getWishedCouponIds,
+  removeWishedCouponId,
+} from "../../src/utils/storage";
 
 import ChevronDown from "../../assets/images/chevron-down.svg";
 
@@ -114,6 +120,37 @@ export default function Main() {
 
   const { coupons, loading } = useStoreCoupons(selectedFilter);
 
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+
+      const loadWishedCoupons = async () => {
+        try {
+          const wishedIds = await getWishedCouponIds();
+
+          if (!isMounted) {
+            return;
+          }
+
+          const wishedMap: Record<number, boolean> = {};
+          wishedIds.forEach((id) => {
+            wishedMap[id] = true;
+          });
+
+          setSelectedCoupons(wishedMap);
+        } catch (error) {
+          console.error("찜한 쿠폰 로컬 조회 실패:", error);
+        }
+      };
+
+      loadWishedCoupons();
+
+      return () => {
+        isMounted = false;
+      };
+    }, []),
+  );
+
   const filteredCoupons = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
@@ -139,12 +176,14 @@ export default function Main() {
       try {
         await postCouponWish(id);
         setSelectedCoupons((prev) => ({ ...prev, [id]: true }));
+        await addWishedCouponId(id);
       } catch (error) {
         console.error("쿠폰 찜하기 실패:", error);
       }
     } else {
       // 찜하기 해제 (로컬에서만 처리)
       setSelectedCoupons((prev) => ({ ...prev, [id]: false }));
+      await removeWishedCouponId(id);
     }
   };
 
@@ -290,10 +329,6 @@ export default function Main() {
                         pathname: "/store/coupon",
                         params: {
                           couponId: String(coupon.id),
-                          storeName: coupon.storeName,
-                          title: coupon.title,
-                          price: coupon.price,
-                          image: coupon.image ?? "",
                         },
                       })
                     }

@@ -173,6 +173,16 @@ export default function Restaurant() {
           ) {
             // JTS Point: x = 경도(longitude), y = 위도(latitude)
             map[restaurants[i].id] = { lat: coord.y, lon: coord.x };
+            return;
+          }
+
+          const lat = Number(result.value?.latitude ?? result.value?.lat);
+          const lon = Number(
+            result.value?.longitude ?? result.value?.lng ?? result.value?.lon,
+          );
+
+          if (Number.isFinite(lat) && Number.isFinite(lon)) {
+            map[restaurants[i].id] = { lat, lon };
           }
         }
       });
@@ -326,10 +336,6 @@ export default function Restaurant() {
                 pathname: "/home/restaurantdetail",
                 params: {
                   restaurantId: String(restaurant.id),
-                  restaurantName: restaurant.name,
-                  restaurantLocation: restaurant.address,
-                  restaurantImage: restaurant.image ?? "",
-                  restaurantType: restaurant.type ?? "",
                 },
               })
             }

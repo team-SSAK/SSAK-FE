@@ -3,7 +3,8 @@ import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 
 import { useState } from "react";
-import { MOCK_POINT_HISTORY, MOCK_PROFILE } from "../../constants/mock-data";
+import { usePoint, usePoints } from "../../src/hooks/usePoint";
+import { PointOption } from "../../src/services/mypage/point.service";
 
 interface FilterChipProps {
   label: string;
@@ -88,6 +89,7 @@ interface PointHistoryItemProps {
   pointType: "SAVE" | "USE" | "REFUND";
   pointTime: string | null;
   showDate: boolean;
+  currentPoint: number;
 }
 
 function PointHistoryItem({
@@ -96,6 +98,7 @@ function PointHistoryItem({
   pointType,
   pointTime,
   showDate,
+  currentPoint,
 }: PointHistoryItemProps) {
   const hasValidTime =
     typeof pointTime === "string" &&
@@ -140,7 +143,7 @@ function PointHistoryItem({
           {pointAmount}P
         </Text>
         <Text className="text-gray-500 text-xs font-medium leading-5 line-clamp-1">
-          {MOCK_PROFILE.point}P
+          {currentPoint}P
         </Text>
       </View>
     </View>
@@ -148,20 +151,16 @@ function PointHistoryItem({
 }
 
 export default function Point() {
-  const point = MOCK_PROFILE.point;
-  const points = MOCK_POINT_HISTORY;
-  const loading = false;
-  const isError = false;
   const [activeFilter, setActiveFilter] = useState<FilterType>("전체");
+  const pointOption: PointOption | undefined =
+    activeFilter === "적립"
+      ? "SAVE"
+      : activeFilter === "사용"
+        ? "USE"
+        : undefined;
 
-  const filteredData = points.filter((item) => {
-    if (activeFilter === "전체") return true;
-    if (activeFilter === "적립") {
-      return item.pointType === "SAVE" || item.pointType === "REFUND";
-    }
-    if (activeFilter === "사용") return item.pointType === "USE";
-    return true;
-  });
+  const { point, isLoading: isPointLoading } = usePoint();
+  const { points, loading, isError } = usePoints(pointOption);
   return (
     <View className="flex-1 bg-white px-4 py-[56px]">
       {/* 헤더 */}
@@ -177,7 +176,7 @@ export default function Point() {
       <View className="flex flex-col gap-0.5 px-5 py-[26px] bg-gray-50 rounded-xl">
         <Text className="text-gray-500 font-semibold leading-6">내 포인트</Text>
         <Text className="text-gray-800 text-2xl font-bold leading-8">
-          {point ?? 0}P
+          {isPointLoading ? "..." : `${point ?? 0}P`}
         </Text>
       </View>
 
@@ -199,16 +198,10 @@ export default function Point() {
           </Text>
         )}
 
-        {!loading && !isError && filteredData.length === 0 && (
-          <Text className="text-gray-500 text-sm font-medium px-4 py-3">
-            포인트 내역이 없습니다.
-          </Text>
-        )}
-
-        {filteredData.map((item, index) => {
+        {points.map((item, index) => {
           const currentDate = getDateKey(item.pointTime);
           const prevDate =
-            index > 0 ? getDateKey(filteredData[index - 1].pointTime) : null;
+            index > 0 ? getDateKey(points[index - 1].pointTime) : null;
 
           const showDate = currentDate !== null && currentDate !== prevDate;
 
@@ -220,6 +213,7 @@ export default function Point() {
               pointType={item.pointType}
               pointTime={item.pointTime}
               showDate={showDate}
+              currentPoint={point ?? 0}
             />
           );
         })}

@@ -193,7 +193,7 @@ export default function Landing() {
       setErrorMsg(null);
 
       try {
-        await exchangeOAuthCode(code);
+        const data = await exchangeOAuthCode(code);
         await setSocialLoginPending(true);
 
         if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -201,9 +201,17 @@ export default function Landing() {
           window.history.replaceState({}, "", cleanUrl);
         }
 
-        console.log("[OAuth] 토큰 저장 완료, 회원가입 화면으로 이동");
-        if (isMountedRef.current) {
-          router.replace("/auth/registername?socialLogin=true");
+        if (data.isNewUser) {
+          console.log("[OAuth] 토큰 저장 완료, 회원가입 화면으로 이동");
+          if (isMountedRef.current) {
+            router.replace("/auth/registername?socialLogin=true");
+          }
+        } else {
+          console.log("[OAuth] 토큰 저장 완료, 홈 화면으로 이동");
+          await clearSocialLoginPending();
+          if (isMountedRef.current) {
+            router.replace("/home/home");
+          }
         }
       } catch (err: any) {
         console.log("[OAuth] 토큰 교환 실패", {

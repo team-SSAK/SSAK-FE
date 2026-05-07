@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Linking, Modal, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronRightG from "../../assets/images/chevron-right-darkgray.svg";
-import { MOCK_PROFILE } from "../../constants/mock-data";
+import { useMe } from "../../src/hooks/useMe";
 
 function Popup({
   title = "로그아웃",
@@ -57,6 +57,7 @@ function Popup({
 
 export default function Setting() {
   const [logoutVisible, setLogoutVisible] = useState(false);
+  const { me } = useMe();
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -77,7 +78,7 @@ export default function Setting() {
               이메일
             </Text>
             <Text className="text-gray-700 font-medium leading-6">
-              {MOCK_PROFILE.email}
+              {me?.userEmail ?? ""}
             </Text>
           </View>
           {/*알림 설정
@@ -94,9 +95,21 @@ export default function Setting() {
 
           <View className="bg-gray-50 rounded-lg overflow-hidden">
             {/*이용약관*/}
-            <TouchableOpacity className="flex flex-row px-4 py-3.5 border-b border-white inline-flex justify-between items-center gap-2.5">
+            <TouchableOpacity
+              onPress={() => router.push("/auth/terms")}
+              className="flex flex-row px-4 py-3.5 border-b border-white inline-flex justify-between items-center gap-2.5"
+            >
               <Text className="text-gray-700 font-medium leading-6">
-                이용약관
+                전체 이용약관
+              </Text>
+              <ChevronRightG />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/mypage/termspoint")}
+              className="flex flex-row px-4 py-3.5 border-b border-white inline-flex justify-between items-center gap-2.5"
+            >
+              <Text className="text-gray-700 font-medium leading-6">
+                포인트 및 쿠폰 이용약관
               </Text>
               <ChevronRightG />
             </TouchableOpacity>

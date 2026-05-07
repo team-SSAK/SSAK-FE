@@ -1,6 +1,7 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Modal,
   ScrollView,
@@ -14,7 +15,14 @@ import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
 import mockdiscription from "../../assets/images/mockdiscription.png";
 import AlertPopup from "../../components/alertpopup";
+import { useStoreCouponDetail } from "../../src/hooks/useStoreCoupons";
 import { postCouponWish } from "../../src/services/mypage/coupons.service";
+import { postCouponUse } from "../../src/services/store/coupons.service";
+import {
+  addWishedCouponId,
+  getWishedCouponIds,
+  removeWishedCouponId,
+} from "../../src/utils/storage";
 
 type TabType = "상품설명" | "상세정보";
 const TABS: TabType[] = ["상품설명", "상세정보"];
@@ -49,11 +57,6 @@ const TabBar = ({ activeTab, onTabChange }: TabBarProps) => {
       })}
     </View>
   );
-};
-
-const EMPTY_MESSAGES: Record<TabType, string> = {
-  상품설명: "상품 설명이 없습니다",
-  상세정보: "상세 정보가 없습니다",
 };
 
 interface VerificationCodePopupProps {
@@ -141,44 +144,92 @@ const VerificationCodePopup = ({
 };
 
 export default function Coupon() {
-  const {
-    couponId,
-    image: couponImage,
-    storeName,
-    title,
-    price,
-  } = useLocalSearchParams<{
-    couponId?: string;
-    image?: string;
-    storeName?: string;
-    title?: string;
-    price?: string;
-  }>();
+  const { couponId } = useLocalSearchParams<{ couponId?: string }>();
   const [activeTab, setActiveTab] = useState<TabType>("상품설명");
   const [showExchangePopup, setShowExchangePopup] = useState(false);
   const [showVerificationPopup, setShowVerificationPopup] = useState(false);
   const [showUseDonePopup, setShowUseDonePopup] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
-  const [isWished, setIsWished] = useState(true);
+  const [isUsing, setIsUsing] = useState(false);
+  const [isWished, setIsWished] = useState(false);
 
   const couponIdValue = useMemo(() => {
     const rawCouponId = Array.isArray(couponId) ? couponId[0] : couponId;
     return Number(rawCouponId);
   }, [couponId]);
+  const safeCouponId = Number.isFinite(couponIdValue) && couponIdValue > 0;
+  const { coupon } = useStoreCouponDetail(safeCouponId ? couponIdValue : null);
+  const couponImage = coupon?.couponImgUrl ?? "";
+  const couponStoreName = coupon?.couponStore ?? "가게이름";
+  const couponTitle = coupon?.couponName ?? "쿠폰 제목";
+  const couponPrice = coupon ? `${coupon.couponPoint}P` : "0P";
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Number.isNaN(couponIdValue)) {
+        return;
+      }
+
+      const loadWishedState = async () => {
+        try {
+          const wishedIds = await getWishedCouponIds();
+          setIsWished(wishedIds.includes(couponIdValue));
+        } catch (error) {
+          console.error("찜한 쿠폰 로컬 조회 실패:", error);
+        }
+      };
+
+      loadWishedState();
+    }, [couponIdValue]),
+  );
 
   const handleToggleWish = async () => {
     const previous = isWished;
-    setIsWished(!previous);
 
     if (Number.isNaN(couponIdValue)) {
       return;
     }
 
+    if (previous) {
+      setIsWished(false);
+      await removeWishedCouponId(couponIdValue);
+      return;
+    }
+
+    setIsWished(true);
+    await addWishedCouponId(couponIdValue);
+
     try {
       await postCouponWish(couponIdValue);
     } catch (error) {
       setIsWished(previous);
+      await removeWishedCouponId(couponIdValue);
       console.error("쿠폰 찜하기 실패:", error);
+    }
+  };
+
+  const handleUseCoupon = async () => {
+    const couponHistId = couponIdValue;
+    const storePw = Number(verificationCode.trim());
+
+    if (!Number.isFinite(couponHistId) || couponHistId <= 0) {
+      return;
+    }
+
+    if (!Number.isFinite(storePw) || storePw <= 0) {
+      return;
+    }
+
+    try {
+      setIsUsing(true);
+      await postCouponUse(couponHistId, storePw);
+      setShowVerificationPopup(false);
+      setVerificationCode("");
+      setTimeout(() => setShowUseDonePopup(true), 150);
+    } catch (error) {
+      console.error("쿠폰 사용 실패:", error);
+    } finally {
+      setIsUsing(false);
     }
   };
 
@@ -218,13 +269,13 @@ export default function Coupon() {
 
         <View className="flex flex-col mt-4">
           <Text className="text-[#7E7E7E] text-sm font-semibold leading-6">
-            {storeName ?? "가게이름"}
+            {couponStoreName}
           </Text>
           <Text className="text-black text-xl font-semibold leading-8">
-            {title ?? "쿠폰 제목"}
+            {couponTitle}
           </Text>
           <Text className="text-black text-2xl font-semibold leading-10">
-            {price ?? "0P"}
+            {couponPrice}
           </Text>
         </View>
 
@@ -233,7 +284,7 @@ export default function Coupon() {
         <View className="pt-[42px] pb-[84px] flex-1 items-center">
           {activeTab === "상품설명" ? (
             <Image
-              source={mockdiscription}
+              source={couponImage || mockdiscription}
               style={{ width: "100%", aspectRatio: 375 / 1718 }}
               contentFit="contain"
               contentPosition="top"
@@ -343,14 +394,13 @@ export default function Coupon() {
         value={verificationCode}
         onChangeText={setVerificationCode}
         onCancel={() => {
+          if (isUsing) {
+            return;
+          }
           setShowVerificationPopup(false);
           setVerificationCode("");
         }}
-        onConfirm={() => {
-          setShowVerificationPopup(false);
-          setVerificationCode("");
-          setTimeout(() => setShowUseDonePopup(true), 150);
-        }}
+        onConfirm={handleUseCoupon}
       />
 
       <AlertPopup

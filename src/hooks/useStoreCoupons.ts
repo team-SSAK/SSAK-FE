@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import {
+  getStoreCouponDetail,
   getStoreCoupons,
+  StoreCouponDetail,
   StoreCouponType,
 } from "../services/store/coupons.service";
 
@@ -76,4 +78,84 @@ export function useStoreCoupons(type: StoreCouponType | null = null) {
   }, [type]);
 
   return { coupons, loading };
+}
+
+const normalizeStoreCouponDetail = (res: unknown): StoreCouponDetail | null => {
+  if (typeof res !== "object" || res === null) {
+    return null;
+  }
+
+  const data = res as Record<string, unknown>;
+  const wrapped =
+    typeof data.data === "object" && data.data !== null
+      ? (data.data as Record<string, unknown>)
+      : null;
+  const source = wrapped ?? data;
+
+  const couponId = Number(source.couponId);
+  const couponPoint = Number(source.couponPoint);
+  const couponValidTerm = Number(source.couponValidTerm);
+
+  if (!Number.isFinite(couponId)) {
+    return null;
+  }
+
+  return {
+    couponId,
+    couponName: typeof source.couponName === "string" ? source.couponName : "",
+    couponDescription:
+      typeof source.couponDescription === "string"
+        ? source.couponDescription
+        : "",
+    couponPoint: Number.isFinite(couponPoint) ? couponPoint : 0,
+    couponType:
+      source.couponType === "CAFE" ||
+      source.couponType === "CONVENIENT_STORE" ||
+      source.couponType === "MEAL" ||
+      source.couponType === "CERTIFICATE" ||
+      source.couponType === "LIVING" ||
+      source.couponType === "ETC"
+        ? source.couponType
+        : "ETC",
+    couponStore:
+      typeof source.couponStore === "string" ? source.couponStore : "",
+    couponImgUrl:
+      typeof source.couponImgUrl === "string" ? source.couponImgUrl : "",
+    couponValidTerm: Number.isFinite(couponValidTerm) ? couponValidTerm : 0,
+  };
+};
+
+export function useStoreCouponDetail(couponId: number | null) {
+  const [coupon, setCoupon] = useState<StoreCouponDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+
+  useEffect(() => {
+    const fetchCouponDetail = async () => {
+      if (!couponId || Number.isNaN(couponId) || couponId <= 0) {
+        setCoupon(null);
+        setLoading(false);
+        setIsError(true);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const data = await getStoreCouponDetail(couponId);
+        setCoupon(normalizeStoreCouponDetail(data));
+        setIsError(false);
+      } catch (e) {
+        console.log("쿠폰 상세 조회 실패", e);
+        setCoupon(null);
+        setIsError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCouponDetail();
+  }, [couponId]);
+
+  return { coupon, loading, isError };
 }

@@ -56,7 +56,7 @@ function Popup({
           <View className="self-stretch flex-row justify-start items-center gap-2">
             <TouchableOpacity
               onPress={onConfirm}
-              className="flex-1 h-10 px-2 py-2 bg-lime-600 rounded-[10px] justify-center items-center"
+              className="flex-1 h-10 px-2 py-2 bg-green-400 rounded-[10px] justify-center items-center"
             >
               <Text className="text-white text-base font-medium leading-6">
                 확인
@@ -81,11 +81,14 @@ export default function Community() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: communityPosts = [] } = useCommunity(restaurantId);
   const { mutate: deletePost } = useDeleteCommunity();
-  const [showDeletePopup, setShowDeletePopup] = useState(false);
-  const [pendingDeletePostId, setPendingDeletePostId] = useState<
-    string | number | null
-  >(null);
   const { mutate: reportPost } = useReport();
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
+  const [pendingDeletePostId, setPendingDeletePostId] = useState<number | null>(
+    null,
+  );
+  const [pendingReportPostId, setPendingReportPostId] = useState<
+    number | string | null
+  >(null);
   const { me } = useMe();
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
@@ -93,22 +96,6 @@ export default function Community() {
     top: 0,
     left: 0,
   });
-
-  const isDuplicateReportError = (error: unknown) => {
-    const err = error as {
-      response?: { status?: number; data?: { message?: string } };
-      message?: string;
-    };
-
-    const responseMessage = err.response?.data?.message ?? "";
-    const fallbackMessage = err.message ?? "";
-
-    return (
-      err.response?.status === 409 ||
-      responseMessage.includes("이미 신고") ||
-      fallbackMessage.includes("이미 신고")
-    );
-  };
 
   const formatPostDate = (isoDate: string) => {
     const date = new Date(isoDate);
@@ -212,6 +199,11 @@ export default function Community() {
     setShowSortPopup(false);
   };
 
+  const getAuthorDisplayName = (nickname: string) => {
+    const trimmed = nickname.trim();
+    return trimmed.length > 0 ? trimmed : "탈퇴한 사용자";
+  };
+
   return (
     <View className="flex-1 bg-white">
       <ScrollView
@@ -306,9 +298,11 @@ export default function Community() {
             key={post.postId}
             showBadge={!post.postVisibility}
             badge="비공개"
-            author={post.nickname}
+            author={getAuthorDisplayName(post.nickname)}
+            authorImage={post.authorProfileImg ?? undefined}
             title={post.postTitle}
             content={post.postContent}
+            images={post.imageUrls}
             image={post.imageUrls?.[0]}
             likedPostId={post.postId}
             likeCount={post.postLikeCnt}
@@ -333,6 +327,7 @@ export default function Community() {
               });
             }}
             onReportPress={() => {
+              setPendingReportPostId(post.postId);
               setShowReportPopup(true);
             }}
             onPress={() =>
@@ -344,6 +339,7 @@ export default function Community() {
                   postTitle: post.postTitle ?? "",
                   postContent: post.postContent,
                   nickname: post.nickname,
+                  authorProfileImg: post.authorProfileImg ?? "",
                   postCreateTime: post.postCreateTime,
                   postLikeCnt: String(post.postLikeCnt),
                   postCommentCnt: String(post.postCommentCnt),
@@ -422,25 +418,44 @@ export default function Community() {
         </Pressable>
       </Modal>
 
-      {showReportPopup && (
-        <AlertPopupRadio
-          title="신고 사유를 선택해주세요"
-          onCancel={() => setShowReportPopup(false)}
-          onConfirm={() => {
+      <AlertPopupRadio
+        visible={showReportPopup}
+        title="신고 사유를 선택해주세요"
+        onCancel={() => {
+          setShowReportPopup(false);
+          setPendingReportPostId(null);
+        }}
+        onConfirm={() => {
+          if (!pendingReportPostId) {
             setShowReportPopup(false);
-            setTimeout(() => setShowReportConfirm(true), 200);
-          }}
-        />
-      )}
+            return;
+          }
 
-      {showReportConfirm && (
-        <AlertPopup
-          title="신고가 완료되었습니다"
-          description="빠르게 검토 후 조치하겠습니다"
-          onConfirm={() => setShowReportConfirm(false)}
-          confirmText="확인"
-        />
-      )}
+          setShowReportPopup(false);
+          reportPost(
+            {
+              postId: pendingReportPostId,
+              reportContent: "string",
+            },
+            {
+              onSuccess: () => {
+                setShowReportConfirm(true);
+                setPendingReportPostId(null);
+              },
+              onError: () => {
+                setPendingReportPostId(null);
+              },
+            },
+          );
+        }}
+      />
+
+      <Popup
+        visible={showReportConfirm}
+        title="신고가 완료되었습니다"
+        description="빠르게 검토 후 조치하겠습니다"
+        onConfirm={() => setShowReportConfirm(false)}
+      />
 
       {/* 하단 그라디언트 */}
       <View

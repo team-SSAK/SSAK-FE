@@ -10,7 +10,8 @@ export default function CameraSucceeded() {
     leftoverRatio: string;
   }>();
 
-  const leftoverPct = Math.round((1 - Number(leftoverRatio ?? 1)) * 100);
+  const ratio = Number(leftoverRatio ?? 1);
+  const leftoverPct = Math.round((Number.isFinite(ratio) ? ratio : 1) * 100);
   const certPct = `${leftoverPct}%`;
 
   return (

@@ -18,13 +18,21 @@ import Info from "../../assets/images/info-circle.svg";
 import Modal1 from "../../assets/images/modal_1.png";
 import Modal2 from "../../assets/images/modal_2.png";
 import RadioButton from "../../assets/images/radio-button.svg";
+import TickCircle from "../../assets/images/tick-circle.svg";
+import PopUp from "../../components/popup";
 import { useMeasure } from "../../src/hooks/useMeasure";
 import {
   getCameraGuideSkip,
+  getItem,
   setCameraGuideSkip,
+  setItem,
 } from "../../src/utils/storage";
 
 const CameraViewCompat: any = CameraView;
+
+const MEASUREMENT_LIMIT_KEY = "MEASUREMENT_LIMIT";
+const MEASUREMENT_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4시간
+const MEASUREMENTS_PER_DAY = 3;
 
 export default function Camera() {
   const cameraRef = useRef<any>(null);
@@ -33,6 +41,11 @@ export default function Camera() {
   const [isGuideVisible, setIsGuideVisible] = useState(false);
   const [currentGuidePage, setCurrentGuidePage] = useState(0);
   const [skipGuide, setSkipGuide] = useState(false);
+  const [showLimitPopup, setShowLimitPopup] = useState(false);
+  const [limitPopupTitle, setLimitPopupTitle] = useState("");
+  const [limitPopupMessage, setLimitPopupMessage] = useState("");
+  const [displayTime, setDisplayTime] = useState<string | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { width: screenWidth } = useWindowDimensions();
 
   const guideViewportWidth = screenWidth;
@@ -53,6 +66,169 @@ export default function Camera() {
       void requestPermission();
     }
   }, [permission, requestPermission]);
+
+  useEffect(() => {
+    if (!showLimitPopup) {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      return;
+    }
+
+    const updateTimer = async () => {
+      const times = await getTodayMeasurementTimes();
+
+      if (times.length > 0) {
+        const lastTime = Math.max(...times);
+        const now = Date.now();
+        const timeSinceLastMeasurement = now - lastTime;
+
+        if (timeSinceLastMeasurement < MEASUREMENT_INTERVAL_MS) {
+          const msRemaining =
+            MEASUREMENT_INTERVAL_MS - timeSinceLastMeasurement;
+          const secondsRemaining = Math.ceil(msRemaining / 1000);
+
+          const hours = Math.floor(secondsRemaining / 3600);
+          const minutes = Math.floor((secondsRemaining % 3600) / 60);
+          const seconds = secondsRemaining % 60;
+
+          const timeString = `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+          setDisplayTime(timeString);
+        }
+      }
+    };
+
+    void updateTimer();
+    timerIntervalRef.current = setInterval(() => {
+      void updateTimer();
+    }, 1000);
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [showLimitPopup]);
+
+  const getTodayMeasurementTimes = async (): Promise<number[]> => {
+    try {
+      const stored = await getItem(MEASUREMENT_LIMIT_KEY);
+      console.log("[getTodayMeasurementTimes] stored value:", stored);
+
+      if (!stored) return [];
+
+      const data = JSON.parse(stored);
+      console.log("[getTodayMeasurementTimes] parsed data:", data);
+
+      const now = new Date();
+      const todayStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      ).getTime();
+
+      // 오늘 자정 이후의 인증 시간만 필터링
+      const filtered = data.filter(
+        (timestamp: number) => timestamp >= todayStart,
+      );
+      console.log(
+        "[getTodayMeasurementTimes] filtered result:",
+        filtered,
+        "todayStart:",
+        todayStart,
+      );
+
+      return filtered;
+    } catch (e) {
+      console.warn("Failed to get measurement times:", e);
+      return [];
+    }
+  };
+
+  const checkMeasurementLimit = async (): Promise<{
+    allowed: boolean;
+    title?: string;
+    message?: string;
+    displayTime?: string;
+  }> => {
+    const times = await getTodayMeasurementTimes();
+    console.log(
+      "[checkMeasurementLimit] times count:",
+      times.length,
+      "times:",
+      times,
+    );
+
+    // 1일 3회 제한 체크
+    if (times.length >= MEASUREMENTS_PER_DAY) {
+      console.log("[checkMeasurementLimit] daily limit exceeded");
+      return {
+        allowed: false,
+        title: "오늘 인증 횟수를 모두 사용했어요",
+        message: "하루 최대 3번까지 인증할 수 있어요",
+      };
+    }
+
+    // 4시간 간격 체크
+    if (times.length > 0) {
+      const lastTime = Math.max(...times);
+      const now = Date.now();
+      const timeSinceLastMeasurement = now - lastTime;
+
+      console.log(
+        "[checkMeasurementLimit] lastTime:",
+        lastTime,
+        "now:",
+        now,
+        "difference:",
+        timeSinceLastMeasurement,
+        "limit:",
+        MEASUREMENT_INTERVAL_MS,
+      );
+
+      if (timeSinceLastMeasurement < MEASUREMENT_INTERVAL_MS) {
+        const msRemaining = MEASUREMENT_INTERVAL_MS - timeSinceLastMeasurement;
+        const secondsRemaining = Math.ceil(msRemaining / 1000);
+
+        const hours = Math.floor(secondsRemaining / 3600);
+        const minutes = Math.floor((secondsRemaining % 3600) / 60);
+        const seconds = secondsRemaining % 60;
+
+        const timeString = `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        console.log(
+          "[checkMeasurementLimit] interval limit triggered, remaining:",
+          timeString,
+        );
+
+        return {
+          allowed: false,
+          title: `${timeString} 후에 다시 시도해주세요`,
+          message: "인증은 4시간 간격으로 가능해요",
+          displayTime: timeString,
+        };
+      }
+    }
+
+    console.log("[checkMeasurementLimit] allowed");
+    return { allowed: true };
+  };
+
+  const saveMeasurementTime = async (): Promise<void> => {
+    try {
+      const times = await getTodayMeasurementTimes();
+      console.log("[saveMeasurementTime] current times:", times);
+
+      times.push(Date.now());
+      console.log("[saveMeasurementTime] saving times:", times);
+
+      await setItem(MEASUREMENT_LIMIT_KEY, JSON.stringify(times));
+      console.log("[saveMeasurementTime] saved successfully");
+    } catch (e) {
+      console.warn("Failed to save measurement time:", e);
+    }
+  };
 
   const renderCameraContent = () => {
     if (!permission) {
@@ -228,10 +404,11 @@ export default function Camera() {
               onPress={() => setSkipGuide((prev) => !prev)}
               className="flex-row items-center gap-[5px] self-start"
             >
-              <View className="w-7 h-7 items-center justify-center relative">
-                <RadioButton width={24} height={24} />
-                {skipGuide && (
-                  <View className="absolute w-2.5 h-2.5 rounded-full bg-[#45B310]" />
+              <View className="h-6 w-6 justify-center items-center">
+                {skipGuide ? (
+                  <TickCircle width={24} height={24} />
+                ) : (
+                  <RadioButton width={24} height={24} />
                 )}
               </View>
               <Text className="text-gray-500 text-sm font-semibold leading-6">
@@ -271,6 +448,15 @@ export default function Camera() {
         <TouchableOpacity
           disabled={isPending}
           onPress={async () => {
+            const limitCheck = await checkMeasurementLimit();
+            if (!limitCheck.allowed) {
+              setLimitPopupMessage(limitCheck.message || "다시 시도해주세요.");
+              setLimitPopupTitle(limitCheck.title || "알림");
+              setDisplayTime(limitCheck.displayTime || null);
+              setShowLimitPopup(true);
+              return;
+            }
+
             if (!cameraRef.current) return;
             try {
               const photo = await (cameraRef.current as any).takePictureAsync({
@@ -283,6 +469,7 @@ export default function Camera() {
                 currentPoint?: number;
                 leftoverRatio?: number;
               };
+              await saveMeasurementTime();
               router.push({
                 pathname: "/home/camerasucceeded",
                 params: {
@@ -346,6 +533,18 @@ export default function Camera() {
             </View>
           </View>
         </Pressable>
+      )}
+
+      {showLimitPopup && (
+        <PopUp
+          title={
+            displayTime
+              ? `${displayTime} 후에 다시 시도해주세요`
+              : limitPopupTitle
+          }
+          message={limitPopupMessage}
+          onClose={() => setShowLimitPopup(false)}
+        />
       )}
     </View>
   );

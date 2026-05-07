@@ -10,7 +10,7 @@ export default function RegisterName() {
   const [name, setName] = useState("");
   const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
 
-  const { email, password } = useLocalSearchParams<{
+  const { email, password, socialLogin } = useLocalSearchParams<{
     email: string;
     password: string;
     socialLogin?: string;

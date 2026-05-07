@@ -24,3 +24,48 @@ export const getStoreCoupons = async (type: StoreCouponType | null = null) => {
 
   return res.data;
 };
+
+export interface StoreCouponDetail {
+  couponId: number;
+  couponName: string;
+  couponDescription: string;
+  couponPoint: number;
+  couponType: StoreCouponType;
+  couponStore: string;
+  couponImgUrl: string;
+  couponValidTerm: number;
+}
+
+/**
+ * 쿠폰 상세 조회 API
+ * GET /api/coupons/{couponId}
+ */
+export const getStoreCouponDetail = async (couponId: number) => {
+  const res = await client.get(`/api/coupons/${couponId}`);
+  return res.data;
+};
+
+/**
+ * 쿠폰 교환 API
+ * POST /api/coupons/exchange
+ */
+export const postCouponExchange = async (exchangeCouponId: number) => {
+  const res = await client.post("/api/coupons/exchange", {
+    exchangeCouponId,
+  });
+
+  return res.data;
+};
+
+/**
+ * 쿠폰 사용 API
+ * POST /api/coupons/use
+ */
+export const postCouponUse = async (couponHistId: number, storePw: number) => {
+  const res = await client.post("/api/coupons/use", {
+    couponHistId,
+    storePw,
+  });
+
+  return res.data;
+};

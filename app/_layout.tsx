@@ -3,8 +3,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo } from "react";
-import { Platform, Text, TextInput } from "react-native";
-import Animated from "react-native-reanimated";
+import { Text, TextInput } from "react-native";
 import "./global.css";
 
 let typographyDefaultsApplied = false;
@@ -44,7 +43,7 @@ export default function RootLayout() {
   }, []);
 
   const [fontsLoaded, fontError] = useFonts({
-    [DEFAULT_FONT_FAMILY]: require("../assets/fonts/PretendardVariable.ttf"),
+    "Pretendard-Variable": require("../assets/fonts/PretendardVariable.ttf"),
   });
 
   useEffect(() => {

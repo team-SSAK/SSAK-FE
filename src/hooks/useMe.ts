@@ -7,33 +7,60 @@ export interface Me {
   userProfileImg?: string | null;
 }
 
-const isMe = (value: unknown): value is Me => {
+const pickFirstString = (...values: unknown[]): string | undefined => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return undefined;
+};
+
+const normalizeMeCandidate = (value: unknown): Me | null => {
   if (typeof value !== "object" || value === null) {
-    return false;
+    return null;
   }
 
   const item = value as Record<string, unknown>;
+  const userNm = pickFirstString(item.userNm, item.nickname, item.userName);
+  const userEmail = pickFirstString(item.userEmail, item.email);
+  const userProfileImg =
+    pickFirstString(
+      item.userProfileImg,
+      item.profileImg,
+      item.userProfileImage,
+      item.profileImage,
+    ) ?? null;
 
-  return (
-    typeof item.userNm === "string" &&
-    typeof item.userEmail === "string" &&
-    (item.userProfileImg === undefined ||
-      item.userProfileImg === null ||
-      typeof item.userProfileImg === "string")
-  );
+  if (!userNm || !userEmail) {
+    return null;
+  }
+
+  return { userNm, userEmail, userProfileImg };
+};
+
+const isMe = (value: unknown): value is Me => {
+  return normalizeMeCandidate(value) !== null;
 };
 
 const normalizeMe = (res: unknown): Me | null => {
-  if (isMe(res)) {
-    return res;
+  const direct = normalizeMeCandidate(res);
+  if (direct) {
+    return direct;
   }
 
   if (typeof res !== "object" || res === null) {
     return null;
   }
 
-  const wrapped = res as { data?: unknown };
-  return isMe(wrapped.data) ? wrapped.data : null;
+  const wrapped = res as { data?: unknown; result?: unknown };
+
+  const wrappedData = normalizeMeCandidate(wrapped.data);
+  if (wrappedData) {
+    return wrappedData;
+  }
+
+  return normalizeMeCandidate(wrapped.result);
 };
 
 export function useMe() {

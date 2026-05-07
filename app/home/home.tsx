@@ -33,7 +33,7 @@ const headerAspectRatio =
     : 1.6;
 
 const ANNOUNCEMENT_URL =
-  "https://www.notion.so/31fc1339dd7680e6add1d62805ab8dba?source=copy_link";
+  "https://www.notion.so/3582f0ad060b803f8e45fc155db01e06";
 //////////////////////////////////////////////////////
 // 타입
 //////////////////////////////////////////////////////
@@ -234,9 +234,6 @@ export default function Home() {
                         pathname: "/home/restaurantdetail",
                         params: {
                           restaurantId: String(restaurant.id),
-                          restaurantName: restaurant.name,
-                          restaurantLocation: restaurant.address,
-                          restaurantImage: restaurant.image ?? "",
                         },
                       })
                     }
@@ -312,16 +309,6 @@ export default function Home() {
             </TouchableOpacity>
 
             <>
-              <TouchableOpacity
-                onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}
-              >
-                <AnouncementCard />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}
-              >
-                <AnouncementCard />
-              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => Linking.openURL(ANNOUNCEMENT_URL)}
               >

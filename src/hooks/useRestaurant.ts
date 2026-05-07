@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getRestaurant,
   getRestaurantById,
+  getRestaurantMenuById,
   postRestaurantWish,
 } from "../services/home/restaurent.service";
 
@@ -63,9 +64,45 @@ export interface RestaurantDetail {
   restaurantLocation: string;
   restaurantType: RestaurantType;
   restaurantImgUrl: string;
-  openTime: { hour: number; minute: number } | null;
-  closeTime: { hour: number; minute: number } | null;
+  restaurantCoord: { lat: number; lon: number } | null;
+  openTime: { hour: number; minute: number } | string | null;
+  closeTime: { hour: number; minute: number } | string | null;
 }
+
+const normalizeRestaurantCoord = (
+  detail: Record<string, unknown>,
+): { lat: number; lon: number } | null => {
+  const coord = detail.restaurantCoord;
+
+  if (typeof coord !== "object" || coord === null) {
+    const lat = Number(detail.latitude ?? detail.lat);
+    const lon = Number(detail.longitude ?? detail.lng ?? detail.lon);
+
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      return { lat, lon };
+    }
+
+    return null;
+  }
+
+  const c = coord as Record<string, unknown>;
+  const x = Number(c.x);
+  const y = Number(c.y);
+
+  // API uses JTS Point: x=longitude, y=latitude
+  if (Number.isFinite(x) && Number.isFinite(y)) {
+    return { lat: y, lon: x };
+  }
+
+  const lat = Number(c.latitude ?? c.lat);
+  const lon = Number(c.longitude ?? c.lng ?? c.lon);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return null;
+  }
+
+  return { lat, lon };
+};
 
 const normalizeRestaurantDetail = (res: unknown): RestaurantDetail | null => {
   if (typeof res !== "object" || res === null) return null;
@@ -76,6 +113,7 @@ const normalizeRestaurantDetail = (res: unknown): RestaurantDetail | null => {
     restaurantLocation: d.restaurantLocation ?? "",
     restaurantType: d.restaurantType ?? null,
     restaurantImgUrl: d.restaurantImgUrl ?? "",
+    restaurantCoord: normalizeRestaurantCoord(d),
     openTime: d.openTime ?? null,
     closeTime: d.closeTime ?? null,
   };
@@ -86,6 +124,59 @@ export const useRestaurantDetail = (restaurantId: number) =>
     queryKey: ["restaurant", restaurantId],
     queryFn: () => getRestaurantById(restaurantId),
     select: normalizeRestaurantDetail,
+    enabled: !isNaN(restaurantId),
+  });
+
+export interface RestaurantMenu {
+  menuId: number;
+  menuType: string;
+  menuItems: string[];
+}
+
+const normalizeRestaurantMenus = (res: unknown): RestaurantMenu[] => {
+  const wrapped =
+    typeof res === "object" && res !== null
+      ? (res as { data?: unknown; content?: unknown })
+      : null;
+
+  const list = Array.isArray(res)
+    ? res
+    : wrapped && Array.isArray(wrapped.data)
+      ? wrapped.data
+      : wrapped && Array.isArray(wrapped.content)
+        ? wrapped.content
+        : [];
+
+  return list
+    .map((item) => {
+      if (typeof item !== "object" || item === null) {
+        return null;
+      }
+
+      const d = item as Record<string, unknown>;
+      const menuId = Number(d.menuId);
+      const menuItems = Array.isArray(d.menuItems)
+        ? d.menuItems.filter((x): x is string => typeof x === "string")
+        : [];
+
+      if (!Number.isFinite(menuId)) {
+        return null;
+      }
+
+      return {
+        menuId,
+        menuType: typeof d.menuType === "string" ? d.menuType : "",
+        menuItems,
+      };
+    })
+    .filter((item): item is RestaurantMenu => item !== null);
+};
+
+export const useRestaurantMenu = (restaurantId: number) =>
+  useQuery({
+    queryKey: ["restaurantMenu", restaurantId],
+    queryFn: () => getRestaurantMenuById(restaurantId),
+    select: normalizeRestaurantMenus,
     enabled: !isNaN(restaurantId),
   });
 

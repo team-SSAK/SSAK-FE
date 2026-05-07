@@ -18,6 +18,7 @@ import X from "../../assets/images/x.svg";
 import AlertPopup from "../../components/alertpopup";
 import { usePostCommunity } from "../../src/hooks/useCommunity";
 import { usePatchPost, usePost } from "../../src/hooks/usePost";
+import { normalizeImageList } from "../../src/utils/image";
 
 // Alert popup text for image delete
 const DELETE_IMAGE_POPUP = {
@@ -120,15 +121,16 @@ export default function WritePost() {
       ? (editPostDetail?.imageUrls ?? [])
       : existingImagesFromParams;
 
-    return base
-      .map((value) => value.trim())
-      .filter((value) => value.length > 0)
-      .map((value) =>
-        value.startsWith("http") || value.startsWith("data:image")
-          ? value
-          : `data:image/jpeg;base64,${value}`,
-      );
+    return normalizeImageList(base);
   }, [editPostDetail?.imageUrls, existingImagesFromParams]);
+
+  const remainingExistingImages = useMemo(
+    () =>
+      existingImages.filter(
+        (_, idx) => !removedExistingImageIdxs.includes(idx),
+      ),
+    [existingImages, removedExistingImageIdxs],
+  );
 
   const [postVisibilityState, setPostVisibilityState] =
     useState(initialVisibility);
@@ -180,7 +182,8 @@ export default function WritePost() {
             postVisibility: postVisibilityState,
             postTitle: title.trim(),
             postContent: content.trim(),
-            newImages,
+            // Keep remaining existing images by re-sending them with new ones.
+            newImages: [...remainingExistingImages, ...newImages],
           },
         },
         {
@@ -289,7 +292,7 @@ export default function WritePost() {
               }}
               className="text-gray-900 font-medium leading-6"
             />
-            {(existingImages.length > 0 || newImages.length > 0) && (
+            {(remainingExistingImages.length > 0 || newImages.length > 0) && (
               <View className="mt-4 flex flex-col gap-4">
                 {existingImages.map((uri, idx) =>
                   removedExistingImageIdxs.includes(idx) ? null : (

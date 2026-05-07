@@ -1,13 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { postPostWish } from "../services/home/wish.service";
-import { getLikedPostIds, setLikedPostIds } from "../utils/storage";
+import { postCommentWish, postPostWish } from "../services/home/wish.service";
+import {
+  getLikedCommentIds,
+  getLikedPostIds,
+  setLikedCommentIds,
+  setLikedPostIds,
+} from "../utils/storage";
 import type { CommunityItem } from "./useCommunity";
 import type { PostDetailItem } from "./usePost";
 
 const POST_LIKED_IDS_QUERY_KEY = ["liked-post-ids"];
+const COMMENT_LIKED_IDS_QUERY_KEY = ["liked-comment-ids"];
 
 const normalizePostId = (postId?: number | string) =>
   String(postId ?? "").trim();
+
+const normalizeCommentId = (commentId?: number | string) =>
+  String(commentId ?? "").trim();
 
 const updatePostCount = (
   post: PostDetailItem | null | undefined,
@@ -56,6 +65,13 @@ export const useIsPostLiked = (postId?: number | string) => {
 
   return normalizedPostId.length > 0 && data.includes(normalizedPostId);
 };
+
+export const useLikedCommentIds = () =>
+  useQuery({
+    queryKey: COMMENT_LIKED_IDS_QUERY_KEY,
+    queryFn: getLikedCommentIds,
+    staleTime: Infinity,
+  });
 
 export const usePostWish = () => {
   const queryClient = useQueryClient();
@@ -145,6 +161,82 @@ export const usePostWish = () => {
         queryKey: ["post", String(variables.likedPostId)],
       });
       queryClient.invalidateQueries({ queryKey: ["community"] });
+    },
+  });
+};
+
+export const useCommentWish = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (variables: {
+      likedCommentId: number | string;
+      postId?: number | string;
+    }) => {
+      if (typeof __DEV__ !== "undefined" && __DEV__) {
+        console.log("[COMMENT_WISH] mutate", {
+          likedCommentId: variables.likedCommentId,
+          postId: variables.postId,
+        });
+      }
+
+      return postCommentWish(variables.likedCommentId);
+    },
+    onMutate: async (variables) => {
+      const normalizedCommentId = normalizeCommentId(variables.likedCommentId);
+
+      if (!normalizedCommentId) {
+        return { previousLikedCommentIds: [] };
+      }
+
+      await queryClient.cancelQueries({
+        queryKey: COMMENT_LIKED_IDS_QUERY_KEY,
+      });
+
+      const previousLikedCommentIds =
+        queryClient.getQueryData<string[]>(COMMENT_LIKED_IDS_QUERY_KEY) ?? [];
+      const wasLiked = previousLikedCommentIds.includes(normalizedCommentId);
+      const nextLikedCommentIds = wasLiked
+        ? previousLikedCommentIds.filter(
+            (commentId) => commentId !== normalizedCommentId,
+          )
+        : [...previousLikedCommentIds, normalizedCommentId];
+
+      queryClient.setQueryData(
+        COMMENT_LIKED_IDS_QUERY_KEY,
+        nextLikedCommentIds,
+      );
+      void setLikedCommentIds(nextLikedCommentIds);
+
+      return { previousLikedCommentIds };
+    },
+    onSuccess: (_, variables) => {
+      if (typeof __DEV__ !== "undefined" && __DEV__) {
+        console.log("[COMMENT_WISH] success", {
+          likedCommentId: variables.likedCommentId,
+          postId: variables.postId,
+        });
+      }
+
+      // Comment like state is intentionally maintained locally because
+      // backend does not provide liked-state GET yet.
+    },
+    onError: async (error, variables, context) => {
+      console.log("[COMMENT_WISH] error", {
+        likedCommentId: variables.likedCommentId,
+        postId: variables.postId,
+        error,
+      });
+
+      if (!context) {
+        return;
+      }
+
+      queryClient.setQueryData(
+        COMMENT_LIKED_IDS_QUERY_KEY,
+        context.previousLikedCommentIds,
+      );
+      await setLikedCommentIds(context.previousLikedCommentIds);
     },
   });
 };

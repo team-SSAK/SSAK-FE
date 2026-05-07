@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   Modal,
@@ -14,10 +14,17 @@ import Map from "../../assets/images/map.svg";
 
 import AlertPopupRadio from "@/components/alertpopupradio";
 import AlertPopup from "../../components/alertpopup";
+import PopUp from "../../components/popup";
 import Post from "../../components/post";
 
 import { useCommunity, useDeleteCommunity } from "../../src/hooks/useCommunity";
 import { useMe } from "../../src/hooks/useMe";
+import { useReport } from "../../src/hooks/useReport";
+import {
+  useRestaurantDetail,
+  useRestaurantMenu,
+} from "../../src/hooks/useRestaurant";
+import { getItem } from "../../src/utils/storage";
 
 function Popup({
   title = "이미 신고된 글입니다",
@@ -69,36 +76,157 @@ function Popup({
 //////////////////////////////////////////////////////
 
 export default function RestaurantDetail() {
-  const {
-    restaurantId,
-    restaurantName,
-    restaurantLocation,
-    restaurantImage,
-    restaurantType,
-  } = useLocalSearchParams<{
-    restaurantId?: string;
-    restaurantName?: string;
-    restaurantLocation?: string;
-    restaurantImage?: string;
-    restaurantType?: string;
-  }>();
+  const { restaurantId } = useLocalSearchParams<{ restaurantId?: string }>();
+  const restaurantIdValue = Number(
+    Array.isArray(restaurantId) ? restaurantId[0] : restaurantId,
+  );
+  const isValidRestaurantId =
+    Number.isFinite(restaurantIdValue) && restaurantIdValue > 0;
+
+  const { data: restaurantDetail } = useRestaurantDetail(
+    isValidRestaurantId ? restaurantIdValue : NaN,
+  );
+  const { data: restaurantMenus = [] } = useRestaurantMenu(
+    isValidRestaurantId ? restaurantIdValue : NaN,
+  );
 
   const restaurantTypeLabel =
-    typeof restaurantType === "string" && restaurantType.length > 0
-      ? restaurantType
-      : "자율배식형";
+    restaurantDetail?.restaurantType === "FREESTYLE"
+      ? "자율배식형"
+      : restaurantDetail?.restaurantType === "FOODCOURT"
+        ? "푸드코트형"
+        : (restaurantDetail?.restaurantType ?? "자율배식형");
 
-  const operatingHours = "운영시간 정보 없음";
+  const formatTime = (time: unknown): string | null => {
+    if (typeof time === "string") {
+      const [hour, minute] = time.split(":");
+      const h = Number(hour);
+      const m = Number(minute);
+
+      if (Number.isFinite(h) && Number.isFinite(m)) {
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      }
+
+      return null;
+    }
+
+    if (typeof time !== "object" || time === null) {
+      return null;
+    }
+
+    const obj = time as { hour?: unknown; minute?: unknown };
+    const h = Number(obj.hour);
+    const m = Number(obj.minute);
+
+    if (!Number.isFinite(h) || !Number.isFinite(m)) {
+      return null;
+    }
+
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
+
+  const openTime = formatTime(restaurantDetail?.openTime ?? null);
+  const closeTime = formatTime(restaurantDetail?.closeTime ?? null);
+  const operatingHours =
+    openTime && closeTime ? `${openTime} - ${closeTime}` : "운영시간 정보 없음";
+
+  const getMenuTypeLabel = (menuType: string) => {
+    if (menuType === "BREAKFAST") return "아침";
+    if (menuType === "LUNCH") return "점심";
+    if (menuType === "DINNER") return "저녁";
+    return menuType;
+  };
+
+  const getAuthorDisplayName = (nickname: string) => {
+    const trimmed = nickname.trim();
+    return trimmed.length > 0 ? trimmed : "탈퇴한 사용자";
+  };
 
   const { data: communityPosts = [] } = useCommunity(restaurantId);
   const { mutate: deletePost } = useDeleteCommunity();
+  const { mutate: reportPost } = useReport();
   const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [pendingDeletePostId, setPendingDeletePostId] = useState<number | null>(
     null,
   );
+  const [pendingReportPostId, setPendingReportPostId] = useState<
+    number | string | null
+  >(null);
   const { me } = useMe();
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [showLimitPopup, setShowLimitPopup] = useState(false);
+  const [limitPopupTitle, setLimitPopupTitle] = useState("");
+  const [limitPopupMessage, setLimitPopupMessage] = useState("");
+  const [displayTime, setDisplayTime] = useState<string | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const MEASUREMENT_LIMIT_KEY = "MEASUREMENT_LIMIT";
+  const MEASUREMENT_INTERVAL_MS = 4 * 60 * 60 * 1000;
+  const MEASUREMENTS_PER_DAY = 3;
+
+  const getTodayMeasurementTimes = async (): Promise<number[]> => {
+    try {
+      const stored = await getItem(MEASUREMENT_LIMIT_KEY);
+      if (!stored) return [];
+
+      const data = JSON.parse(stored);
+      const now = new Date();
+      const todayStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      ).getTime();
+
+      return data.filter((timestamp: number) => timestamp >= todayStart);
+    } catch (e) {
+      console.warn("Failed to get measurement times:", e);
+      return [];
+    }
+  };
+
+  const checkMeasurementLimit = async (): Promise<{
+    allowed: boolean;
+    title?: string;
+    message?: string;
+    displayTime?: string;
+  }> => {
+    const times = await getTodayMeasurementTimes();
+
+    if (times.length >= MEASUREMENTS_PER_DAY) {
+      return {
+        allowed: false,
+        title: "오늘 인증 횟수를 모두 사용했어요",
+        message: "하루 최대 3번까지 인증할 수 있어요",
+      };
+    }
+
+    if (times.length > 0) {
+      const lastTime = Math.max(...times);
+      const now = Date.now();
+      const timeSinceLastMeasurement = now - lastTime;
+
+      if (timeSinceLastMeasurement < MEASUREMENT_INTERVAL_MS) {
+        const msRemaining = MEASUREMENT_INTERVAL_MS - timeSinceLastMeasurement;
+        const secondsRemaining = Math.ceil(msRemaining / 1000);
+
+        const hours = Math.floor(secondsRemaining / 3600);
+        const minutes = Math.floor((secondsRemaining % 3600) / 60);
+        const seconds = secondsRemaining % 60;
+
+        const timeString = `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+
+        return {
+          allowed: false,
+          title: `${timeString} 후에 다시 시도해주세요`,
+          message: "인증은 4시간 간격으로 가능해요",
+          displayTime: timeString,
+        };
+      }
+    }
+
+    return { allowed: true };
+  };
 
   const visibleCommunityPosts = useMemo(() => {
     const myNickname = (me?.userNm ?? "").trim();
@@ -109,6 +237,51 @@ export default function RestaurantDetail() {
       return post.postVisibility || isMine;
     });
   }, [communityPosts, me?.userNm]);
+
+  useEffect(() => {
+    if (!showLimitPopup) {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      return;
+    }
+
+    const updateTimer = async () => {
+      const times = await getTodayMeasurementTimes();
+
+      if (times.length > 0) {
+        const lastTime = Math.max(...times);
+        const now = Date.now();
+        const timeSinceLastMeasurement = now - lastTime;
+
+        if (timeSinceLastMeasurement < MEASUREMENT_INTERVAL_MS) {
+          const msRemaining =
+            MEASUREMENT_INTERVAL_MS - timeSinceLastMeasurement;
+          const secondsRemaining = Math.ceil(msRemaining / 1000);
+
+          const hours = Math.floor(secondsRemaining / 3600);
+          const minutes = Math.floor((secondsRemaining % 3600) / 60);
+          const seconds = secondsRemaining % 60;
+
+          const timeString = `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+          setDisplayTime(timeString);
+        }
+      }
+    };
+
+    void updateTimer();
+    timerIntervalRef.current = setInterval(() => {
+      void updateTimer();
+    }, 1000);
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [showLimitPopup]);
 
   const formatPostDate = (isoDate: string) => {
     const date = new Date(isoDate);
@@ -157,9 +330,10 @@ export default function RestaurantDetail() {
           </TouchableOpacity>
         </View>
 
-        {typeof restaurantImage === "string" && restaurantImage.length > 0 ? (
+        {typeof restaurantDetail?.restaurantImgUrl === "string" &&
+        restaurantDetail.restaurantImgUrl.length > 0 ? (
           <Image
-            source={{ uri: restaurantImage }}
+            source={{ uri: restaurantDetail.restaurantImgUrl }}
             className="h-[196px]"
             style={{ marginHorizontal: -16 }}
             resizeMode="cover"
@@ -178,8 +352,9 @@ export default function RestaurantDetail() {
             </Text>
           </View>
           <Text className="justify-start text-gray-800 text-xl font-semibold leading-8">
-            {typeof restaurantName === "string" && restaurantName.length > 0
-              ? restaurantName
+            {typeof restaurantDetail?.restaurantName === "string" &&
+            restaurantDetail.restaurantName.length > 0
+              ? restaurantDetail.restaurantName
               : "식당 정보"}
           </Text>
           <View className="flex flex-row mt-2.5 ">
@@ -193,9 +368,9 @@ export default function RestaurantDetail() {
             </View>
             <View className="flex flex-col gap-1">
               <Text className="text-gray-600 text-sm font-semibold leading-6 line-clamp-2">
-                {typeof restaurantLocation === "string" &&
-                restaurantLocation.length > 0
-                  ? restaurantLocation
+                {typeof restaurantDetail?.restaurantLocation === "string" &&
+                restaurantDetail.restaurantLocation.length > 0
+                  ? restaurantDetail.restaurantLocation
                   : "식당 주소"}
               </Text>
               <Text className="text-gray-600 text-sm font-semibold leading-6 line-clamp-2">
@@ -205,56 +380,47 @@ export default function RestaurantDetail() {
           </View>
         </View>
 
-        <View className="h-0 outline outline-1 outline-offset-[-0.50px] outline-zinc-100 my-[30px]"></View>
+        <View className="h-0 outline outline-1 outline-offset-[-0.50px] outline-[#F2F2F2] my-[30px]"></View>
 
-        {/* 내용 */}
-        <TouchableOpacity
-          onPress={() =>
-            router.push({
-              pathname: "/home/menu",
-              params: typeof restaurantId === "string" ? { restaurantId } : {},
-            })
-          }
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="flex-grow-0"
-            style={{ flexGrow: 0 }}
-            contentContainerStyle={{ gap: 15, paddingBottom: 0 }}
+        {/* 메뉴 */}
+        {restaurantMenus.length > 0 ? (
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/home/menu",
+                params:
+                  typeof restaurantId === "string" ? { restaurantId } : {},
+              })
+            }
           >
-            {/* Hardcoded Menu Cards */}
-            <View className="self-start w-64 p-3.5 bg-gray-50 rounded-[10px] flex flex-col justify-center items-start gap-2.5">
-              <View className="self-stretch flex flex-col justify-start items-start gap-7">
-                <Text className="self-stretch text-gray-800 text-sm font-semibold leading-6">
-                  중식
-                </Text>
-                <Text
-                  className="self-stretch text-gray-500 text-sm font-medium leading-6"
-                  numberOfLines={2}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="flex-grow-0"
+              style={{ flexGrow: 0 }}
+              contentContainerStyle={{ gap: 15, paddingBottom: 0 }}
+            >
+              {restaurantMenus.map((menu) => (
+                <View
+                  key={menu.menuId}
+                  className="self-start w-64 p-3.5 bg-gray-50 rounded-[10px] flex flex-col justify-center items-start gap-2.5"
                 >
-                  제육볶음, 쌀밥, 미역국 김치찌개, 요구르트, 제육볶음, 쌀밥,
-                  미역국 김치찌개, 요구르트,요구르트
-                </Text>
-              </View>
-            </View>
-
-            <View className="self-start w-64 p-3.5 bg-gray-50 rounded-[10px] flex flex-col justify-center items-start gap-2.5">
-              <View className="self-stretch flex flex-col justify-start items-start gap-7">
-                <Text className="self-stretch text-gray-800 text-sm font-semibold leading-6">
-                  중식
-                </Text>
-                <Text
-                  className="self-stretch text-gray-500 text-sm font-medium leading-6"
-                  numberOfLines={2}
-                >
-                  제육볶음, 쌀밥, 미역국 김치찌개, 요구르트, 제육볶음, 쌀밥,
-                  미역국 김치찌개, 요구르트,요구르트
-                </Text>
-              </View>
-            </View>
-          </ScrollView>
-        </TouchableOpacity>
+                  <View className="self-stretch flex flex-col justify-start items-start gap-7">
+                    <Text className="self-stretch text-gray-800 text-sm font-semibold leading-6">
+                      {getMenuTypeLabel(menu.menuType)}
+                    </Text>
+                    <Text
+                      className="self-stretch text-gray-500 text-sm font-medium leading-6"
+                      numberOfLines={2}
+                    >
+                      {menu.menuItems.join(", ")}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </TouchableOpacity>
+        ) : null}
 
         <View className="mt-[26px] flex-row justify-between">
           <Text className="text-gray-800 text-lg font-semibold">
@@ -278,9 +444,11 @@ export default function RestaurantDetail() {
             key={post.postId}
             showBadge={!post.postVisibility}
             badge="비공개"
-            author={post.nickname}
+            author={getAuthorDisplayName(post.nickname)}
+            authorImage={post.authorProfileImg ?? undefined}
             title={post.postTitle}
             content={post.postContent}
+            images={post.imageUrls}
             image={post.imageUrls?.[0]}
             likedPostId={post.postId}
             likeCount={post.postLikeCnt}
@@ -305,6 +473,7 @@ export default function RestaurantDetail() {
               });
             }}
             onReportPress={() => {
+              setPendingReportPostId(post.postId);
               setShowReportPopup(true);
             }}
             onPress={() =>
@@ -316,6 +485,7 @@ export default function RestaurantDetail() {
                   postTitle: post.postTitle ?? "",
                   postContent: post.postContent,
                   nickname: post.nickname,
+                  authorProfileImg: post.authorProfileImg ?? "",
                   postCreateTime: post.postCreateTime,
                   postLikeCnt: String(post.postLikeCnt),
                   postCommentCnt: String(post.postCommentCnt),
@@ -357,7 +527,19 @@ export default function RestaurantDetail() {
 
       {/* 잔반 인증 버튼 */}
       <View className="absolute bottom-0 left-0 right-0 px-4 pb-[56px]">
-        <TouchableOpacity onPress={() => router.push("/home/camera")}>
+        <TouchableOpacity
+          onPress={async () => {
+            const limitCheck = await checkMeasurementLimit();
+            if (!limitCheck.allowed) {
+              setLimitPopupMessage(limitCheck.message || "다시 시도해주세요.");
+              setLimitPopupTitle(limitCheck.title || "알림");
+              setDisplayTime(limitCheck.displayTime || null);
+              setShowLimitPopup(true);
+              return;
+            }
+            router.push("/home/camera");
+          }}
+        >
           <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
             <Text className="text-center text-gray-50 text-lg font-medium leading-7">
               잔반 인증하러 가기
@@ -369,10 +551,32 @@ export default function RestaurantDetail() {
       <AlertPopupRadio
         visible={showReportPopup}
         title="신고 사유를 선택해주세요"
-        onCancel={() => setShowReportPopup(false)}
-        onConfirm={() => {
+        onCancel={() => {
           setShowReportPopup(false);
-          setTimeout(() => setShowReportConfirm(true), 200); // 약간의 딜레이로 자연스럽게
+          setPendingReportPostId(null);
+        }}
+        onConfirm={() => {
+          if (!pendingReportPostId) {
+            setShowReportPopup(false);
+            return;
+          }
+
+          setShowReportPopup(false);
+          reportPost(
+            {
+              postId: pendingReportPostId,
+              reportContent: "string",
+            },
+            {
+              onSuccess: () => {
+                setShowReportConfirm(true);
+                setPendingReportPostId(null);
+              },
+              onError: () => {
+                setPendingReportPostId(null);
+              },
+            },
+          );
         }}
       />
 
@@ -382,6 +586,18 @@ export default function RestaurantDetail() {
         description="빠르게 검토 후 조치하겠습니다"
         onConfirm={() => setShowReportConfirm(false)}
       />
+
+      {showLimitPopup && (
+        <PopUp
+          title={
+            displayTime
+              ? `${displayTime} 후에 다시 시도해주세요`
+              : limitPopupTitle
+          }
+          message={limitPopupMessage}
+          onClose={() => setShowLimitPopup(false)}
+        />
+      )}
     </View>
   );
 }
