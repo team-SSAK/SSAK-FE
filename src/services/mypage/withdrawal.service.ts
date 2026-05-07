@@ -9,6 +9,14 @@ export const getWithdrawal = async () => {
 };
 
 /**
+ * 탈퇴 인증 API
+ */
+export const postAuthWithdrawal = async () => {
+  const res = await client.post("/api/auth/withdrawal");
+  return res.data;
+};
+
+/**
  * 탈퇴 API
  */
 export const postWithdrawal = async (

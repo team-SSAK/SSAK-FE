@@ -1,11 +1,10 @@
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
-  Modal,
-  Platform,
   Text,
   TouchableOpacity,
   View,
@@ -13,181 +12,99 @@ import {
 import Avatar from "../../assets/images/avatar.svg";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import EditBtn from "../../assets/images/editbtn.svg";
+import AlertPopup from "../../components/alertpopup";
 import TextInput from "../../components/input/textinput";
-
-import { useMe } from "@/src/hooks/useMe";
-
-function Popup({
-  title = "변경사항 미저장",
-  description = "지금 나가면 수정한 내용이 사라집니다",
-  onCancel,
-  onConfirm,
-  visible = false,
-}: {
-  title?: string;
-  description?: string;
-  onCancel?: () => void;
-  onConfirm?: () => void;
-  visible?: boolean;
-}) {
-  return (
-    <Modal transparent visible={visible} animationType="fade">
-      <View className="flex-1 bg-black/50 justify-center items-center">
-        <View className="w-72 p-5 bg-white rounded-[20px] gap-[18px]">
-          <View className="gap-1">
-            <Text className="text-slate-800 text-lg font-semibold leading-7">
-              {title}
-            </Text>
-            <Text className="text-slate-500 text-sm font-medium leading-6">
-              {description}
-            </Text>
-          </View>
-
-          <View className="flex-row gap-2">
-            <TouchableOpacity
-              onPress={onCancel}
-              className="flex-1 h-10 bg-slate-100 rounded-[10px] justify-center items-center"
-            >
-              <Text className="text-slate-800 text-base font-medium leading-6">
-                취소
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={onConfirm}
-              className="flex-1 h-10 bg-lime-600 rounded-[10px] justify-center items-center"
-            >
-              <Text className="text-white text-base font-medium leading-6">
-                나가기
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
+import { useMe } from "../../src/hooks/useMe";
 
 const MAX_LENGTH = 8;
 
 export default function EditProfile() {
   const { me, isLoading, updateMe } = useMe();
-
   const [inputValue, setInputValue] = useState("");
-  const [initialValue, setInitialValue] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [initialProfileImage, setInitialProfileImage] = useState<string | null>(
-    null,
-  );
-  const [pickedWebFile, setPickedWebFile] = useState<File | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pickedProfileImage, setPickedProfileImage] = useState<{
+    uri: string;
+    name: string;
+    type: string;
+  } | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (hasInitialized || !me) {
+    if (!me) {
       return;
     }
 
-    const nickname = me.userNm ?? "";
-    const image = me.userProfileImg ?? null;
-    setInputValue(nickname);
-    setInitialValue(nickname);
-    setProfileImage(image);
-    setInitialProfileImage(image);
-    setHasInitialized(true);
-  }, [hasInitialized, me]);
+    setInputValue(me.userNm);
+    setProfileImage(me.userProfileImg ?? null);
+    setPickedProfileImage(null);
+  }, [me]);
 
-  const hasChanges =
-    inputValue !== initialValue || profileImage !== initialProfileImage;
+  const trimmedInput = inputValue.trim();
+  const initialName = me?.userNm ?? "";
+  const initialProfileImage = me?.userProfileImg ?? null;
+  const hasImageChanges = profileImage !== initialProfileImage;
+  const hasChanges = useMemo(
+    () => trimmedInput !== initialName || hasImageChanges,
+    [hasImageChanges, initialName, trimmedInput],
+  );
+  const canSubmit =
+    !isLoading && !isSubmitting && trimmedInput.length > 0 && hasChanges;
 
-  const isButtonEnabled =
-    inputValue.length >= 1 &&
-    inputValue.length <= MAX_LENGTH &&
-    hasChanges &&
-    !isLoading &&
-    !isSubmitting;
+  const handlePickProfileImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-  const handleChangeText = (text: string) => {
-    setInputValue(text);
+    if (status !== "granted") {
+      Alert.alert("권한 필요", "사진 보관함 접근 권한이 필요합니다.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.9,
+    });
+
+    if (result.canceled || !result.assets?.length) {
+      return;
+    }
+
+    const asset = result.assets[0];
+    const ext = (asset.fileName?.split(".").pop() || "jpg").toLowerCase();
+    const mime = asset.mimeType || `image/${ext === "jpg" ? "jpeg" : ext}`;
+    const name = asset.fileName || `profile.${ext}`;
+
+    setProfileImage(asset.uri);
+    setPickedProfileImage({
+      uri: asset.uri,
+      name,
+      type: mime,
+    });
   };
 
-  const pickImage = async () => {
-    try {
-      const permissionResult =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (permissionResult.granted === false) {
-        Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0] as ImagePicker.ImagePickerAsset & {
-          file?: File;
-        };
-        setProfileImage(asset.uri);
-        setPickedWebFile(asset.file ?? null);
-      }
-    } catch (error) {
-      console.error("이미지 선택 실패:", error);
+  const handleBack = () => {
+    if (hasChanges) {
+      setIsModalVisible(true);
+      return;
     }
+
+    router.back();
   };
 
   const handleSubmit = async () => {
+    if (!canSubmit) {
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-
-      let imageFile: any = undefined;
-
-      if (profileImage && profileImage !== initialProfileImage) {
-        const filename = profileImage.split("/").pop() || "profile.jpg";
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : "image/jpeg";
-
-        if (Platform.OS === "web" && pickedWebFile) {
-          imageFile = pickedWebFile;
-        } else {
-          imageFile = {
-            uri: profileImage,
-            type,
-            name: filename,
-          } as any;
-        }
+      const ok = await updateMe(trimmedInput, pickedProfileImage ?? undefined);
+      if (ok) {
+        router.replace("/mypage/main");
       }
-
-      const ok = await updateMe(
-        inputValue !== initialValue ? inputValue : undefined,
-        imageFile,
-      );
-
-      if (!ok) {
-        console.error("프로필 수정 실패");
-        return;
-      }
-
-      setInitialValue(inputValue);
-      setInitialProfileImage(profileImage);
-      router.replace("/mypage/main");
-    } catch (error) {
-      console.error("프로필 수정 실패", error);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleBackPress = () => {
-    if (hasChanges) {
-      setIsModalVisible(true);
-    } else {
-      router.back();
     }
   };
 
@@ -196,7 +113,7 @@ export default function EditProfile() {
       <View>
         {/* 헤더 */}
         <View className="py-4 flex-row gap-2 items-center mb-10">
-          <TouchableOpacity onPress={handleBackPress}>
+          <TouchableOpacity onPress={handleBack}>
             <ChevronLeft />
           </TouchableOpacity>
           <Text className="text-gray-800 text-xl font-semibold leading-8">
@@ -218,7 +135,7 @@ export default function EditProfile() {
             )}
             <TouchableOpacity
               className="absolute bottom-0 right-0"
-              onPress={pickImage}
+              onPress={handlePickProfileImage}
             >
               <EditBtn />
             </TouchableOpacity>
@@ -234,7 +151,7 @@ export default function EditProfile() {
         <TextInput
           placeholder="닉네임을 입력해주세요"
           value={inputValue}
-          onChangeText={handleChangeText}
+          onChangeText={(text) => setInputValue(text.slice(0, MAX_LENGTH))}
         />
 
         <Text className="text-right text-gray-500 text-sm font-medium leading-6">
@@ -244,25 +161,30 @@ export default function EditProfile() {
 
       {/* 완료 버튼 */}
       <TouchableOpacity
-        disabled={!isButtonEnabled}
+        disabled={!canSubmit}
         onPress={handleSubmit}
-        className={`h-[52px] rounded-xl justify-center items-center ${
-          isButtonEnabled ? "bg-[#45B310]" : "bg-slate-300"
-        }`}
+        className="h-[52px] rounded-xl justify-center items-center bg-[#45B310]"
+        style={{ opacity: canSubmit ? 1 : 0.5 }}
       >
-        <Text className="text-white text-lg font-medium leading-7">
-          {isSubmitting ? "저장 중..." : "완료"}
-        </Text>
+        {isSubmitting ? (
+          <ActivityIndicator color="#ffffff" />
+        ) : (
+          <Text className="text-white text-lg font-medium leading-7">완료</Text>
+        )}
       </TouchableOpacity>
 
       {/* Popup */}
-      <Popup
+      <AlertPopup
+        title="변경사항 미저장"
+        description="지금 나가면 수정한 내용이 사라집니다"
         visible={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         onConfirm={() => {
           setIsModalVisible(false);
-          router.replace("/mypage/main");
+          router.back();
         }}
+        cancelText="취소"
+        confirmText="나가기"
       />
     </View>
   );

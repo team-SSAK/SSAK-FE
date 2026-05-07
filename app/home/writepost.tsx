@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Image as RNImage,
   ScrollView,
@@ -14,8 +13,20 @@ import {
   View,
 } from "react-native";
 import Image from "../../assets/images/image.svg";
+import PostGradient from "../../assets/images/PostGradient.svg";
+import X from "../../assets/images/x.svg";
+import AlertPopup from "../../components/alertpopup";
 import { usePostCommunity } from "../../src/hooks/useCommunity";
 import { usePatchPost, usePost } from "../../src/hooks/usePost";
+import { normalizeImageList } from "../../src/utils/image";
+
+// Alert popup text for image delete
+const DELETE_IMAGE_POPUP = {
+  title: "사진을 삭제하시겠습니까?",
+  description: "삭제된 사진은 다시 되돌릴 수 없습니다",
+  cancelText: "취소",
+  confirmText: "삭제하기",
+};
 
 function PublicToggle({
   label,
@@ -43,58 +54,18 @@ function PublicToggle({
   );
 }
 
-function Popup({
-  title = "게시글 작성을 취소하시겠어요?",
-  description = "지금 나가면 작성 중인 게시글이 삭제됩니다.",
-  onCancel,
-  onConfirm,
-  visible = false,
-}: {
-  title?: string;
-  description?: string;
-  onCancel?: () => void;
-  onConfirm?: () => void;
-  visible?: boolean;
-}) {
-  return (
-    <Modal transparent visible={visible} animationType="fade">
-      <View className="flex-1 bg-black/50 justify-center items-center">
-        <View className="w-72 p-5 bg-white rounded-[20px] gap-[18px]">
-          <View className="gap-1">
-            <Text className="text-slate-800 text-lg font-semibold leading-7">
-              {title}
-            </Text>
-            <Text className="text-slate-500 text-sm font-medium leading-6">
-              {description}
-            </Text>
-          </View>
-
-          <View className="flex-row gap-2">
-            <TouchableOpacity
-              onPress={onCancel}
-              className="flex-1 h-10 bg-slate-100 rounded-[10px] justify-center items-center"
-            >
-              <Text className="text-slate-800 text-base font-medium leading-6">
-                계속 작성
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={onConfirm}
-              className="flex-1 h-10 bg-lime-600 rounded-[10px] justify-center items-center"
-            >
-              <Text className="text-white text-base font-medium leading-6">
-                나가기
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
 export default function WritePost() {
+  // ...existing code...
+  // State for removed existing images (indices)
+  const [removedExistingImageIdxs, setRemovedExistingImageIdxs] = useState<
+    number[]
+  >([]);
+  // State for image delete popup
+  const [showDeleteImagePopup, setShowDeleteImagePopup] = useState(false);
+  const [deleteImageInfo, setDeleteImageInfo] = useState<{
+    type: "existing" | "new";
+    idx: number;
+  } | null>(null);
   const router = useRouter();
   const {
     restaurantId,
@@ -150,15 +121,16 @@ export default function WritePost() {
       ? (editPostDetail?.imageUrls ?? [])
       : existingImagesFromParams;
 
-    return base
-      .map((value) => value.trim())
-      .filter((value) => value.length > 0)
-      .map((value) =>
-        value.startsWith("http") || value.startsWith("data:image")
-          ? value
-          : `data:image/jpeg;base64,${value}`,
-      );
+    return normalizeImageList(base);
   }, [editPostDetail?.imageUrls, existingImagesFromParams]);
+
+  const remainingExistingImages = useMemo(
+    () =>
+      existingImages.filter(
+        (_, idx) => !removedExistingImageIdxs.includes(idx),
+      ),
+    [existingImages, removedExistingImageIdxs],
+  );
 
   const [postVisibilityState, setPostVisibilityState] =
     useState(initialVisibility);
@@ -210,7 +182,8 @@ export default function WritePost() {
             postVisibility: postVisibilityState,
             postTitle: title.trim(),
             postContent: content.trim(),
-            newImages,
+            // Keep remaining existing images by re-sending them with new ones.
+            newImages: [...remainingExistingImages, ...newImages],
           },
         },
         {
@@ -265,7 +238,7 @@ export default function WritePost() {
               onPress={handleCancelPress}
               className="px-1 py-1.5"
             >
-              <Text className="text-gray-700 text-sm font-medium leading-6">
+              <Text className="text-gray-700 text-base font-medium leading-6">
                 취소
               </Text>
             </TouchableOpacity>
@@ -282,7 +255,7 @@ export default function WritePost() {
               {isSubmitting ? (
                 <ActivityIndicator size="small" color="#16A34A" />
               ) : (
-                <Text className="text-green-600 text-sm font-medium leading-6">
+                <Text className="text-green-600 text-base font-medium leading-6">
                   완료
                 </Text>
               )}
@@ -319,30 +292,114 @@ export default function WritePost() {
               }}
               className="text-gray-900 font-medium leading-6"
             />
-            {(existingImages.length > 0 || newImages.length > 0) && (
+            {(remainingExistingImages.length > 0 || newImages.length > 0) && (
               <View className="mt-4 flex flex-col gap-4">
-                {existingImages.map((uri, idx) => (
-                  <RNImage
-                    key={`existing-${idx}`}
-                    source={{ uri }}
-                    className="w-full rounded-md"
-                    style={{ width: "100%", aspectRatio: 1 }}
-                    resizeMode="cover"
-                  />
-                ))}
+                {existingImages.map((uri, idx) =>
+                  removedExistingImageIdxs.includes(idx) ? null : (
+                    <View
+                      key={`existing-${idx}`}
+                      style={{ position: "relative", width: "100%" }}
+                    >
+                      <RNImage
+                        source={{ uri }}
+                        className="w-full rounded-md"
+                        style={{ width: "100%", aspectRatio: 1 }}
+                        resizeMode="cover"
+                      />
+                      {/* PostGradient overlay */}
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                        }}
+                      >
+                        <PostGradient
+                          width="100%"
+                          height={39}
+                          style={{
+                            borderTopLeftRadius: 12,
+                            borderTopRightRadius: 12,
+                          }}
+                        />
+                      </View>
+                      {/* X icon overlay */}
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 10,
+                          right: 10,
+                          zIndex: 10,
+                        }}
+                      >
+                        <TouchableOpacity
+                          onPress={() => {
+                            setDeleteImageInfo({ type: "existing", idx });
+                            setShowDeleteImagePopup(true);
+                          }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <X width={20} height={20} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ),
+                )}
                 {newImages.map((uri, idx) => (
-                  <RNImage
+                  <View
                     key={`new-${idx}`}
-                    source={{ uri }}
-                    className="w-full rounded-md"
-                    style={{
-                      width: "100%",
-                      aspectRatio: imageSizes[idx]
-                        ? imageSizes[idx].width / imageSizes[idx].height
-                        : 1,
-                    }}
-                    resizeMode="cover"
-                  />
+                    style={{ position: "relative", width: "100%" }}
+                  >
+                    <RNImage
+                      source={{ uri }}
+                      className="w-full rounded-md"
+                      style={{
+                        width: "100%",
+                        aspectRatio: imageSizes[idx]
+                          ? imageSizes[idx].width / imageSizes[idx].height
+                          : 1,
+                      }}
+                      resizeMode="cover"
+                    />
+                    {/* PostGradient overlay */}
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                      }}
+                    >
+                      <PostGradient
+                        width="100%"
+                        height={39}
+                        style={{
+                          borderTopLeftRadius: 12,
+                          borderTopRightRadius: 12,
+                        }}
+                      />
+                    </View>
+                    {/* X icon overlay */}
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: 10,
+                        right: 10,
+                        zIndex: 10,
+                      }}
+                    >
+                      <TouchableOpacity
+                        onPress={() => {
+                          setDeleteImageInfo({ type: "new", idx });
+                          setShowDeleteImagePopup(true);
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <X width={20} height={20} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 ))}
               </View>
             )}
@@ -378,13 +435,50 @@ export default function WritePost() {
         </View>
       </View>
 
-      <Popup
+      <AlertPopup
+        title="게시글 작성을 취소하시겠어요?"
+        description="지금 나가면 작성 중인 게시글이 삭제됩니다."
         visible={showExitPopup}
         onCancel={() => setShowExitPopup(false)}
         onConfirm={() => {
           setShowExitPopup(false);
           router.back();
         }}
+        cancelText="계속 작성"
+        confirmText="나가기"
+      />
+
+      {/* 이미지 삭제 AlertPopup */}
+      <AlertPopup
+        title={DELETE_IMAGE_POPUP.title}
+        description={DELETE_IMAGE_POPUP.description}
+        visible={showDeleteImagePopup}
+        onCancel={() => {
+          setShowDeleteImagePopup(false);
+          setDeleteImageInfo(null);
+        }}
+        onConfirm={() => {
+          if (deleteImageInfo) {
+            if (deleteImageInfo.type === "existing") {
+              setRemovedExistingImageIdxs((prev) => [
+                ...prev,
+                deleteImageInfo.idx,
+              ]);
+            } else if (deleteImageInfo.type === "new") {
+              setNewImages((prev) =>
+                prev.filter((_, i) => i !== deleteImageInfo.idx),
+              );
+              setImageSizes((prev) =>
+                prev.filter((_, i) => i !== deleteImageInfo.idx),
+              );
+            }
+          }
+          setShowDeleteImagePopup(false);
+          setDeleteImageInfo(null);
+        }}
+        cancelText={DELETE_IMAGE_POPUP.cancelText}
+        confirmText={DELETE_IMAGE_POPUP.confirmText}
+        // confirmColor intentionally omitted to use default
       />
     </KeyboardAvoidingView>
   );

@@ -13,16 +13,20 @@ import User from "../assets/images/avatar.svg";
 import HeartFilled from "../assets/images/heart-filled.svg";
 import Heart from "../assets/images/lineheart.svg";
 import Message from "../assets/images/message.svg";
+import { usePost } from "../src/hooks/usePost";
 import { useIsPostLiked, usePostWish } from "../src/hooks/useWish";
+import { resolveImageUri } from "../src/utils/image";
 import ActionPopup from "./actionpopup";
 
 interface MockPostProps {
   showBadge?: boolean;
   badge?: string;
   author?: string;
+  authorImage?: string;
   title?: string;
   content?: string;
   image?: string;
+  images?: string[];
   likedPostId?: number | string;
   likeCount?: number;
   commentCount?: number;
@@ -39,9 +43,11 @@ export default function Post({
   showBadge = true,
   badge = "비공개",
   author = "화여니",
+  authorImage,
   title = "오늘의 메뉴!",
   content = "오늘 식당 메뉴 최고네요! 넘 맛있어요!",
   image,
+  images,
   likedPostId,
   likeCount = 0,
   commentCount = 0,
@@ -55,21 +61,57 @@ export default function Post({
 }: MockPostProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [suppressCardPress, setSuppressCardPress] = useState(false);
+  const [imageIndex, setImageIndex] = useState(0);
   const [isImageLoadFailed, setIsImageLoadFailed] = useState(false);
   const isLiked = useIsPostLiked(likedPostId);
   const { mutate: postWish, isPending: isPostWishPending } = usePostWish();
 
-  const trimmedImage = image?.trim();
+  const hasIncomingImages =
+    (Array.isArray(images) && images.length > 0) ||
+    (typeof image === "string" && image.trim().length > 0);
+  const shouldFetchFallbackImages =
+    !hasIncomingImages &&
+    likedPostId !== undefined &&
+    likedPostId !== null &&
+    String(likedPostId).trim().length > 0;
+  const { data: fallbackPost } = usePost(
+    shouldFetchFallbackImages ? likedPostId : undefined,
+  );
+
+  const fallbackImages =
+    Array.isArray(fallbackPost?.imageUrls) && fallbackPost.imageUrls.length > 0
+      ? fallbackPost.imageUrls
+      : [];
+
+  const candidateImageUris = [
+    ...(Array.isArray(images)
+      ? images.filter(
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
+        )
+      : []),
+    ...fallbackImages,
+    ...(typeof image === "string" && image.trim().length > 0 ? [image] : []),
+  ].map((value) => value.trim());
+  const candidateImageKey = candidateImageUris.join("|");
+
+  const currentImage = candidateImageUris[imageIndex];
+  const trimmedImage = currentImage?.trim();
+  const trimmedAuthorImage = authorImage?.trim();
   const normalizedImageUri = trimmedImage
-    ? trimmedImage.startsWith("http") || trimmedImage.startsWith("data:image")
-      ? trimmedImage
-      : `data:image/jpeg;base64,${trimmedImage}`
+    ? resolveImageUri(trimmedImage)
+    : null;
+  const normalizedAuthorImageUri = trimmedAuthorImage
+    ? resolveImageUri(trimmedAuthorImage)
     : null;
   const hasImage = Boolean(normalizedImageUri);
+  const hasAuthorImage = Boolean(normalizedAuthorImageUri);
 
   useEffect(() => {
+    setImageIndex(0);
     setIsImageLoadFailed(false);
-  }, [trimmedImage]);
+  }, [candidateImageKey]);
 
   const handleMenuPress = (event: GestureResponderEvent) => {
     const { pageX, pageY } = event.nativeEvent;
@@ -87,8 +129,30 @@ export default function Post({
       top: pageY + 8,
       left: clampedLeft,
     });
+    setSuppressCardPress(true);
     setShowMenu(true);
     onMenuPress?.();
+  };
+
+  const handleCardPress = () => {
+    if (!onPress) {
+      return;
+    }
+
+    if (showMenu || suppressCardPress) {
+      return;
+    }
+
+    onPress();
+  };
+
+  const runMenuAction = (action?: () => void) => {
+    setSuppressCardPress(true);
+    action?.();
+    setShowMenu(false);
+    setTimeout(() => {
+      setSuppressCardPress(false);
+    }, 250);
   };
 
   const handleLikePress = () => {
@@ -101,14 +165,14 @@ export default function Post({
 
   return (
     <TouchableOpacity
-      activeOpacity={onPress ? 0.7 : 1}
-      onPress={onPress}
+      activeOpacity={onPress && !showMenu ? 0.7 : 1}
+      onPress={handleCardPress}
       className="self-stretch py-4 bg-white border-b border-gray-100 flex flex-col justify-start items-start"
     >
       <View className="self-stretch flex flex-col justify-start items-start gap-2">
         {/* 배지 */}
         {showBadge && (
-          <View className="px-2.5 py-0.5 bg-gray-200 rounded-md justify-center items-center">
+          <View className="px-2.5 py-0.5 bg-gray-200 rounded-[7px] justify-center items-center">
             <Text className="text-gray-500 text-xs font-semibold leading-5">
               {badge}
             </Text>
@@ -118,7 +182,14 @@ export default function Post({
         {/* 작성자 */}
         <View className="self-stretch flex-row justify-start items-start gap-2">
           <View className="flex-1 flex-row items-center gap-2">
-            <User width="30px" height="30px" />
+            {hasAuthorImage ? (
+              <Image
+                source={{ uri: normalizedAuthorImageUri }}
+                className="w-[30px] h-[30px] rounded-full bg-slate-100"
+              />
+            ) : (
+              <User width="30px" height="30px" />
+            )}
             <Text className="text-gray-700 text-base font-semibold leading-6">
               {author}
             </Text>
@@ -158,7 +229,14 @@ export default function Post({
               <Image
                 source={{ uri: normalizedImageUri }}
                 className="w-[68px] h-[68px] rounded-md bg-slate-100"
-                onError={() => setIsImageLoadFailed(true)}
+                onError={() => {
+                  if (imageIndex < candidateImageUris.length - 1) {
+                    setImageIndex((prev) => prev + 1);
+                    return;
+                  }
+
+                  setIsImageLoadFailed(true);
+                }}
               />
             )
           ) : null}
@@ -224,16 +302,14 @@ export default function Post({
                           label: "수정하기",
                           color: "text-gray-800",
                           onPress: () => {
-                            onEditPress?.();
-                            setShowMenu(false);
+                            runMenuAction(onEditPress);
                           },
                         },
                         {
                           label: "삭제하기",
                           color: "text-red-700",
                           onPress: () => {
-                            onDeletePress?.();
-                            setShowMenu(false);
+                            runMenuAction(onDeletePress);
                           },
                         },
                       ]
@@ -242,8 +318,7 @@ export default function Post({
                           label: "신고하기",
                           color: "text-gray-800",
                           onPress: () => {
-                            onReportPress?.();
-                            setShowMenu(false);
+                            runMenuAction(onReportPress);
                           },
                         },
                       ]

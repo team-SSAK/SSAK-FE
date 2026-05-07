@@ -1,9 +1,11 @@
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
+
 import {
   getCoupons,
   postCouponWish,
@@ -17,6 +19,7 @@ interface CouponCardProps {
   used?: boolean;
   image?: string;
   onToggle?: () => void;
+  onPress?: () => void;
 }
 
 const CouponCard = ({
@@ -27,15 +30,24 @@ const CouponCard = ({
   used = false,
   image,
   onToggle,
+  onPress,
 }: CouponCardProps) => {
   return (
-    <View className="flex-col gap-2.5 w-full">
-      <View className="w-full aspect-square p-1 rounded-md bg-slate-100 justify-end items-end">
+    <TouchableOpacity
+      className="flex-col gap-2.5 w-full"
+      activeOpacity={0.9}
+      onPress={onPress}
+    >
+      <View
+        className="relative w-full rounded-md bg-slate-100 overflow-hidden"
+        style={{ aspectRatio: 1 }}
+      >
         {image ? (
           <Image
-            source={{ uri: image }}
-            className="absolute inset-0 w-full h-full rounded-md"
-            resizeMode="cover"
+            source={image}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            contentPosition="center"
           />
         ) : null}
 
@@ -50,7 +62,10 @@ const CouponCard = ({
         )}
 
         {!used && (
-          <TouchableOpacity className="m-3.5" onPress={onToggle}>
+          <TouchableOpacity
+            className="absolute right-3.5 bottom-3.5"
+            onPress={onToggle}
+          >
             {selected ? <HeartFilled /> : <Heart />}
           </TouchableOpacity>
         )}
@@ -61,7 +76,7 @@ const CouponCard = ({
           {storeName}
         </Text>
         <Text
-          className="text-slate-500 text-sm font-semibold leading-6"
+          className="text-slate-500 text-sm font-semibold leading-6 h-12"
           numberOfLines={2}
         >
           {title}
@@ -70,7 +85,7 @@ const CouponCard = ({
           {price}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -187,39 +202,28 @@ export default function Coupon() {
 
   useEffect(() => {
     const fetchCoupons = async () => {
+      if (activeTab === "찜한 쿠폰") {
+        return;
+      }
+
       try {
-        if (activeTab === "사용 가능") {
-          const data = await getCoupons("ISSUED");
-          console.log("API 응답:", data);
-          const transformed = data.map((item: any) => ({
-            id: item.couponHistId,
-            used: false,
-            storeName: item.couponStore,
-            title: item.couponNm,
-            price: item.couponPoint + "P",
-            image: item.couponImgUrl,
-          }));
-          setCoupons(transformed);
-          setAllCoupons(transformed);
-        } else if (activeTab === "사용 완료") {
-          const data = await getCoupons("USED");
-          console.log("API 응답:", data);
-          const transformed = data.map((item: any) => ({
-            id: item.couponHistId,
-            used: true,
-            storeName: item.couponStore,
-            title: item.couponNm,
-            price: item.couponPoint + "P",
-            image: item.couponImgUrl,
-          }));
-          setCoupons(transformed);
-          setAllCoupons(transformed);
-        } else if (activeTab === "찜한 쿠폰") {
-          // 찜한 쿠폰은 선택된 쿠폰들
-          setCoupons(
-            allCoupons.filter((coupon) => !!selectedCoupons[coupon.id]),
-          );
-        }
+        const used = activeTab === "사용 완료";
+        const option = used ? "USED" : "ISSUED";
+        const data = await getCoupons(option);
+
+        console.log("API 응답:", data);
+
+        const transformed = data.map((item: any) => ({
+          id: item.couponHistId,
+          used,
+          storeName: item.couponStore,
+          title: item.couponNm,
+          price: item.couponPoint + "P",
+          image: item.couponImgUrl,
+        }));
+
+        setCoupons(transformed);
+        setAllCoupons(transformed);
       } catch (error) {
         console.error("쿠폰 로딩 실패:", error);
         setCoupons([]);
@@ -227,7 +231,15 @@ export default function Coupon() {
     };
 
     fetchCoupons();
-  }, [activeTab, selectedCoupons, allCoupons]);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "찜한 쿠폰") {
+      return;
+    }
+
+    setCoupons(allCoupons.filter((coupon) => !!selectedCoupons[coupon.id]));
+  }, [activeTab, allCoupons, selectedCoupons]);
 
   const toggle = async (id: number) => {
     const isCurrentlySelected = !!selectedCoupons[id];
@@ -266,9 +278,9 @@ export default function Coupon() {
             </Text>
           </View>
         ) : (
-          <View className="flex-row flex-wrap gap-x-[14px] gap-y-[18px]">
+          <View className="flex-row flex-wrap justify-between gap-y-[18px]">
             {coupons.map((coupon) => (
-              <View key={coupon.id} className="w-[calc(50%-7px)]">
+              <View key={coupon.id} className="w-[48%]">
                 <CouponCard
                   storeName={coupon.storeName}
                   title={coupon.title}
@@ -277,6 +289,18 @@ export default function Coupon() {
                   selected={!!selectedCoupons[coupon.id]}
                   image={coupon.image}
                   onToggle={() => toggle(coupon.id)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/store/mycoupon",
+                      params: {
+                        couponId: String(coupon.id),
+                        storeName: coupon.storeName,
+                        title: coupon.title,
+                        price: coupon.price,
+                        image: coupon.image ?? "",
+                      },
+                    })
+                  }
                 />
               </View>
             ))}

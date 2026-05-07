@@ -1,9 +1,8 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { Linking, Modal, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronRightG from "../../assets/images/chevron-right-darkgray.svg";
-import { useLogout } from "../../src/hooks/useLogout";
 import { useMe } from "../../src/hooks/useMe";
 
 function Popup({
@@ -58,10 +57,7 @@ function Popup({
 
 export default function Setting() {
   const [logoutVisible, setLogoutVisible] = useState(false);
-
-  const { me, isLoading } = useMe();
-
-  const { mutate: logout, isPending } = useLogout();
+  const { me } = useMe();
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -82,10 +78,10 @@ export default function Setting() {
               이메일
             </Text>
             <Text className="text-gray-700 font-medium leading-6">
-              {isLoading ? "로딩 중..." : (me?.userEmail ?? "")}
+              {me?.userEmail ?? ""}
             </Text>
           </View>
-          {/*알림 설정*/}
+          {/*알림 설정
           <TouchableOpacity
             onPress={() => router.push("/mypage/notification")}
             className="flex flex-row justify-between py-3.5 px-[19] bg-gray-50 rounded-lg"
@@ -95,12 +91,25 @@ export default function Setting() {
             </Text>
             <ChevronRightG />
           </TouchableOpacity>
+          */}
 
           <View className="bg-gray-50 rounded-lg overflow-hidden">
             {/*이용약관*/}
-            <TouchableOpacity className="flex flex-row px-4 py-3.5 border-b border-white inline-flex justify-between items-center gap-2.5">
+            <TouchableOpacity
+              onPress={() => router.push("/auth/terms")}
+              className="flex flex-row px-4 py-3.5 border-b border-white inline-flex justify-between items-center gap-2.5"
+            >
               <Text className="text-gray-700 font-medium leading-6">
-                이용약관
+                전체 이용약관
+              </Text>
+              <ChevronRightG />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/mypage/termspoint")}
+              className="flex flex-row px-4 py-3.5 border-b border-white inline-flex justify-between items-center gap-2.5"
+            >
+              <Text className="text-gray-700 font-medium leading-6">
+                포인트 및 쿠폰 이용약관
               </Text>
               <ChevronRightG />
             </TouchableOpacity>
@@ -113,7 +122,12 @@ export default function Setting() {
               <ChevronRightG />
             </TouchableOpacity>
             {/*1:1 문의하기*/}
-            <TouchableOpacity className="flex flex-row px-4 py-3.5 inline-flex justify-between items-center gap-2.5">
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL("https://open.kakao.com/o/sBvSiDsi")
+              }
+              className="flex flex-row px-4 py-3.5 inline-flex justify-between items-center gap-2.5"
+            >
               <Text className="text-gray-700 font-medium leading-6">
                 1:1 문의하기
               </Text>
@@ -148,18 +162,8 @@ export default function Setting() {
         description="로그아웃 하시겠습니까?"
         onCancel={() => setLogoutVisible(false)}
         onConfirm={() => {
-          logout(undefined, {
-            onSuccess: () => {
-              setLogoutVisible(false);
-
-              // 로그인 화면으로 이동
-              router.replace("/auth/landing");
-            },
-            onError: (error) => {
-              console.error("로그아웃 실패:", error);
-              setLogoutVisible(false);
-            },
-          });
+          setLogoutVisible(false);
+          router.replace("/auth/landing");
         }}
       />
     </View>

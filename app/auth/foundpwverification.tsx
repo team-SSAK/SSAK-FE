@@ -4,7 +4,6 @@ import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import TextInput from "../../components/input/textinput";
 import StepIndicator from "../../components/stepindicator";
-import { useVerifyEmail } from "../../src/hooks/useVerifyEmail";
 
 export default function FoundPWVerification() {
   /* -----------------------------
@@ -14,43 +13,6 @@ export default function FoundPWVerification() {
   const email = typeof params.email === "string" ? params.email : "";
 
   const [verificationCode, setVerificationCode] = useState("");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const { mutate: verifyEmail, isPending } = useVerifyEmail();
-
-  const isButtonEnabled = verificationCode.length > 0 && !isPending;
-
-  /* -----------------------------
-     인증 요청
-  ----------------------------- */
-  const onVerify = () => {
-    if (!email) return;
-
-    setErrorMsg(null);
-
-    verifyEmail(
-      {
-        email,
-        code: verificationCode,
-        type: "PASSWORD_RESET",
-      },
-      {
-        onSuccess: () => {
-          router.push({
-            pathname: "/auth/foundpwpw",
-            params: { email },
-          });
-        },
-        onError: (err: any) => {
-          const msg =
-            err?.response?.data?.message ||
-            err?.message ||
-            "인증에 실패했습니다.";
-          setErrorMsg(msg);
-        },
-      },
-    );
-  };
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -77,8 +39,6 @@ export default function FoundPWVerification() {
           }
           value={verificationCode}
         />
-
-        {errorMsg && <Text className="text-red-600 mt-2">{errorMsg}</Text>}
       </View>
 
       <View className="w-full flex-row gap-2.5 px-4 py-2.5">
@@ -90,17 +50,15 @@ export default function FoundPWVerification() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          disabled={!isButtonEnabled}
-          onPress={onVerify}
-          className="flex-1 h-[52px] rounded-xl items-center justify-center"
-          style={{
-            backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
-            opacity: isButtonEnabled ? 1 : 0.5,
-          }}
+          onPress={() =>
+            router.push({
+              pathname: "/auth/foundpwpw",
+              params: { email: email || "test@test.com" },
+            })
+          }
+          className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
         >
-          <Text className="text-white text-lg font-medium">
-            {isPending ? "확인 중..." : "다음"}
-          </Text>
+          <Text className="text-white text-lg font-medium">다음</Text>
         </TouchableOpacity>
       </View>
     </View>

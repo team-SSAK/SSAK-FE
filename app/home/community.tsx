@@ -15,6 +15,8 @@ import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ActionPopup from "@/components/actionpopup";
 import Post from "@/components/post";
 import SearchInput from "@/components/searchinput";
+import AlertPopup from "../../components/alertpopup";
+import AlertPopupRadio from "../../components/alertpopupradio";
 
 import ChevronDown from "../../assets/images/chevron-down.svg";
 
@@ -54,7 +56,7 @@ function Popup({
           <View className="self-stretch flex-row justify-start items-center gap-2">
             <TouchableOpacity
               onPress={onConfirm}
-              className="flex-1 h-10 px-2 py-2 bg-lime-600 rounded-[10px] justify-center items-center"
+              className="flex-1 h-10 px-2 py-2 bg-green-400 rounded-[10px] justify-center items-center"
             >
               <Text className="text-white text-base font-medium leading-6">
                 확인
@@ -80,28 +82,20 @@ export default function Community() {
   const { data: communityPosts = [] } = useCommunity(restaurantId);
   const { mutate: deletePost } = useDeleteCommunity();
   const { mutate: reportPost } = useReport();
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
+  const [pendingDeletePostId, setPendingDeletePostId] = useState<number | null>(
+    null,
+  );
+  const [pendingReportPostId, setPendingReportPostId] = useState<
+    number | string | null
+  >(null);
   const { me } = useMe();
   const [showReportPopup, setShowReportPopup] = useState(false);
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [sortPopupPosition, setSortPopupPosition] = useState({
     top: 0,
     left: 0,
   });
-
-  const isDuplicateReportError = (error: unknown) => {
-    const err = error as {
-      response?: { status?: number; data?: { message?: string } };
-      message?: string;
-    };
-
-    const responseMessage = err.response?.data?.message ?? "";
-    const fallbackMessage = err.message ?? "";
-
-    return (
-      err.response?.status === 409 ||
-      responseMessage.includes("이미 신고") ||
-      fallbackMessage.includes("이미 신고")
-    );
-  };
 
   const formatPostDate = (isoDate: string) => {
     const date = new Date(isoDate);
@@ -205,6 +199,11 @@ export default function Community() {
     setShowSortPopup(false);
   };
 
+  const getAuthorDisplayName = (nickname: string) => {
+    const trimmed = nickname.trim();
+    return trimmed.length > 0 ? trimmed : "탈퇴한 사용자";
+  };
+
   return (
     <View className="flex-1 bg-white">
       <ScrollView
@@ -280,14 +279,14 @@ export default function Community() {
         </View>
 
         <View className="flex flex-row justify-between items-center">
-          <Text className="text-gray-500 font-semibold leading-6">
+          <Text className="text-base text-gray-500 font-semibold leading-6">
             전체 {sortedPosts.length}
           </Text>
           <TouchableOpacity
             onPress={onOpenSortPopup}
             className="flex flex-row gap-0.5 items-center"
           >
-            <Text className="text-gray-500 font-semibold leading-6">
+            <Text className="text-base text-gray-500 font-semibold leading-6">
               {sortLabel}
             </Text>
             <ChevronDown width="18px" height="18px" />
@@ -299,9 +298,11 @@ export default function Community() {
             key={post.postId}
             showBadge={!post.postVisibility}
             badge="비공개"
-            author={post.nickname}
+            author={getAuthorDisplayName(post.nickname)}
+            authorImage={post.authorProfileImg ?? undefined}
             title={post.postTitle}
             content={post.postContent}
+            images={post.imageUrls}
             image={post.imageUrls?.[0]}
             likedPostId={post.postId}
             likeCount={post.postLikeCnt}
@@ -309,11 +310,8 @@ export default function Community() {
             date={formatPostDate(post.postCreateTime)}
             isMine={post.nickname.trim() === (me?.userNm ?? "").trim()}
             onDeletePress={() => {
-              if (!restaurantId) return;
-              deletePost({
-                postId: post.postId,
-                restaurantId,
-              });
+              setShowDeletePopup(true);
+              setPendingDeletePostId(post.postId);
             }}
             onEditPress={() => {
               router.push({
@@ -329,19 +327,8 @@ export default function Community() {
               });
             }}
             onReportPress={() => {
-              reportPost(
-                {
-                  postId: post.postId,
-                  reportContent: post.postContent,
-                },
-                {
-                  onError: (error) => {
-                    if (isDuplicateReportError(error)) {
-                      setShowReportPopup(true);
-                    }
-                  },
-                },
-              );
+              setPendingReportPostId(post.postId);
+              setShowReportPopup(true);
             }}
             onPress={() =>
               router.push({
@@ -352,6 +339,7 @@ export default function Community() {
                   postTitle: post.postTitle ?? "",
                   postContent: post.postContent,
                   nickname: post.nickname,
+                  authorProfileImg: post.authorProfileImg ?? "",
                   postCreateTime: post.postCreateTime,
                   postLikeCnt: String(post.postLikeCnt),
                   postCommentCnt: String(post.postCommentCnt),
@@ -362,6 +350,28 @@ export default function Community() {
             }
           />
         ))}
+        {showDeletePopup && (
+          <AlertPopup
+            visible={showDeletePopup}
+            title="글을 삭제하시겠습니까?"
+            description="삭제한 글은 복구할 수 없습니다"
+            onCancel={() => {
+              setShowDeletePopup(false);
+              setPendingDeletePostId(null);
+            }}
+            onConfirm={() => {
+              setShowDeletePopup(false);
+              if (!pendingDeletePostId || !restaurantId) return;
+              deletePost({
+                postId: pendingDeletePostId,
+                restaurantId,
+              });
+              setPendingDeletePostId(null);
+            }}
+            cancelText="취소"
+            confirmText="확인"
+          />
+        )}
       </ScrollView>
 
       <Modal
@@ -408,9 +418,43 @@ export default function Community() {
         </Pressable>
       </Modal>
 
-      <Popup
+      <AlertPopupRadio
         visible={showReportPopup}
-        onConfirm={() => setShowReportPopup(false)}
+        title="신고 사유를 선택해주세요"
+        onCancel={() => {
+          setShowReportPopup(false);
+          setPendingReportPostId(null);
+        }}
+        onConfirm={() => {
+          if (!pendingReportPostId) {
+            setShowReportPopup(false);
+            return;
+          }
+
+          setShowReportPopup(false);
+          reportPost(
+            {
+              postId: pendingReportPostId,
+              reportContent: "string",
+            },
+            {
+              onSuccess: () => {
+                setShowReportConfirm(true);
+                setPendingReportPostId(null);
+              },
+              onError: () => {
+                setPendingReportPostId(null);
+              },
+            },
+          );
+        }}
+      />
+
+      <Popup
+        visible={showReportConfirm}
+        title="신고가 완료되었습니다"
+        description="빠르게 검토 후 조치하겠습니다"
+        onConfirm={() => setShowReportConfirm(false)}
       />
 
       {/* 하단 그라디언트 */}

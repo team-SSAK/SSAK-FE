@@ -3,14 +3,14 @@ import client from "../../lib/api/client";
 /**
  * 쿠폰 상태
  */
-export type CouponOption = "ISSUED" | "USED";
+export type CouponOption = "ISSUED" | "USED" | "EXPIRED";
 
 /**
  * 쿠폰 조회 API
  *
- * GET /api/coupons?option=ISSUED
+ * GET /api/coupons/my?option=ISSUED
  */
-export const getCoupons = async (option: CouponOption) => {
+export const getCoupons = async (option: CouponOption = "ISSUED") => {
   const res = await client.get("/api/coupons/my", {
     params: { option },
   });

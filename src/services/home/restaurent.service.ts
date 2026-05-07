@@ -9,6 +9,23 @@ export const getRestaurant = async () => {
 };
 
 /**
+ * 식당 상세 조회 API (좌표 포함)
+ */
+export const getRestaurantById = async (restaurantId: number) => {
+  const res = await client.get(`/api/restaurants/${restaurantId}`);
+  return res.data;
+};
+
+/**
+ * 식당 메뉴 조회 API
+ * GET /api/restaurants/{restaurantId}/menu
+ */
+export const getRestaurantMenuById = async (restaurantId: number) => {
+  const res = await client.get(`/api/restaurants/${restaurantId}/menu`);
+  return res.data;
+};
+
+/**
  * 식당 찜하기 API
  *
  * POST /api/restaurants/wish

@@ -84,7 +84,7 @@ export default function ReplyInput({
           onPress={onSubmit}
           className="w-6 h-6 justify-center items-center"
         >
-          <Send width="16px" height="16px" />
+          <Send />
         </TouchableOpacity>
       </View>
     </View>

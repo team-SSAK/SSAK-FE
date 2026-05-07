@@ -4,6 +4,11 @@ import { Platform } from "react-native";
 const ACCESS_TOKEN_KEY = "ACCESS_TOKEN";
 const REFRESH_TOKEN_KEY = "REFRESH_TOKEN";
 const LIKED_POST_IDS_KEY = "LIKED_POST_IDS";
+const LIKED_COMMENT_IDS_KEY = "LIKED_COMMENT_IDS";
+const WISHED_COUPON_IDS_KEY = "WISHED_COUPON_IDS";
+const OWNER_SIGNUP_CLICKED_KEY = "OWNER_SIGNUP_CLICKED";
+const SOCIAL_LOGIN_PENDING_KEY = "SOCIAL_LOGIN_PENDING";
+const CAMERA_GUIDE_SKIP_KEY = "CAMERA_GUIDE_SKIP";
 
 // Expo Go/RN 환경에서는 window가 있어도 web이 아닐 수 있으므로 Platform 기준으로 분기한다.
 const isWeb = Platform.OS === "web";
@@ -105,6 +110,9 @@ export const clearAll = async () => {
   await deleteAccessToken();
   await deleteRefreshToken();
   await deleteItem(LIKED_POST_IDS_KEY);
+  await deleteItem(LIKED_COMMENT_IDS_KEY);
+  await deleteItem(WISHED_COUPON_IDS_KEY);
+  await deleteItem(CAMERA_GUIDE_SKIP_KEY);
 };
 
 export const getLikedPostIds = async (): Promise<string[]> => {
@@ -117,3 +125,82 @@ export const getLikedPostIds = async (): Promise<string[]> => {
 
 export const setLikedPostIds = async (postIds: string[]) =>
   await setJsonItem(LIKED_POST_IDS_KEY, postIds);
+
+export const getLikedCommentIds = async (): Promise<string[]> => {
+  const value = await getJsonItem<unknown>(LIKED_COMMENT_IDS_KEY, []);
+
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+};
+
+export const setLikedCommentIds = async (commentIds: string[]) =>
+  await setJsonItem(LIKED_COMMENT_IDS_KEY, commentIds);
+
+export const getWishedCouponIds = async (): Promise<number[]> => {
+  const value = await getJsonItem<unknown>(WISHED_COUPON_IDS_KEY, []);
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const ids = value
+    .map((item) => (typeof item === "number" ? item : Number(item)))
+    .filter((item) => Number.isFinite(item) && item > 0);
+
+  return Array.from(new Set(ids));
+};
+
+export const setWishedCouponIds = async (couponIds: number[]) => {
+  const deduplicated = Array.from(
+    new Set(couponIds.filter((item) => Number.isFinite(item) && item > 0)),
+  );
+
+  await setJsonItem(WISHED_COUPON_IDS_KEY, deduplicated);
+};
+
+export const addWishedCouponId = async (couponId: number) => {
+  const ids = await getWishedCouponIds();
+
+  if (!ids.includes(couponId)) {
+    ids.push(couponId);
+    await setWishedCouponIds(ids);
+  }
+};
+
+export const removeWishedCouponId = async (couponId: number) => {
+  const ids = await getWishedCouponIds();
+  await setWishedCouponIds(ids.filter((id) => id !== couponId));
+};
+
+export const getOwnerSignupClicked = async (): Promise<boolean> => {
+  const value = await getItem(OWNER_SIGNUP_CLICKED_KEY);
+  return value === "true";
+};
+
+export const setOwnerSignupClicked = async (clicked: boolean) =>
+  await setItem(OWNER_SIGNUP_CLICKED_KEY, clicked ? "true" : "false");
+
+export const getCameraGuideSkip = async (): Promise<boolean> => {
+  const value = await getItem(CAMERA_GUIDE_SKIP_KEY);
+  return value === "true";
+};
+
+export const setCameraGuideSkip = async (skip: boolean) =>
+  await setItem(CAMERA_GUIDE_SKIP_KEY, skip ? "true" : "false");
+
+export const clearOwnerSignupClicked = async () =>
+  await deleteItem(OWNER_SIGNUP_CLICKED_KEY);
+
+export const getSocialLoginPending = async (): Promise<boolean> => {
+  const value = await getItem(SOCIAL_LOGIN_PENDING_KEY);
+  return value === "true";
+};
+
+export const setSocialLoginPending = async (pending: boolean) =>
+  await setItem(SOCIAL_LOGIN_PENDING_KEY, pending ? "true" : "false");
+
+export const clearSocialLoginPending = async () =>
+  await deleteItem(SOCIAL_LOGIN_PENDING_KEY);
+
+export { deleteItem, getItem, setItem };

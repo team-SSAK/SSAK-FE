@@ -64,7 +64,7 @@ export function useCoupons(status: CouponOption = "ISSUED") {
     }
   };
 
-  return { coupons, loading, addWish };
+  return { coupons, loading, isLoading: loading, addWish };
 }
 
 export function useCouponWishes() {

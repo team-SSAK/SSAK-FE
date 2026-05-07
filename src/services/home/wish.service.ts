@@ -13,3 +13,17 @@ export const postPostWish = async (likedPostId: number | string) => {
 
   return res.data;
 };
+
+export const postCommentWish = async (likedCommentId: number | string) => {
+  const normalizedCommentId = String(likedCommentId).trim();
+
+  if (!normalizedCommentId) {
+    throw new Error("likedCommentId is required");
+  }
+
+  const res = await client.post("/api/community/comment/wish", {
+    likedCommentId: Number(normalizedCommentId),
+  });
+
+  return res.data;
+};

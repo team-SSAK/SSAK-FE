@@ -1,10 +1,30 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  Linking,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import ChevronDown from "../../assets/images/chevron-down.svg";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronUp from "../../assets/images/chevron-up.svg";
 import SearchInput from "../../components/searchinput";
+
+const KAKAO_URL = "https://open.kakao.com/o/sBvSiDsi";
+
+function ContactLink({
+  className = "text-gray-600 font-medium underline leading-6",
+}: {
+  className?: string;
+}) {
+  return (
+    <TouchableOpacity onPress={() => Linking.openURL(KAKAO_URL)}>
+      <Text className={className}>Seeders Lab에 직접 문의하기</Text>
+    </TouchableOpacity>
+  );
+}
 
 type FAQItem = {
   id: string;
@@ -34,9 +54,7 @@ const faqData: FAQCategory[] = [
               Lab으로 문의해 주세요.{"\n"}
               {"\n"}
             </Text>
-            <Text className="text-gray-600 font-medium underline leading-6">
-              Seeders Lab에 직접 문의하기
-            </Text>
+            <ContactLink />
           </>
         ),
       },
@@ -53,9 +71,7 @@ const faqData: FAQCategory[] = [
               재실행하거나 Seeders Lab으로 문의해 주세요.{"\n"}
               {"\n"}
             </Text>
-            <Text className="text-gray-600 font-medium underline leading-6">
-              Seeders Lab에 직접 문의하기
-            </Text>
+            <ContactLink />
           </>
         ),
       },
@@ -73,9 +89,7 @@ const faqData: FAQCategory[] = [
               문의해 주시면 확인 후 안내해 드리겠습니다.{"\n"}
               {"\n"}
             </Text>
-            <Text className="text-gray-600 font-medium underline leading-6">
-              Seeders Lab에 직접 문의하기
-            </Text>
+            <ContactLink />
           </>
         ),
       },
@@ -102,9 +116,7 @@ const faqData: FAQCategory[] = [
               문의해 주세요.{"\n"}
               {"\n"}
             </Text>
-            <Text className="text-gray-600 font-medium underline leading-6">
-              Seeders Lab에 직접 문의하기
-            </Text>
+            <ContactLink />
           </>
         ),
       },
@@ -126,9 +138,7 @@ const faqData: FAQCategory[] = [
               한 후 다시 확인해주세요.{"\n"}
               {"\n"}
             </Text>
-            <Text className="text-gray-600 font-medium underline leading-6">
-              Seeders Lab에 직접 문의하기
-            </Text>
+            <ContactLink />
           </>
         ),
       },
@@ -145,9 +155,7 @@ const faqData: FAQCategory[] = [
               앱을 새로고침하거나 재실행한 뒤 다시 확인해주세요.{"\n"}
               {"\n"}
             </Text>
-            <Text className="text-gray-600 font-medium underline leading-6">
-              Seeders Lab에 직접 문의하기
-            </Text>
+            <ContactLink />
           </>
         ),
       },
@@ -170,9 +178,7 @@ const faqData: FAQCategory[] = [
               주세요.{"\n"}
               {"\n"}
             </Text>
-            <Text className="text-gray-600 font-medium underline leading-6">
-              Seeders Lab에 직접 문의하기
-            </Text>
+            <ContactLink />
           </>
         ),
       },
@@ -258,16 +264,15 @@ export default function FAQ() {
                 </View>
               );
             })}
-            <View className="h-[84px]" />
+            {/* 카테고리 간 간격 */}
+            <View className="h-[30px]" />
           </View>
         ))}
         <View className="flex flex-col gap-[5px] mt-20 items-center">
           <Text className="text-gray-800 font-semibold leading-6">
             도움말을 통해 문제를 해결하지 못하셨나요?
           </Text>
-          <Text className="text-center text-gray-500 text-sm font-semibold underline leading-6">
-            Seeders Lab에 직접 문의하기
-          </Text>
+          <ContactLink className="text-center text-gray-500 text-sm font-semibold underline leading-6" />
         </View>
       </ScrollView>
     </View>

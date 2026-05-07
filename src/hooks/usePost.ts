@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getPost, patchPost, postPost } from "../services/home/post.service";
+import { normalizeImageList } from "../utils/image";
 
 export interface CommentItem {
   commentId: number;
@@ -15,12 +16,26 @@ export interface PostDetailItem {
   postContent: string;
   postVisibility?: boolean;
   nickname: string;
+  authorProfileImg?: string | null;
   postCreateTime: string;
   postLikeCnt: number;
   postCommentCnt: number;
   imageUrls?: string[];
   comments?: CommentItem[];
 }
+
+const resolveImageOrNull = (raw: unknown): string | null => {
+  if (typeof raw !== "string") {
+    return null;
+  }
+
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return normalizeImageList([trimmed])[0] ?? null;
+};
 
 const isPostDetailItem = (value: unknown): value is PostDetailItem => {
   if (typeof value !== "object" || value === null) {
@@ -42,15 +57,55 @@ const isPostDetailItem = (value: unknown): value is PostDetailItem => {
 };
 
 const normalizePost = (res: unknown): PostDetailItem | null => {
-  if (isPostDetailItem(res)) {
-    return res;
-  }
+  const source =
+    typeof res === "object" && res !== null
+      ? ((res as { data?: unknown }).data ?? res)
+      : res;
 
-  if (typeof res === "object" && res !== null) {
-    const wrapped = res as { data?: unknown };
+  if (typeof source === "object" && source !== null) {
+    const item = source as Record<string, unknown>;
+    const rawImageList =
+      item.imageUrls ?? item.images ?? item.postImages ?? item.postImgUrls;
+    const singleImage = item.imageUrl ?? item.postImage ?? item.postImgUrl;
+    const rawAuthorProfile =
+      item.authorProfileImg ??
+      item.userProfileImg ??
+      item.profileImg ??
+      item.userProfileImage ??
+      item.profileImage ??
+      item.writerProfileImg;
 
-    if (isPostDetailItem(wrapped.data)) {
-      return wrapped.data;
+    const imageUrls =
+      normalizeImageList(rawImageList).length > 0
+        ? normalizeImageList(rawImageList)
+        : typeof singleImage === "string"
+          ? normalizeImageList([singleImage])
+          : [];
+
+    const normalized: PostDetailItem = {
+      postId: Number(item.postId),
+      postTitle:
+        typeof item.postTitle === "string" ? item.postTitle : undefined,
+      postContent: typeof item.postContent === "string" ? item.postContent : "",
+      postVisibility:
+        typeof item.postVisibility === "boolean"
+          ? item.postVisibility
+          : undefined,
+      nickname: typeof item.nickname === "string" ? item.nickname : "",
+      authorProfileImg: resolveImageOrNull(rawAuthorProfile),
+      postCreateTime:
+        typeof item.postCreateTime === "string" ? item.postCreateTime : "",
+      postLikeCnt: typeof item.postLikeCnt === "number" ? item.postLikeCnt : 0,
+      postCommentCnt:
+        typeof item.postCommentCnt === "number" ? item.postCommentCnt : 0,
+      imageUrls,
+      comments: Array.isArray(item.comments)
+        ? (item.comments as CommentItem[])
+        : undefined,
+    };
+
+    if (isPostDetailItem(normalized)) {
+      return normalized;
     }
   }
 

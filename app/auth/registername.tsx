@@ -1,19 +1,28 @@
 import TextInput from "@/components/input/textinput";
 import StepIndicator from "@/components/stepindicator";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import { getSocialLoginPending } from "../../src/utils/storage";
 
 export default function RegisterName() {
   const [name, setName] = useState("");
+  const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
 
-  const isButtonEnabled = name.length > 0;
-
-  const { email, password } = useLocalSearchParams<{
+  const { email, password, socialLogin } = useLocalSearchParams<{
     email: string;
     password: string;
+    socialLogin?: string;
   }>();
+
+  useEffect(() => {
+    getSocialLoginPending()
+      .then(setIsStoredSocialLogin)
+      .catch(() => setIsStoredSocialLogin(false));
+  }, []);
+
+  const isSocialLogin = socialLogin === "true" || isStoredSocialLogin;
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -51,12 +60,7 @@ export default function RegisterName() {
 
         {/* 다음: flex-1 */}
         <TouchableOpacity
-          disabled={!isButtonEnabled}
-          className="flex-1 h-[52px] rounded-xl items-center justify-center"
-          style={{
-            backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
-            opacity: isButtonEnabled ? 1 : 0.5,
-          }}
+          className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
           onPress={() =>
             router.push({
               pathname: "/auth/registerdone",
@@ -64,6 +68,7 @@ export default function RegisterName() {
                 email,
                 password,
                 name,
+                socialLogin: isSocialLogin ? "true" : undefined,
               },
             })
           }

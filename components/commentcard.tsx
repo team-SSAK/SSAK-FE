@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   GestureResponderEvent,
   Text,
@@ -15,9 +14,11 @@ interface CommentCardProps {
   content?: string;
   likeCount?: number;
   date?: string;
+  isLiked?: boolean;
   isMine?: boolean;
   onMenuPress?: (event: GestureResponderEvent) => void;
   onReplyPress?: () => void;
+  onLikePress?: () => void;
 }
 
 export default function CommentCard({
@@ -25,10 +26,11 @@ export default function CommentCard({
   content = "오늘 식당 메뉴 최고네요!",
   likeCount = 0,
   date = "25.11.14",
+  isLiked = false,
   onMenuPress,
   onReplyPress,
+  onLikePress,
 }: CommentCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
   const displayedLikeCount = likeCount + (isLiked ? 1 : 0);
 
   return (
@@ -72,7 +74,7 @@ export default function CommentCard({
             </TouchableOpacity>
             {/* 좋아요 */}
             <TouchableOpacity
-              onPress={() => setIsLiked((prev) => !prev)}
+              onPress={onLikePress}
               className="flex-row items-center gap-0.5"
               activeOpacity={0.8}
             >
