@@ -34,6 +34,7 @@ export interface StoreCouponDetail {
   couponStore: string;
   couponImgUrl: string;
   couponValidTerm: number;
+  couponWished?: boolean;
 }
 
 /**

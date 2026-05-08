@@ -9,6 +9,7 @@ const WISHED_COUPON_IDS_KEY = "WISHED_COUPON_IDS";
 const OWNER_SIGNUP_CLICKED_KEY = "OWNER_SIGNUP_CLICKED";
 const SOCIAL_LOGIN_PENDING_KEY = "SOCIAL_LOGIN_PENDING";
 const CAMERA_GUIDE_SKIP_KEY = "CAMERA_GUIDE_SKIP";
+const ONBOARDING_COMPLETED_KEY = "ONBOARDING_COMPLETED";
 
 // Expo Go/RN 환경에서는 window가 있어도 web이 아닐 수 있으므로 Platform 기준으로 분기한다.
 const isWeb = Platform.OS === "web";
@@ -191,6 +192,14 @@ export const setCameraGuideSkip = async (skip: boolean) =>
 
 export const clearOwnerSignupClicked = async () =>
   await deleteItem(OWNER_SIGNUP_CLICKED_KEY);
+
+export const getOnboardingCompleted = async (): Promise<boolean> => {
+  const value = await getItem(ONBOARDING_COMPLETED_KEY);
+  return value === "true";
+};
+
+export const setOnboardingCompleted = async (completed: boolean) =>
+  await setItem(ONBOARDING_COMPLETED_KEY, completed ? "true" : "false");
 
 export const getSocialLoginPending = async (): Promise<boolean> => {
   const value = await getItem(SOCIAL_LOGIN_PENDING_KEY);

@@ -132,6 +132,7 @@ interface CouponItem {
   title: string;
   price: string;
   image?: string;
+  wished?: boolean;
 }
 
 {
@@ -199,7 +200,6 @@ export default function Coupon() {
     Record<number, boolean>
   >({});
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
-  const [allCoupons, setAllCoupons] = useState<CouponItem[]>([]); // fallback
 
   useEffect(() => {
     const fetchCoupons = async () => {
@@ -221,10 +221,10 @@ export default function Coupon() {
           title: item.couponNm,
           price: item.couponPoint + "P",
           image: item.couponImgUrl,
+          wished: item.couponWished,
         }));
 
         setCoupons(transformed);
-        setAllCoupons(transformed);
       } catch (error) {
         console.error("쿠폰 로딩 실패:", error);
         setCoupons([]);
@@ -252,6 +252,7 @@ export default function Coupon() {
           title: item.couponNm,
           price: item.couponPoint + "P",
           image: item.couponImgUrl,
+          wished: item.couponWished,
         }));
 
         setCoupons(transformed);
@@ -271,7 +272,9 @@ export default function Coupon() {
   }, [activeTab]);
 
   const toggle = async (id: number) => {
-    const isCurrentlySelected = !!selectedCoupons[id];
+    const fallbackCoupon = coupons.find((coupon) => coupon.id === id);
+    const isCurrentlySelected =
+      selectedCoupons[id] ?? fallbackCoupon?.wished ?? false;
 
     try {
       // 서버가 토글 방식이므로 추가/해제 모두 같은 API 호출
@@ -320,7 +323,9 @@ export default function Coupon() {
                   title={coupon.title}
                   price={coupon.price}
                   used={coupon.used}
-                  selected={!!selectedCoupons[coupon.id]}
+                  selected={
+                    selectedCoupons[coupon.id] ?? coupon.wished ?? false
+                  }
                   image={coupon.image}
                   onToggle={() => toggle(coupon.id)}
                   onPress={() =>

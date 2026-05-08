@@ -122,6 +122,10 @@ const normalizeStoreCouponDetail = (res: unknown): StoreCouponDetail | null => {
     couponImgUrl:
       typeof source.couponImgUrl === "string" ? source.couponImgUrl : "",
     couponValidTerm: Number.isFinite(couponValidTerm) ? couponValidTerm : 0,
+    couponWished:
+      typeof source.couponWished === "boolean"
+        ? source.couponWished
+        : undefined,
   };
 };
 

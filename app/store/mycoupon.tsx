@@ -1,7 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Modal,
   ScrollView,
@@ -170,6 +170,11 @@ export default function Coupon() {
         return;
       }
 
+      if (typeof coupon?.couponWished === "boolean") {
+        setIsWished(coupon.couponWished);
+        return;
+      }
+
       const loadWishedState = async () => {
         try {
           const wishedIds = await getWishedCouponIds();
@@ -180,8 +185,14 @@ export default function Coupon() {
       };
 
       loadWishedState();
-    }, [couponIdValue]),
+    }, [coupon?.couponWished, couponIdValue]),
   );
+
+  useEffect(() => {
+    if (typeof coupon?.couponWished === "boolean") {
+      setIsWished(coupon.couponWished);
+    }
+  }, [coupon?.couponWished]);
 
   const handleToggleWish = async () => {
     const previous = isWished;
@@ -190,21 +201,26 @@ export default function Coupon() {
       return;
     }
 
-    if (previous) {
-      setIsWished(false);
-      await removeWishedCouponId(couponIdValue);
-      return;
-    }
-
-    setIsWished(true);
-    await addWishedCouponId(couponIdValue);
+    setIsWished(!previous);
 
     try {
       await postCouponWish(couponIdValue);
+
+      if (previous) {
+        await removeWishedCouponId(couponIdValue);
+      } else {
+        await addWishedCouponId(couponIdValue);
+      }
     } catch (error) {
       setIsWished(previous);
-      await removeWishedCouponId(couponIdValue);
-      console.error("쿠폰 찜하기 실패:", error);
+
+      if (previous) {
+        await addWishedCouponId(couponIdValue);
+      } else {
+        await removeWishedCouponId(couponIdValue);
+      }
+
+      console.error("쿠폰 찜하기/해제 실패:", error);
     }
   };
 

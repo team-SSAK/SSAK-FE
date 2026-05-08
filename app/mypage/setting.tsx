@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Linking, Modal, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import ChevronRightG from "../../assets/images/chevron-right-darkgray.svg";
+import { useLogout } from "../../src/hooks/useLogout";
 import { useMe } from "../../src/hooks/useMe";
 
 function Popup({
@@ -58,6 +59,7 @@ function Popup({
 export default function Setting() {
   const [logoutVisible, setLogoutVisible] = useState(false);
   const { me } = useMe();
+  const { mutateAsync: logout, isPending: isLoggingOut } = useLogout();
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -161,8 +163,17 @@ export default function Setting() {
         title="로그아웃"
         description="로그아웃 하시겠습니까?"
         onCancel={() => setLogoutVisible(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
+          if (isLoggingOut) {
+            return;
+          }
+
           setLogoutVisible(false);
+          try {
+            await logout();
+          } catch {
+            // 서버 로그아웃 실패 시에도 onSettled에서 로컬 토큰 정리는 수행된다.
+          }
           router.replace("/auth/landing");
         }}
       />

@@ -141,7 +141,9 @@ export default function Main() {
   const previewCoupons = coupons.slice(0, 3);
 
   const toggle = async (id: number) => {
-    const isCurrentlySelected = !!selectedCoupons[id];
+    const fallbackCoupon = coupons.find((coupon) => coupon.id === id);
+    const isCurrentlySelected =
+      selectedCoupons[id] ?? fallbackCoupon?.wished ?? false;
 
     try {
       await postCouponWish(id);
@@ -278,7 +280,9 @@ export default function Main() {
                   title={coupon.title}
                   price={coupon.price}
                   image={coupon.image}
-                  selected={!!selectedCoupons[coupon.id]}
+                  selected={
+                    selectedCoupons[coupon.id] ?? coupon.wished ?? false
+                  }
                   onPress={() =>
                     router.push({
                       pathname: "/store/mycoupon",

@@ -12,6 +12,7 @@ interface CouponApiResponse {
   couponStore: string;
   couponPoint: number;
   couponImgUrl: string;
+  couponWished?: boolean;
 }
 
 export interface CouponItem {
@@ -20,6 +21,7 @@ export interface CouponItem {
   title: string;
   price: string;
   image?: string;
+  wished?: boolean;
 }
 
 export function useCoupons(status: CouponOption = "ISSUED") {
@@ -39,6 +41,7 @@ export function useCoupons(status: CouponOption = "ISSUED") {
             title: item.couponNm,
             price: item.couponPoint + "P",
             image: item.couponImgUrl,
+            wished: item.couponWished,
           }),
         );
 
@@ -84,6 +87,7 @@ export function useCouponWishes() {
             title: item.couponNm,
             price: item.couponPoint + "P",
             image: item.couponImgUrl,
+            wished: item.couponWished,
           }),
         );
 
@@ -111,6 +115,7 @@ export function useCouponWishes() {
         title: item.couponNm,
         price: item.couponPoint + "P",
         image: item.couponImgUrl,
+        wished: item.couponWished,
       }));
 
       setWishCoupons(transformed);

@@ -122,7 +122,7 @@ export default function Post() {
   }>();
   const { data: post } = usePost(postId);
   const { mutate: submitComment, isPending } = usePostComment(postId ?? "");
-  const { mutate: deleteComment } = useDeleteComment();
+  const { mutateAsync: deleteComment } = useDeleteComment();
   const { mutate: patchComment, isPending: isPatchCommentPending } =
     usePatchComment();
   const { mutate: deleteMutate } = useDeleteCommunity();
@@ -445,8 +445,10 @@ export default function Post() {
     setCommentMenuTarget(null);
   };
 
-  const handleCommentDeletePress = () => {
-    const target = commentMenuTarget;
+  const handleCommentDeletePress = async (
+    targetOverride?: CommentMenuTarget | null,
+  ) => {
+    const target = targetOverride ?? commentMenuTarget;
 
     if (!target) {
       setShowCommentMenuPopup(false);
@@ -455,22 +457,21 @@ export default function Post() {
 
     setShowCommentMenuPopup(false);
 
-    deleteComment(
-      {
+    try {
+      await deleteComment({
         commentId: target.commentId,
         postId: post?.postId ?? postId,
-      },
-      {
-        onSuccess: () => {
-          if (editingCommentId === target.commentId) {
-            setEditingCommentId(null);
-            setCommentText("");
-          }
+      });
 
-          setCommentMenuTarget(null);
-        },
-      },
-    );
+      if (editingCommentId === target.commentId) {
+        setEditingCommentId(null);
+        setCommentText("");
+      }
+
+      setCommentMenuTarget(null);
+    } catch (error) {
+      console.log("댓글 삭제 실패", error);
+    }
   };
 
   return (
@@ -810,7 +811,8 @@ export default function Post() {
                         {
                           label: "삭제하기",
                           color: "text-red-700",
-                          onPress: handleCommentDeletePress,
+                          onPress: () =>
+                            handleCommentDeletePress(commentMenuTarget),
                         },
                       ]
                     : [

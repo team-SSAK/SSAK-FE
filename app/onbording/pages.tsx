@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import Logo from "../../assets/images/logo_green.svg";
+import { setOnboardingCompleted } from "../../src/utils/storage";
 
 const ONBOARDING_PAGES = [
   {
@@ -109,7 +110,10 @@ export default function Pages() {
 
       {currentPage === ONBOARDING_PAGES.length - 1 ? (
         <TouchableOpacity
-          onPress={() => router.replace("/auth/landing")}
+          onPress={async () => {
+            await setOnboardingCompleted(true);
+            router.replace("/auth/landing");
+          }}
           className="absolute left-4 right-4 bottom-[56px]"
           activeOpacity={0.8}
         >

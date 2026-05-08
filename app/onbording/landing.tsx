@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Text, View, useWindowDimensions } from "react-native";
 import Logo from "../../assets/images/logo.svg";
+import { getOnboardingCompleted } from "../../src/utils/storage";
 
 import Bapuri from "../../assets/images/bapuri_onbording.svg";
 export default function Landing() {
@@ -9,11 +10,24 @@ export default function Landing() {
   const { width } = useWindowDimensions();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.replace("/onbording/pages");
+    let mounted = true;
+
+    const timer = setTimeout(async () => {
+      const onboardingCompleted = await getOnboardingCompleted();
+
+      if (!mounted) {
+        return;
+      }
+
+      router.replace(
+        onboardingCompleted ? "/auth/landing" : "/onbording/pages",
+      );
     }, 1500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
   }, [router]);
 
   return (
