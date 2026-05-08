@@ -22,6 +22,7 @@ import { useCoupons } from "../../src/hooks/useCoupons";
 import { useMe } from "../../src/hooks/useMe";
 import { usePoint } from "../../src/hooks/usePoint";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
+import { postCouponWish } from "../../src/services/mypage/coupons.service";
 
 //////////////////////////////////////////////////////
 // 쿠폰 카드
@@ -138,6 +139,18 @@ export default function Main() {
     Record<number, boolean>
   >({});
   const previewCoupons = coupons.slice(0, 3);
+
+  const toggle = async (id: number) => {
+    const isCurrentlySelected = !!selectedCoupons[id];
+
+    try {
+      await postCouponWish(id);
+      setSelectedCoupons((prev) => ({ ...prev, [id]: !isCurrentlySelected }));
+    } catch (error) {
+      console.error("쿠폰 찜하기/해제 실패:", error);
+    }
+  };
+
   const resolvedProfileImageUri = (() => {
     const raw = me?.userProfileImg?.trim();
     if (!raw) {
@@ -272,12 +285,7 @@ export default function Main() {
                       params: { couponId: String(coupon.id) },
                     })
                   }
-                  onToggle={() =>
-                    setSelectedCoupons((prev) => ({
-                      ...prev,
-                      [coupon.id]: !prev[coupon.id],
-                    }))
-                  }
+                  onToggle={() => toggle(coupon.id)}
                 />
               ))}
             </ScrollView>

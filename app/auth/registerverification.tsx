@@ -50,7 +50,10 @@ export default function RegisterVerification() {
               params: { email: email || "test@test.com" },
             })
           }
-          className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
+          disabled={verificationCode.length !== 6}
+          className={`flex-1 h-[52px] rounded-xl items-center justify-center ${
+            verificationCode.length === 6 ? "bg-[#45B310]" : "bg-slate-300"
+          }`}
         >
           <Text className="text-white text-lg font-medium">다음</Text>
         </TouchableOpacity>

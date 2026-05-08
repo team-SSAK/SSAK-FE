@@ -8,6 +8,7 @@ import Heart from "../../assets/images/heart.svg";
 
 import {
   getCoupons,
+  getCouponWishes,
   postCouponWish,
 } from "../../src/services/mypage/coupons.service";
 
@@ -238,8 +239,36 @@ export default function Coupon() {
       return;
     }
 
-    setCoupons(allCoupons.filter((coupon) => !!selectedCoupons[coupon.id]));
-  }, [activeTab, allCoupons, selectedCoupons]);
+    const fetchWishedCoupons = async () => {
+      try {
+        const wishData = await getCouponWishes();
+        console.log("찜한 쿠폰 API 응답:", wishData);
+
+        // 찜한 쿠폰 데이터를 CouponItem 형태로 변환
+        const transformed = wishData.map((item: any) => ({
+          id: item.couponHistId,
+          used: false,
+          storeName: item.couponStore,
+          title: item.couponNm,
+          price: item.couponPoint + "P",
+          image: item.couponImgUrl,
+        }));
+
+        setCoupons(transformed);
+
+        // 찜한 쿠폰 ID들을 selectedCoupons에 설정
+        const wishedIds: Record<number, boolean> = {};
+        transformed.forEach((coupon: CouponItem) => {
+          wishedIds[coupon.id] = true;
+        });
+        setSelectedCoupons(wishedIds);
+      } catch (error) {
+        console.error("찜한 쿠폰 로딩 실패:", error);
+      }
+    };
+
+    fetchWishedCoupons();
+  }, [activeTab]);
 
   const toggle = async (id: number) => {
     const isCurrentlySelected = !!selectedCoupons[id];
@@ -250,6 +279,11 @@ export default function Coupon() {
 
       // 성공 시 로컬 상태 토글
       setSelectedCoupons((prev) => ({ ...prev, [id]: !isCurrentlySelected }));
+
+      // "찜한 쿠폰" 탭에서는 찜 해제 시 목록에서 제거
+      if (activeTab === "찜한 쿠폰" && isCurrentlySelected) {
+        setCoupons((prev) => prev.filter((coupon) => coupon.id !== id));
+      }
     } catch (error) {
       console.error("쿠폰 찜하기/해제 실패:", error);
     }

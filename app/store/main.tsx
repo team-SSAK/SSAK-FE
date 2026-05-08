@@ -57,23 +57,21 @@ const CouponCard = ({
   onPress,
 }: CouponCardProps) => {
   return (
-    <TouchableOpacity
-      className="flex-col gap-2.5 w-full"
-      activeOpacity={0.9}
-      onPress={onPress}
-    >
+    <View className="flex-col gap-2.5 w-full">
       <View
         className="relative w-full rounded-md bg-slate-100 overflow-hidden"
         style={{ aspectRatio: 1 }}
       >
-        {image ? (
-          <Image
-            source={image}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-            contentPosition="center"
-          />
-        ) : null}
+        <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
+          {image ? (
+            <Image
+              source={image}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+              contentPosition="center"
+            />
+          ) : null}
+        </TouchableOpacity>
 
         <TouchableOpacity
           className="absolute right-3.5 bottom-3.5"
@@ -83,21 +81,23 @@ const CouponCard = ({
         </TouchableOpacity>
       </View>
 
-      <View className="w-full">
-        <Text className="text-slate-500 text-xs font-semibold leading-5">
-          {storeName}
-        </Text>
-        <Text
-          className="text-slate-500 text-sm font-semibold leading-6 h-12"
-          numberOfLines={2}
-        >
-          {title}
-        </Text>
-        <Text className="text-slate-900 text-lg font-bold leading-6">
-          {price}
-        </Text>
-      </View>
-    </TouchableOpacity>
+      <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
+        <View className="w-full">
+          <Text className="text-slate-500 text-xs font-semibold leading-5">
+            {storeName}
+          </Text>
+          <Text
+            className="text-slate-500 text-sm font-semibold leading-6 h-12"
+            numberOfLines={2}
+          >
+            {title}
+          </Text>
+          <Text className="text-slate-900 text-lg font-bold leading-6">
+            {price}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -158,9 +158,14 @@ export default function Main() {
       return coupons;
     }
 
-    return coupons.filter((coupon) =>
-      coupon.title.toLowerCase().includes(query),
-    );
+    return coupons.filter((coupon) => {
+      const normalizedTitle = coupon.title.toLowerCase();
+      const normalizedStoreName = coupon.storeName.toLowerCase();
+
+      return (
+        normalizedTitle.includes(query) || normalizedStoreName.includes(query)
+      );
+    });
   }, [coupons, searchQuery]);
 
   const toggleCouponWish = async (id: number) => {
@@ -169,21 +174,23 @@ export default function Main() {
       return;
     }
 
-    const isCurrentlySelected = !!selectedCoupons[id];
+    const previous = !!selectedCoupons[id];
 
-    if (!isCurrentlySelected) {
-      // 찜하기 추가
-      try {
-        await postCouponWish(id);
-        setSelectedCoupons((prev) => ({ ...prev, [id]: true }));
-        await addWishedCouponId(id);
-      } catch (error) {
-        console.error("쿠폰 찜하기 실패:", error);
-      }
-    } else {
-      // 찜하기 해제 (로컬에서만 처리)
+    if (previous) {
       setSelectedCoupons((prev) => ({ ...prev, [id]: false }));
       await removeWishedCouponId(id);
+      return;
+    }
+
+    setSelectedCoupons((prev) => ({ ...prev, [id]: true }));
+    await addWishedCouponId(id);
+
+    try {
+      await postCouponWish(id);
+    } catch (error) {
+      setSelectedCoupons((prev) => ({ ...prev, [id]: previous }));
+      await removeWishedCouponId(id);
+      console.error("쿠폰 찜하기 실패:", error);
     }
   };
 
@@ -213,7 +220,7 @@ export default function Main() {
           {isSearchMode ? (
             <View className="flex-1">
               <SearchInput
-                placeholder="쿠폰명을 검색해주세요."
+                placeholder="쿠폰명 또는 매장명을 검색해주세요."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoFocus
