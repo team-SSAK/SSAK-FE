@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   Platform,
@@ -12,6 +12,7 @@ import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
 import PopUp from "../../components/popup";
 import StepIndicator from "../../components/stepindicator";
+import { resetpw } from "../../src/services/auth/resetpw.service";
 
 interface PWInputProps {
   placeholder: string;
@@ -61,22 +62,58 @@ function PWInput({
 }
 
 export default function FoundPWPW() {
+  const params = useLocalSearchParams();
+  const email = typeof params.email === "string" ? params.email : "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isNextEnabled =
+    password.trim().length > 0 &&
+    confirmPassword.trim().length > 0 &&
+    password === confirmPassword;
 
-  const handleNext = () => {
-    if (
-      password.length > 0 &&
-      confirmPassword.length > 0 &&
-      password !== confirmPassword
-    ) {
+  const handleNext = async () => {
+    if (!password.trim() || !confirmPassword.trim()) {
+      setPopupMessage("새 비밀번호를 모두 입력해주세요");
+      setShowPopup(true);
+      return;
+    }
+
+    if (password !== confirmPassword) {
       setPopupMessage("입력된 비밀번호가 일치한지 확인해주세요");
       setShowPopup(true);
       return;
     }
-    router.replace("/auth/landing");
+
+    if (!email.trim()) {
+      setPopupMessage("이메일 정보가 없습니다. 처음부터 다시 진행해주세요");
+      setShowPopup(true);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await resetpw({
+        email: email.trim(),
+        newPassword: password,
+      });
+      router.replace("/auth/landing");
+    } catch (error) {
+      const err = error as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      setPopupMessage(
+        err?.response?.data?.message ||
+          err?.message ||
+          "비밀번호 재설정에 실패했습니다",
+      );
+      setShowPopup(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -99,7 +136,7 @@ export default function FoundPWPW() {
 
         <PWInput
           placeholder="비밀번호를 입력해주세요"
-          onChangeText={setPassword}
+          onChangeText={(text) => setPassword(text)}
           value={password}
         />
 
@@ -111,7 +148,7 @@ export default function FoundPWPW() {
 
         <PWInput
           placeholder="비밀번호를 입력해주세요"
-          onChangeText={setConfirmPassword}
+          onChangeText={(text) => setConfirmPassword(text)}
           value={confirmPassword}
           disabled={password.length === 0}
         />
@@ -127,9 +164,14 @@ export default function FoundPWPW() {
 
         <TouchableOpacity
           onPress={handleNext}
-          className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
+          disabled={!isNextEnabled || isSubmitting}
+          className={`flex-1 h-[52px] rounded-xl items-center justify-center ${
+            isNextEnabled && !isSubmitting ? "bg-[#45B310]" : "bg-slate-300"
+          }`}
         >
-          <Text className="text-white text-lg font-medium">다음</Text>
+          <Text className="text-white text-lg font-medium">
+            {isSubmitting ? "처리 중..." : "다음"}
+          </Text>
         </TouchableOpacity>
       </View>
 

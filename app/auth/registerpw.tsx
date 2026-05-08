@@ -11,7 +11,6 @@ import ChevronLeft from "../../assets/images/chevron-left.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
 import StepIndicator from "../../components/stepindicator";
-import { getOwnerSignupClicked } from "../../src/utils/storage";
 
 interface PWInputProps {
   placeholder: string;
@@ -63,8 +62,13 @@ function PWInput({
 export default function RegisterPW() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const { email } = useLocalSearchParams<{ email: string }>();
+  const isNextEnabled =
+    password.trim().length > 0 &&
+    confirmPassword.trim().length > 0 &&
+    password === confirmPassword;
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -83,7 +87,10 @@ export default function RegisterPW() {
         </Text>
         <PWInput
           placeholder="비밀번호를 입력해주세요"
-          onChangeText={setPassword}
+          onChangeText={(text) => {
+            setPassword(text);
+            setErrorMsg("");
+          }}
           value={password}
         />
         <View className="h-8" />
@@ -92,10 +99,18 @@ export default function RegisterPW() {
         </Text>
         <PWInput
           placeholder="비밀번호를 입력해주세요"
-          onChangeText={setConfirmPassword}
+          onChangeText={(text) => {
+            setConfirmPassword(text);
+            setErrorMsg("");
+          }}
           value={confirmPassword}
           disabled={password.length === 0}
         />
+        {errorMsg ? (
+          <Text className="text-red-500 text-sm font-medium mt-2">
+            {errorMsg}
+          </Text>
+        ) : null}
       </View>
 
       <View className="w-full flex-row gap-2.5 px-4 py-2.5">
@@ -107,16 +122,34 @@ export default function RegisterPW() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() =>
+          onPress={() => {
+            if (!password.trim() || !confirmPassword.trim()) {
+              setErrorMsg("비밀번호를 모두 입력해주세요");
+              return;
+            }
+
+            if (password !== confirmPassword) {
+              setErrorMsg("입력된 비밀번호가 일치하지 않습니다");
+              return;
+            }
+
+            if (!email?.trim()) {
+              setErrorMsg("이메일 정보가 없습니다. 처음부터 다시 진행해주세요");
+              return;
+            }
+
             router.push({
               pathname: "/auth/registername",
               params: {
-                email: email || "test@test.com",
-                password: password || "testpass",
+                email: email.trim(),
+                password,
               },
-            })
-          }
-          className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
+            });
+          }}
+          disabled={!isNextEnabled}
+          className={`flex-1 h-[52px] rounded-xl items-center justify-center ${
+            isNextEnabled ? "bg-[#45B310]" : "bg-slate-300"
+          }`}
         >
           <Text className="text-white text-lg font-medium">다음</Text>
         </TouchableOpacity>

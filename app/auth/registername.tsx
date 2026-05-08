@@ -9,6 +9,7 @@ import { getSocialLoginPending } from "../../src/utils/storage";
 export default function RegisterName() {
   const [name, setName] = useState("");
   const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const { email, password, socialLogin } = useLocalSearchParams<{
     email: string;
@@ -23,6 +24,7 @@ export default function RegisterName() {
   }, []);
 
   const isSocialLogin = socialLogin === "true" || isStoredSocialLogin;
+  const trimmedName = name.trim();
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -41,11 +43,19 @@ export default function RegisterName() {
         </Text>
         <TextInput
           placeholder="사용할 닉네임을 입력해주세요"
-          onChangeText={setName}
+          onChangeText={(text) => {
+            setName(text.slice(0, 8));
+            setErrorMsg("");
+          }}
           value={name}
         />
+        {errorMsg ? (
+          <Text className="text-red-500 text-sm font-medium mt-2">
+            {errorMsg}
+          </Text>
+        ) : null}
         <Text className="w-full text-right justify-start text-gray-500 text-sm font-medium leading-6">
-          {name.length}/8
+          {trimmedName.length}/8
         </Text>
       </View>
 
@@ -60,18 +70,26 @@ export default function RegisterName() {
 
         {/* 다음: flex-1 */}
         <TouchableOpacity
-          className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
-          onPress={() =>
+          className={`flex-1 h-[52px] rounded-xl items-center justify-center ${
+            trimmedName.length > 0 ? "bg-[#45B310]" : "bg-slate-300"
+          }`}
+          disabled={trimmedName.length === 0}
+          onPress={() => {
+            if (trimmedName.length === 0) {
+              setErrorMsg("닉네임을 입력해주세요");
+              return;
+            }
+
             router.push({
               pathname: "/auth/registerdone",
               params: {
                 email,
                 password,
-                name,
+                name: trimmedName,
                 socialLogin: isSocialLogin ? "true" : undefined,
               },
-            })
-          }
+            });
+          }}
         >
           <Text className="text-white text-lg font-medium">다음</Text>
         </TouchableOpacity>

@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import ChevronRight from "../../assets/images/chevron-right.svg";
 import RadioButton from "../../assets/images/radio-button.svg";
@@ -8,37 +8,10 @@ import {
   createSocialUserDetails,
   signup,
 } from "../../src/services/auth/signup.service";
-import { clearSocialLoginPending } from "../../src/utils/storage";
-
-interface CheckboxProps {
-  label: string;
-  checked: boolean;
-  onPress: () => void;
-}
-
-function Checkbox({ label, checked, onPress }: CheckboxProps) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      className="self-stretch flex-row justify-between items-center"
-      activeOpacity={0.7}
-    >
-      <View className="flex-1 h-6 flex-row items-center gap-[5px]">
-        {checked ? (
-          <TickCircle width={24} height={24} />
-        ) : (
-          <RadioButton width={24} height={24} />
-        )}
-
-        <Text className="h-6 text-slate-400 text-base font-medium leading-6">
-          {label}
-        </Text>
-      </View>
-
-      <ChevronRight width={24} height={24} />
-    </TouchableOpacity>
-  );
-}
+import {
+  clearSocialLoginPending,
+  getSocialLoginPending,
+} from "../../src/utils/storage";
 
 export default function RegisterDone() {
   const params = useLocalSearchParams();
@@ -48,6 +21,13 @@ export default function RegisterDone() {
   const name = typeof params.name === "string" ? params.name : "";
   const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
   const isSocialLogin = params.socialLogin === "true" || isStoredSocialLogin;
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    getSocialLoginPending()
+      .then(setIsStoredSocialLogin)
+      .catch(() => setIsStoredSocialLogin(false));
+  }, []);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -213,10 +193,24 @@ export default function RegisterDone() {
           onPress={async () => {
             if (!agreePrivacy || !agreeLocation) return;
             try {
+              setErrorMsg("");
               setSubmitting(true);
               if (isSocialLogin) {
+                if (!name.trim()) {
+                  setErrorMsg(
+                    "닉네임 정보가 없습니다. 이전 단계부터 다시 진행해주세요",
+                  );
+                  return;
+                }
                 await createSocialUserDetails(name, agreeMarketing);
               } else {
+                if (!email.trim() || !password.trim() || !name.trim()) {
+                  setErrorMsg(
+                    "회원가입 정보가 누락되었습니다. 처음부터 다시 진행해주세요",
+                  );
+                  return;
+                }
+
                 await signup({
                   userEmail: email,
                   userPw: password,
@@ -228,6 +222,15 @@ export default function RegisterDone() {
               router.replace("/auth/landing");
             } catch (e) {
               console.log("가입 실패", e);
+              const err = e as {
+                response?: { data?: { message?: string } };
+                message?: string;
+              };
+              setErrorMsg(
+                err?.response?.data?.message ||
+                  err?.message ||
+                  "가입 처리에 실패했습니다",
+              );
             } finally {
               setSubmitting(false);
             }
@@ -250,6 +253,11 @@ export default function RegisterDone() {
             )}
           </View>
         </TouchableOpacity>
+        {errorMsg ? (
+          <Text className="text-red-500 text-sm font-medium mt-2">
+            {errorMsg}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
