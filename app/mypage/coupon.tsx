@@ -9,8 +9,8 @@ import Heart from "../../assets/images/heart.svg";
 import {
   getCoupons,
   getCouponWishes,
-  postCouponWish,
 } from "../../src/services/mypage/coupons.service";
+import { useCouponWishStore } from "../../src/store/couponWishStore";
 
 interface CouponCardProps {
   storeName?: string;
@@ -127,6 +127,9 @@ const TabBar = ({ activeTab, onTabChange }: TabBarProps) => {
 
 interface CouponItem {
   id: number;
+  couponId: number;
+  couponHistId?: number;
+  couponWishId?: number;
   used: boolean;
   storeName: string;
   title: string;
@@ -196,10 +199,13 @@ const EMPTY_MESSAGES: Record<TabType, string> = {
 
 export default function Coupon() {
   const [activeTab, setActiveTab] = useState<TabType>("사용 가능");
-  const [selectedCoupons, setSelectedCoupons] = useState<
-    Record<number, boolean>
-  >({});
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
+  const {
+    isWished,
+    toggle: toggleWish,
+    load: loadWishes,
+    setWished,
+  } = useCouponWishStore();
 
   useEffect(() => {
     const fetchCoupons = async () => {
@@ -214,8 +220,11 @@ export default function Coupon() {
 
         console.log("API 응답:", data);
 
-        const transformed = data.map((item: any) => ({
-          id: item.couponHistId,
+        const transformed = data.map((item: any, index: number) => ({
+          id: item.couponHistId ?? -(index + 1),
+          couponId: item.couponId ?? 0,
+          couponHistId: item.couponHistId,
+          couponWishId: item.couponWishId,
           used,
           storeName: item.couponStore,
           title: item.couponNm,
@@ -225,6 +234,16 @@ export default function Coupon() {
         }));
 
         setCoupons(transformed);
+
+        transformed.forEach((coupon: CouponItem) => {
+          if (
+            Number.isFinite(coupon.couponId) &&
+            coupon.couponId > 0 &&
+            typeof coupon.wished === "boolean"
+          ) {
+            setWished(coupon.couponId, coupon.wished);
+          }
+        });
       } catch (error) {
         console.error("쿠폰 로딩 실패:", error);
         setCoupons([]);
@@ -232,7 +251,7 @@ export default function Coupon() {
     };
 
     fetchCoupons();
-  }, [activeTab]);
+  }, [activeTab, setWished]);
 
   useEffect(() => {
     if (activeTab !== "찜한 쿠폰") {
@@ -245,8 +264,15 @@ export default function Coupon() {
         console.log("찜한 쿠폰 API 응답:", wishData);
 
         // 찜한 쿠폰 데이터를 CouponItem 형태로 변환
-        const transformed = wishData.map((item: any) => ({
-          id: item.couponHistId,
+        const transformed = wishData.map((item: any, index: number) => ({
+          id:
+            item.couponWishId ??
+            item.couponHistId ??
+            item.couponId ??
+            -(index + 1),
+          couponId: item.couponId ?? 0,
+          couponHistId: item.couponHistId,
+          couponWishId: item.couponWishId,
           used: false,
           storeName: item.couponStore,
           title: item.couponNm,
@@ -257,39 +283,31 @@ export default function Coupon() {
 
         setCoupons(transformed);
 
-        // 찜한 쿠폰 ID들을 selectedCoupons에 설정
-        const wishedIds: Record<number, boolean> = {};
+        // 스토어에 찜 상태 반영
         transformed.forEach((coupon: CouponItem) => {
-          wishedIds[coupon.id] = true;
+          if (Number.isFinite(coupon.couponId) && coupon.couponId > 0) {
+            setWished(
+              coupon.couponId,
+              typeof coupon.wished === "boolean" ? coupon.wished : true,
+            );
+          }
         });
-        setSelectedCoupons(wishedIds);
       } catch (error) {
         console.error("찜한 쿠폰 로딩 실패:", error);
       }
     };
 
     fetchWishedCoupons();
-  }, [activeTab]);
+  }, [activeTab, setWished]);
 
-  const toggle = async (id: number) => {
-    const fallbackCoupon = coupons.find((coupon) => coupon.id === id);
-    const isCurrentlySelected =
-      selectedCoupons[id] ?? fallbackCoupon?.wished ?? false;
-
-    try {
-      // 서버가 토글 방식이므로 추가/해제 모두 같은 API 호출
-      await postCouponWish(id);
-
-      // 성공 시 로컬 상태 토글
-      setSelectedCoupons((prev) => ({ ...prev, [id]: !isCurrentlySelected }));
-
-      // "찜한 쿠폰" 탭에서는 찜 해제 시 목록에서 제거
-      if (activeTab === "찜한 쿠폰" && isCurrentlySelected) {
-        setCoupons((prev) => prev.filter((coupon) => coupon.id !== id));
-      }
-    } catch (error) {
-      console.error("쿠폰 찜하기/해제 실패:", error);
+  const toggle = async (couponId: number) => {
+    const wasWished = isWished(couponId);
+    await toggleWish(couponId);
+    // "찜한 쿠폰" 탭에서 찜 해제 시 목록에서 제거
+    if (activeTab === "찜한 쿠폰" && wasWished) {
+      setCoupons((prev) => prev.filter((c) => c.couponId !== couponId));
     }
+    await loadWishes();
   };
 
   return (
@@ -323,22 +341,21 @@ export default function Coupon() {
                   title={coupon.title}
                   price={coupon.price}
                   used={coupon.used}
-                  selected={
-                    selectedCoupons[coupon.id] ?? coupon.wished ?? false
-                  }
+                  selected={isWished(coupon.couponId)}
                   image={coupon.image}
-                  onToggle={() => toggle(coupon.id)}
+                  onToggle={() => toggle(coupon.couponId)}
                   onPress={() =>
-                    router.push({
-                      pathname: "/store/mycoupon",
-                      params: {
-                        couponId: String(coupon.id),
-                        storeName: coupon.storeName,
-                        title: coupon.title,
-                        price: coupon.price,
-                        image: coupon.image ?? "",
-                      },
-                    })
+                    Number.isFinite(coupon.couponId) && coupon.couponId > 0
+                      ? router.push({
+                          pathname: "/store/coupon",
+                          params: {
+                            couponId: String(coupon.couponId),
+                            ...(coupon.couponHistId
+                              ? { couponHistId: String(coupon.couponHistId) }
+                              : {}),
+                          },
+                        })
+                      : undefined
                   }
                 />
               </View>

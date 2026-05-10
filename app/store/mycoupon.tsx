@@ -16,13 +16,8 @@ import Heart from "../../assets/images/heart.svg";
 import mockdiscription from "../../assets/images/mockdiscription.png";
 import AlertPopup from "../../components/alertpopup";
 import { useStoreCouponDetail } from "../../src/hooks/useStoreCoupons";
-import { postCouponWish } from "../../src/services/mypage/coupons.service";
 import { postCouponUse } from "../../src/services/store/coupons.service";
-import {
-  addWishedCouponId,
-  getWishedCouponIds,
-  removeWishedCouponId,
-} from "../../src/utils/storage";
+import { useCouponWishStore } from "../../src/store/couponWishStore";
 
 type TabType = "상품설명" | "상세정보";
 const TABS: TabType[] = ["상품설명", "상세정보"];
@@ -144,22 +139,44 @@ const VerificationCodePopup = ({
 };
 
 export default function Coupon() {
-  const { couponId } = useLocalSearchParams<{ couponId?: string }>();
+  const { couponId, couponHistId } = useLocalSearchParams<{
+    couponId?: string;
+    couponHistId?: string;
+  }>();
   const [activeTab, setActiveTab] = useState<TabType>("상품설명");
   const [showExchangePopup, setShowExchangePopup] = useState(false);
   const [showVerificationPopup, setShowVerificationPopup] = useState(false);
   const [showUseDonePopup, setShowUseDonePopup] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [isUsing, setIsUsing] = useState(false);
-  const [isWished, setIsWished] = useState(false);
+  const {
+    isWished: getIsWished,
+    toggle: toggleWish,
+    load: loadWishes,
+    setWished,
+  } = useCouponWishStore();
+  const [descriptionAspectRatio, setDescriptionAspectRatio] = useState(
+    375 / 1718,
+  );
 
   const couponIdValue = useMemo(() => {
     const rawCouponId = Array.isArray(couponId) ? couponId[0] : couponId;
     return Number(rawCouponId);
   }, [couponId]);
+  const couponHistIdValue = useMemo(() => {
+    const rawCouponHistId = Array.isArray(couponHistId)
+      ? couponHistId[0]
+      : couponHistId;
+    return Number(rawCouponHistId);
+  }, [couponHistId]);
   const safeCouponId = Number.isFinite(couponIdValue) && couponIdValue > 0;
+  const safeCouponHistId =
+    Number.isFinite(couponHistIdValue) && couponHistIdValue > 0;
   const { coupon } = useStoreCouponDetail(safeCouponId ? couponIdValue : null);
   const couponImage = coupon?.couponImgUrl ?? "";
+  const couponDescriptionImage = coupon?.couponDescription ?? "";
+  const detailDescriptionSource =
+    couponDescriptionImage || couponImage || mockdiscription;
   const couponStoreName = coupon?.couponStore ?? "가게이름";
   const couponTitle = coupon?.couponName ?? "쿠폰 제목";
   const couponPrice = coupon ? `${coupon.couponPoint}P` : "0P";
@@ -170,65 +187,22 @@ export default function Coupon() {
         return;
       }
 
-      if (typeof coupon?.couponWished === "boolean") {
-        setIsWished(coupon.couponWished);
-        return;
-      }
-
-      const loadWishedState = async () => {
-        try {
-          const wishedIds = await getWishedCouponIds();
-          setIsWished(wishedIds.includes(couponIdValue));
-        } catch (error) {
-          console.error("찜한 쿠폰 로컬 조회 실패:", error);
-        }
-      };
-
-      loadWishedState();
-    }, [coupon?.couponWished, couponIdValue]),
+      loadWishes();
+    }, [couponIdValue, loadWishes]),
   );
 
   useEffect(() => {
-    if (typeof coupon?.couponWished === "boolean") {
-      setIsWished(coupon.couponWished);
+    if (safeCouponId && typeof coupon?.couponWished === "boolean") {
+      setWished(couponIdValue, coupon.couponWished);
     }
-  }, [coupon?.couponWished]);
+  }, [coupon?.couponWished, couponIdValue, safeCouponId, setWished]);
 
-  const handleToggleWish = async () => {
-    const previous = isWished;
-
-    if (Number.isNaN(couponIdValue)) {
-      return;
-    }
-
-    setIsWished(!previous);
-
-    try {
-      await postCouponWish(couponIdValue);
-
-      if (previous) {
-        await removeWishedCouponId(couponIdValue);
-      } else {
-        await addWishedCouponId(couponIdValue);
-      }
-    } catch (error) {
-      setIsWished(previous);
-
-      if (previous) {
-        await addWishedCouponId(couponIdValue);
-      } else {
-        await removeWishedCouponId(couponIdValue);
-      }
-
-      console.error("쿠폰 찜하기/해제 실패:", error);
-    }
-  };
+  const handleToggleWish = () => toggleWish(couponIdValue);
 
   const handleUseCoupon = async () => {
-    const couponHistId = couponIdValue;
     const storePw = Number(verificationCode.trim());
 
-    if (!Number.isFinite(couponHistId) || couponHistId <= 0) {
+    if (!safeCouponHistId) {
       return;
     }
 
@@ -238,7 +212,7 @@ export default function Coupon() {
 
     try {
       setIsUsing(true);
-      await postCouponUse(couponHistId, storePw);
+      await postCouponUse(couponHistIdValue, storePw);
       setShowVerificationPopup(false);
       setVerificationCode("");
       setTimeout(() => setShowUseDonePopup(true), 150);
@@ -300,10 +274,23 @@ export default function Coupon() {
         <View className="pt-[42px] pb-[84px] flex-1 items-center">
           {activeTab === "상품설명" ? (
             <Image
-              source={couponImage || mockdiscription}
-              style={{ width: "100%", aspectRatio: 375 / 1718 }}
+              source={detailDescriptionSource}
+              style={{ width: "100%", aspectRatio: descriptionAspectRatio }}
               contentFit="contain"
               contentPosition="top"
+              onLoad={(event: any) => {
+                const width = Number(event?.source?.width);
+                const height = Number(event?.source?.height);
+
+                if (
+                  Number.isFinite(width) &&
+                  Number.isFinite(height) &&
+                  width > 0 &&
+                  height > 0
+                ) {
+                  setDescriptionAspectRatio(width / height);
+                }
+              }}
             />
           ) : (
             <View className="w-full pt-[42px] pb-[90px] gap-[40px]">
@@ -376,12 +363,17 @@ export default function Coupon() {
         <View className="w-full flex-row gap-[11px]">
           <TouchableOpacity onPress={handleToggleWish}>
             <View className="w-14 h-[52px] p-3 bg-gray-100 rounded-xl justify-center items-center">
-              {isWished ? <HeartFilled /> : <Heart />}
+              {getIsWished(couponIdValue) ? <HeartFilled /> : <Heart />}
             </View>
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-1"
-            onPress={() => setShowExchangePopup(true)}
+            onPress={() => {
+              if (!safeCouponHistId) {
+                return;
+              }
+              setShowExchangePopup(true);
+            }}
           >
             <View className="w-full h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
               <Text className="text-center text-gray-50 text-lg font-medium leading-7">

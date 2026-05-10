@@ -21,13 +21,8 @@ import { BottomNav } from "../../components/bottomnav";
 import SearchInput from "../../components/searchinput";
 
 import { useStoreCoupons } from "@/src/hooks/useStoreCoupons";
-import { postCouponWish } from "../../src/services/mypage/coupons.service";
 import { StoreCouponType } from "../../src/services/store/coupons.service";
-import {
-  addWishedCouponId,
-  getWishedCouponIds,
-  removeWishedCouponId,
-} from "../../src/utils/storage";
+import { useCouponWishStore } from "../../src/store/couponWishStore";
 
 import ChevronDown from "../../assets/images/chevron-down.svg";
 
@@ -45,6 +40,7 @@ interface CouponCardProps {
   image?: string;
   onToggle?: () => void;
   onPress?: () => void;
+  toggleDisabled?: boolean;
 }
 
 const CouponCard = ({
@@ -55,49 +51,54 @@ const CouponCard = ({
   image,
   onToggle,
   onPress,
+  toggleDisabled = false,
 }: CouponCardProps) => {
   return (
-    <View className="flex-col gap-2.5 w-full">
+    <TouchableOpacity
+      className="flex-col gap-2.5 w-full"
+      activeOpacity={0.9}
+      onPress={onPress}
+    >
       <View
         className="relative w-full rounded-md bg-slate-100 overflow-hidden"
         style={{ aspectRatio: 1 }}
       >
-        <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
-          {image ? (
-            <Image
-              source={image}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-              contentPosition="center"
-            />
-          ) : null}
-        </TouchableOpacity>
+        {image ? (
+          <Image
+            source={image}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            contentPosition="center"
+          />
+        ) : null}
 
         <TouchableOpacity
           className="absolute right-3.5 bottom-3.5"
-          onPress={onToggle}
+          disabled={toggleDisabled}
+          onPress={(event: any) => {
+            event.stopPropagation();
+            onToggle?.();
+          }}
         >
           {selected ? <HeartFilled /> : <Heart />}
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
-        <View className="w-full">
-          <Text className="text-slate-500 text-xs font-semibold leading-5">
-            {storeName}
-          </Text>
-          <Text
-            className="text-slate-500 text-sm font-semibold leading-6 h-12"
-            numberOfLines={2}
-          >
-            {title}
-          </Text>
-          <Text className="text-slate-900 text-lg font-bold leading-6">
-            {price}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    </View>
+      <View className="w-full">
+        <Text className="text-slate-500 text-xs font-semibold leading-5">
+          {storeName}
+        </Text>
+        <Text
+          className="text-slate-500 text-sm font-semibold leading-6 h-12"
+          numberOfLines={2}
+        >
+          {title}
+        </Text>
+        <Text className="text-slate-900 text-lg font-bold leading-6">
+          {price}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 
@@ -114,41 +115,15 @@ export default function Main() {
     null,
   );
 
-  const [selectedCoupons, setSelectedCoupons] = useState<
-    Record<number, boolean>
-  >({});
-
+  const wishedIds = useCouponWishStore((state) => state.wishedIds);
+  const toggleWish = useCouponWishStore((state) => state.toggle);
+  const loadWishes = useCouponWishStore((state) => state.load);
   const { coupons, loading } = useStoreCoupons(selectedFilter);
 
   useFocusEffect(
     useCallback(() => {
-      let isMounted = true;
-
-      const loadWishedCoupons = async () => {
-        try {
-          const wishedIds = await getWishedCouponIds();
-
-          if (!isMounted) {
-            return;
-          }
-
-          const wishedMap: Record<number, boolean> = {};
-          wishedIds.forEach((id) => {
-            wishedMap[id] = true;
-          });
-
-          setSelectedCoupons(wishedMap);
-        } catch (error) {
-          console.error("찜한 쿠폰 로컬 조회 실패:", error);
-        }
-      };
-
-      loadWishedCoupons();
-
-      return () => {
-        isMounted = false;
-      };
-    }, []),
+      loadWishes();
+    }, [loadWishes]),
   );
 
   const filteredCoupons = useMemo(() => {
@@ -168,31 +143,7 @@ export default function Main() {
     });
   }, [coupons, searchQuery]);
 
-  const toggleCouponWish = async (id: number) => {
-    if (id <= 0) {
-      console.log("쿠폰 id가 없어 찜하기를 수행할 수 없습니다.");
-      return;
-    }
-
-    const previous = !!selectedCoupons[id];
-
-    if (previous) {
-      setSelectedCoupons((prev) => ({ ...prev, [id]: false }));
-      await removeWishedCouponId(id);
-      return;
-    }
-
-    setSelectedCoupons((prev) => ({ ...prev, [id]: true }));
-    await addWishedCouponId(id);
-
-    try {
-      await postCouponWish(id);
-    } catch (error) {
-      setSelectedCoupons((prev) => ({ ...prev, [id]: previous }));
-      await removeWishedCouponId(id);
-      console.error("쿠폰 찜하기 실패:", error);
-    }
-  };
+  const toggleCouponWish = (couponId: number) => toggleWish(couponId);
 
   const [sortLabel, setSortLabel] = useState("최신순");
   const [showSortPopup, setShowSortPopup] = useState(false);
@@ -322,26 +273,39 @@ export default function Main() {
             </View>
           ) : (
             <View className="flex-row flex-wrap justify-between gap-y-[18px]">
-              {filteredCoupons.map((coupon) => (
-                <View key={coupon.id} className="w-[48%]">
-                  <CouponCard
-                    storeName={coupon.storeName}
-                    title={coupon.title}
-                    price={coupon.price}
-                    selected={!!selectedCoupons[coupon.id]}
-                    image={coupon.image}
-                    onToggle={() => toggleCouponWish(coupon.id)}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/store/coupon",
-                        params: {
-                          couponId: String(coupon.id),
-                        },
-                      })
-                    }
-                  />
-                </View>
-              ))}
+              {filteredCoupons.map((coupon) => {
+                const couponId =
+                  Number.isFinite(coupon.couponId) && (coupon.couponId ?? 0) > 0
+                    ? (coupon.couponId as number)
+                    : null;
+
+                return (
+                  <View key={coupon.id} className="w-[48%]">
+                    <CouponCard
+                      storeName={coupon.storeName}
+                      title={coupon.title}
+                      price={coupon.price}
+                      selected={couponId ? wishedIds.has(couponId) : false}
+                      image={coupon.image}
+                      toggleDisabled={!couponId}
+                      onToggle={() => {
+                        if (!couponId) return;
+                        toggleCouponWish(couponId);
+                      }}
+                      onPress={() =>
+                        couponId
+                          ? router.push({
+                              pathname: "/store/coupon",
+                              params: {
+                                couponId: String(couponId),
+                              },
+                            })
+                          : undefined
+                      }
+                    />
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>

@@ -5,6 +5,7 @@ import {
   StoreCouponDetail,
   StoreCouponType,
 } from "../services/store/coupons.service";
+import { resolveImageUri } from "../utils/image";
 
 interface StoreCouponApiResponse {
   id?: number;
@@ -19,10 +20,45 @@ interface StoreCouponApiResponse {
   point?: number;
   couponImgUrl?: string;
   imageUrl?: string;
+  couponImageUrl?: string;
+  couponImage?: string | { url?: string };
+  couponImg?: string;
+  thumbnailUrl?: string;
+  thumbUrl?: string;
+  image?: string | { url?: string };
+  imgUrl?: string;
 }
+
+const extractCouponImage = (item: StoreCouponApiResponse): string => {
+  const objectUrlCandidates = [item.couponImage, item.image]
+    .map((value) =>
+      typeof value === "object" && value !== null ? value.url : undefined,
+    )
+    .filter((value): value is string => typeof value === "string");
+
+  const candidates = [
+    item.couponImgUrl,
+    item.couponImageUrl,
+    item.imageUrl,
+    item.couponImg,
+    typeof item.couponImage === "string" ? item.couponImage : undefined,
+    item.thumbnailUrl,
+    item.thumbUrl,
+    typeof item.image === "string" ? item.image : undefined,
+    item.imgUrl,
+    ...objectUrlCandidates,
+  ];
+
+  const raw = candidates.find(
+    (value) => typeof value === "string" && value.trim().length > 0,
+  );
+
+  return resolveImageUri(raw ?? "");
+};
 
 export interface StoreCouponItem {
   id: number;
+  couponId?: number;
   storeName: string;
   title: string;
   price: string;
@@ -50,7 +86,7 @@ export function useStoreCoupons(type: StoreCouponType | null = null) {
 
         list.forEach((item: StoreCouponApiResponse, index: number) => {
           const apiId =
-            item.couponHistId ?? item.wishCouponId ?? item.couponId ?? item.id;
+            item.couponId ?? item.couponHistId ?? item.wishCouponId ?? item.id;
           // 일부 /api/coupons 응답은 id가 없어서, 화면 렌더링용 임시 id를 부여한다.
           const id = typeof apiId === "number" ? apiId : -(index + 1);
 
@@ -58,10 +94,14 @@ export function useStoreCoupons(type: StoreCouponType | null = null) {
 
           transformed.push({
             id,
+            couponId:
+              typeof item.couponId === "number" && item.couponId > 0
+                ? item.couponId
+                : undefined,
             storeName: item.couponStore ?? item.storeName ?? "",
             title: item.couponNm ?? item.couponName ?? "",
             price: point + "P",
-            image: item.couponImgUrl ?? item.imageUrl,
+            image: extractCouponImage(item),
           });
         });
 
@@ -105,7 +145,7 @@ const normalizeStoreCouponDetail = (res: unknown): StoreCouponDetail | null => {
     couponName: typeof source.couponName === "string" ? source.couponName : "",
     couponDescription:
       typeof source.couponDescription === "string"
-        ? source.couponDescription
+        ? resolveImageUri(source.couponDescription)
         : "",
     couponPoint: Number.isFinite(couponPoint) ? couponPoint : 0,
     couponType:
@@ -120,7 +160,9 @@ const normalizeStoreCouponDetail = (res: unknown): StoreCouponDetail | null => {
     couponStore:
       typeof source.couponStore === "string" ? source.couponStore : "",
     couponImgUrl:
-      typeof source.couponImgUrl === "string" ? source.couponImgUrl : "",
+      typeof source.couponImgUrl === "string"
+        ? resolveImageUri(source.couponImgUrl)
+        : "",
     couponValidTerm: Number.isFinite(couponValidTerm) ? couponValidTerm : 0,
     couponWished:
       typeof source.couponWished === "boolean"

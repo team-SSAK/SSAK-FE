@@ -1,5 +1,6 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useEffect } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -22,7 +23,7 @@ import { useCoupons } from "../../src/hooks/useCoupons";
 import { useMe } from "../../src/hooks/useMe";
 import { usePoint } from "../../src/hooks/usePoint";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
-import { postCouponWish } from "../../src/services/mypage/coupons.service";
+import { useCouponWishStore } from "../../src/store/couponWishStore";
 
 //////////////////////////////////////////////////////
 // 쿠폰 카드
@@ -36,6 +37,7 @@ interface CouponCardProps {
   image?: string;
   onToggle?: () => void;
   onPress?: () => void;
+  toggleDisabled?: boolean;
 }
 
 const CouponCard = ({
@@ -46,6 +48,7 @@ const CouponCard = ({
   image,
   onToggle,
   onPress,
+  toggleDisabled = false,
 }: CouponCardProps) => {
   return (
     <TouchableOpacity
@@ -70,7 +73,11 @@ const CouponCard = ({
 
         <TouchableOpacity
           className="absolute right-3.5 bottom-3.5"
-          onPress={onToggle}
+          disabled={toggleDisabled}
+          onPress={(event: any) => {
+            event.stopPropagation();
+            onToggle?.();
+          }}
         >
           {selected ? <HeartFilled /> : <Heart />}
         </TouchableOpacity>
@@ -135,23 +142,28 @@ export default function Main() {
     image: item.restaurantImgUrl,
   }));
 
-  const [selectedCoupons, setSelectedCoupons] = useState<
-    Record<number, boolean>
-  >({});
-  const previewCoupons = coupons.slice(0, 3);
+  const wishedIds = useCouponWishStore((state) => state.wishedIds);
+  const toggleWish = useCouponWishStore((state) => state.toggle);
+  const loadWishes = useCouponWishStore((state) => state.load);
+  const setWished = useCouponWishStore((state) => state.setWished);
 
-  const toggle = async (id: number) => {
-    const fallbackCoupon = coupons.find((coupon) => coupon.id === id);
-    const isCurrentlySelected =
-      selectedCoupons[id] ?? fallbackCoupon?.wished ?? false;
+  useFocusEffect(
+    useCallback(() => {
+      loadWishes();
+    }, [loadWishes]),
+  );
 
-    try {
-      await postCouponWish(id);
-      setSelectedCoupons((prev) => ({ ...prev, [id]: !isCurrentlySelected }));
-    } catch (error) {
-      console.error("쿠폰 찜하기/해제 실패:", error);
-    }
-  };
+  useEffect(() => {
+    coupons.forEach((coupon) => {
+      if (
+        Number.isFinite(coupon.couponId) &&
+        coupon.couponId > 0 &&
+        typeof coupon.wished === "boolean"
+      ) {
+        setWished(coupon.couponId, coupon.wished);
+      }
+    });
+  }, [coupons, setWished]);
 
   const resolvedProfileImageUri = (() => {
     const raw = me?.userProfileImg?.trim();
@@ -250,7 +262,7 @@ export default function Main() {
 
           {isCouponsLoading ? (
             <ActivityIndicator />
-          ) : previewCoupons.length === 0 ? (
+          ) : coupons.length === 0 ? (
             <View className="w-full h-64 px-20 py-9 bg-slate-100 rounded-2xl inline-flex flex-col justify-center items-center gap-2.5">
               <View className="self-stretch flex flex-col justify-center items-center">
                 <Text
@@ -273,25 +285,41 @@ export default function Main() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: 15 }}
             >
-              {previewCoupons.map((coupon) => (
-                <CouponCard
-                  key={coupon.id}
-                  storeName={coupon.storeName}
-                  title={coupon.title}
-                  price={coupon.price}
-                  image={coupon.image}
-                  selected={
-                    selectedCoupons[coupon.id] ?? coupon.wished ?? false
-                  }
-                  onPress={() =>
-                    router.push({
-                      pathname: "/store/mycoupon",
-                      params: { couponId: String(coupon.id) },
-                    })
-                  }
-                  onToggle={() => toggle(coupon.id)}
-                />
-              ))}
+              {coupons.map((coupon) => {
+                const couponId =
+                  Number.isFinite(coupon.couponId) && coupon.couponId > 0
+                    ? coupon.couponId
+                    : null;
+
+                return (
+                  <CouponCard
+                    key={coupon.id}
+                    storeName={coupon.storeName}
+                    title={coupon.title}
+                    price={coupon.price}
+                    image={coupon.image}
+                    selected={couponId ? wishedIds.has(couponId) : false}
+                    toggleDisabled={!couponId}
+                    onPress={() =>
+                      couponId
+                        ? router.push({
+                            pathname: "/store/coupon",
+                            params: {
+                              couponId: String(couponId),
+                              ...(coupon.couponHistId
+                                ? { couponHistId: String(coupon.couponHistId) }
+                                : {}),
+                            },
+                          })
+                        : undefined
+                    }
+                    onToggle={() => {
+                      if (!couponId) return;
+                      toggleWish(couponId);
+                    }}
+                  />
+                );
+              })}
             </ScrollView>
           )}
         </View>
