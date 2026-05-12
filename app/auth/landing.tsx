@@ -68,6 +68,14 @@ const appendQueryParam = (url: string, key: string, value: string): string => {
 const createOAuthSessionId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
+const previewValue = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  return `${value.slice(0, 8)}...(${value.length})`;
+};
+
 const parseCallbackTarget = (url: string) => {
   const parsed = Linking.parse(url);
 
@@ -262,6 +270,7 @@ export default function Landing() {
   const incomingUrl = Linking.useURL();
   const hasProcessedOAuthCode = useRef(false);
   const isMountedRef = useRef(true);
+  const currentOAuthProviderRef = useRef<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -421,40 +430,37 @@ export default function Landing() {
       const callbackSession = pickQueryValue(
         parsed.queryParams?.[OAUTH_SESSION_QUERY_PARAM],
       );
-
-      if (!storedSession || callbackSession !== storedSession) {
-        console.log("[OAuth] 세션 식별자가 일치하지 않아 콜백을 무시합니다.", {
-          source,
-          hostname,
-          normalizedPath,
-          hasStoredSession: Boolean(storedSession),
-          hasCallbackSession: Boolean(callbackSession),
-        });
-
-        if (source === "auth-session") {
-          await clearOAuthRedirectPending();
-          clearWebOAuthQuery();
-          setIsOAuthPending(false);
-          setErrorMsg(
-            "로그인 세션이 만료되었거나 일치하지 않습니다. 다시 시도해주세요.",
-          );
-        }
-
-        return;
-      }
-
+      const callbackState = pickQueryValue(parsed.queryParams?.state);
       const code = pickQueryValue(parsed.queryParams?.code);
+      const hasMatchingOwnedSession = Boolean(
+        storedSession && callbackSession === storedSession,
+      );
+      const hasMatchingState = Boolean(
+        storedSession && callbackState === storedSession,
+      );
+      const hasMatchingSession = hasMatchingOwnedSession || hasMatchingState;
+      const shouldAllowCodeExchangeWithoutSession = Boolean(
+        code && !callbackSession,
+      );
+
       const error =
         pickQueryValue(parsed.queryParams?.error_description) ??
         pickQueryValue(parsed.queryParams?.error);
 
       console.log("[OAuth] 콜백 파싱 결과", {
         source,
+        providerPath: currentOAuthProviderRef.current,
         hostname,
         path: normalizedPath,
+        queryKeys: Object.keys(parsed.queryParams ?? {}),
         hasCode: Boolean(code),
         error,
-        hasMatchingSession: true,
+        storedSessionPreview: previewValue(storedSession),
+        callbackSessionPreview: previewValue(callbackSession),
+        callbackStatePreview: previewValue(callbackState),
+        hasMatchingOwnedSession,
+        hasMatchingState,
+        shouldAllowCodeExchangeWithoutSession,
       });
 
       if (error) {
@@ -475,6 +481,44 @@ export default function Landing() {
         return;
       }
 
+      if (!hasMatchingSession && !shouldAllowCodeExchangeWithoutSession) {
+        console.log("[OAuth] 세션 식별자가 일치하지 않아 콜백을 무시합니다.", {
+          source,
+          providerPath: currentOAuthProviderRef.current,
+          hostname,
+          normalizedPath,
+          hasStoredSession: Boolean(storedSession),
+          hasCallbackSession: Boolean(callbackSession),
+          hasCallbackState: Boolean(callbackState),
+        });
+
+        if (source === "auth-session") {
+          await clearOAuthRedirectPending();
+          clearWebOAuthQuery();
+          setIsOAuthPending(false);
+          setErrorMsg(
+            "로그인 세션이 만료되었거나 일치하지 않습니다. 다시 시도해주세요.",
+          );
+        }
+
+        return;
+      }
+
+      if (!hasMatchingSession && shouldAllowCodeExchangeWithoutSession) {
+        console.log(
+          "[OAuth] 세션 값 없이 code만 전달되어 code 교환을 계속 진행합니다.",
+          {
+            source,
+            providerPath: currentOAuthProviderRef.current,
+            hostname,
+            normalizedPath,
+            hasStoredSession: Boolean(storedSession),
+            hasCallbackSession: Boolean(callbackSession),
+            hasCallbackState: Boolean(callbackState),
+          },
+        );
+      }
+
       if (hasProcessedOAuthCode.current) {
         return;
       }
@@ -493,6 +537,7 @@ export default function Landing() {
         const data = await exchangeOAuthCode(code);
         await clearOAuthRedirectPending();
         clearWebOAuthQuery();
+        currentOAuthProviderRef.current = null;
         await finalizeLogin(data);
       } catch (err: any) {
         await clearOAuthRedirectPending();
@@ -575,9 +620,11 @@ export default function Landing() {
         return;
       }
 
+      currentOAuthProviderRef.current = providerPath;
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
       console.log("[OAuth] openAuthSessionAsync 결과", {
+        providerPath,
         type: result.type,
         resultUrl: result.type === "success" ? result.url : undefined,
       });
