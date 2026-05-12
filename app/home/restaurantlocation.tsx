@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
-import PopUp from "../../components/PopUp";
+import PopUp from "../../components/popup";
 import RestaurantLocationMap from "../../components/restaurant-location-map";
 import { useRestaurantDetail } from "../../src/hooks/useRestaurant";
 import { getItem } from "../../src/utils/storage";
