@@ -12,7 +12,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.ssak.seederslab",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "프로필 이미지를 설정하기 위해 사진 보관함 접근 권한이 필요합니다. 사진첩에서 선택한 이미지를 프로필 사진으로 사용할 수 있습니다.",
+        "NSLocationWhenInUseUsageDescription": "지도에서 현재 위치와 제휴 식당의 위치를 확인하기 위해 위치 권한이 필요합니다. 예를 들어, 내 위치를 지도에 표시하는 데 사용됩니다.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "지도에서 현재 위치와 제휴 식당의 위치를 확인하기 위해 위치 권한이 필요합니다. 예를 들어, 내 위치를 지도에 표시하는 데 사용됩니다.",
+        "NSLocationAlwaysUsageDescription": "지도에서 현재 위치와 제휴 식당의 위치를 확인하기 위해 위치 권한이 필요합니다. 예를 들어, 내 위치를 지도에 표시하는 데 사용됩니다.",
+        "NSCameraUsageDescription": "잔반을 인식하기 위해 카메라 접근 권한이 필요합니다. 식사 후 남은 음식을 촬영해 잔반량을 확인하는 데 사용됩니다."
       }
     },
     "android": {

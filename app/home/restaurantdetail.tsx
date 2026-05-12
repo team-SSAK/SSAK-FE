@@ -14,7 +14,7 @@ import Map from "../../assets/images/map.svg";
 
 import AlertPopupRadio from "@/components/alertpopupradio";
 import AlertPopup from "../../components/alertpopup";
-import PopUp from "../../components/popup";
+import PopUp from "../../components/PopUp";
 import Post from "../../components/post";
 
 import { useCommunity, useDeleteCommunity } from "../../src/hooks/useCommunity";

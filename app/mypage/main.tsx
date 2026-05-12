@@ -24,6 +24,7 @@ import { useMe } from "../../src/hooks/useMe";
 import { usePoint } from "../../src/hooks/usePoint";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
 import { useCouponWishStore } from "../../src/store/couponWishStore";
+import { resolveImageUri } from "../../src/utils/image";
 
 //////////////////////////////////////////////////////
 // 쿠폰 카드
@@ -171,13 +172,7 @@ export default function Main() {
       return null;
     }
 
-    if (/^https?:\/\//i.test(raw) || raw.startsWith("file://")) {
-      return raw;
-    }
-
-    const base = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
-    const path = raw.startsWith("/") ? raw : `/${raw}`;
-    return base ? `${base}${path}` : raw;
+    return resolveImageUri(raw);
   })();
 
   //////////////////////////////////////////////////////

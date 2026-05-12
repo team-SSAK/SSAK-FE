@@ -19,7 +19,7 @@ import Modal1 from "../../assets/images/modal_1.png";
 import Modal2 from "../../assets/images/modal_2.png";
 import RadioButton from "../../assets/images/radio-button.svg";
 import TickCircle from "../../assets/images/tick-circle.svg";
-import PopUp from "../../components/popup";
+import PopUp from "../../components/PopUp";
 import { useMeasure } from "../../src/hooks/useMeasure";
 import {
   getCameraGuideSkip,

@@ -8,6 +8,8 @@ const LIKED_COMMENT_IDS_KEY = "LIKED_COMMENT_IDS";
 const WISHED_COUPON_IDS_KEY = "WISHED_COUPON_IDS";
 const OWNER_SIGNUP_CLICKED_KEY = "OWNER_SIGNUP_CLICKED";
 const SOCIAL_LOGIN_PENDING_KEY = "SOCIAL_LOGIN_PENDING";
+const OAUTH_REDIRECT_PENDING_KEY = "OAUTH_REDIRECT_PENDING";
+const OAUTH_REDIRECT_SESSION_KEY = "OAUTH_REDIRECT_SESSION";
 const CAMERA_GUIDE_SKIP_KEY = "CAMERA_GUIDE_SKIP";
 const ONBOARDING_COMPLETED_KEY = "ONBOARDING_COMPLETED";
 
@@ -113,6 +115,8 @@ export const clearAll = async () => {
   await deleteItem(LIKED_POST_IDS_KEY);
   await deleteItem(LIKED_COMMENT_IDS_KEY);
   await deleteItem(WISHED_COUPON_IDS_KEY);
+  await deleteItem(OAUTH_REDIRECT_PENDING_KEY);
+  await deleteItem(OAUTH_REDIRECT_SESSION_KEY);
   await deleteItem(CAMERA_GUIDE_SKIP_KEY);
 };
 
@@ -211,5 +215,26 @@ export const setSocialLoginPending = async (pending: boolean) =>
 
 export const clearSocialLoginPending = async () =>
   await deleteItem(SOCIAL_LOGIN_PENDING_KEY);
+
+export const getOAuthRedirectPending = async (): Promise<boolean> => {
+  const value = await getItem(OAUTH_REDIRECT_PENDING_KEY);
+  return value === "true";
+};
+
+export const setOAuthRedirectPending = async (pending: boolean) =>
+  await setItem(OAUTH_REDIRECT_PENDING_KEY, pending ? "true" : "false");
+
+export const getOAuthRedirectSession = async (): Promise<string | null> => {
+  const value = await getItem(OAUTH_REDIRECT_SESSION_KEY);
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+};
+
+export const setOAuthRedirectSession = async (session: string) =>
+  await setItem(OAUTH_REDIRECT_SESSION_KEY, session);
+
+export const clearOAuthRedirectPending = async () => {
+  await deleteItem(OAUTH_REDIRECT_PENDING_KEY);
+  await deleteItem(OAUTH_REDIRECT_SESSION_KEY);
+};
 
 export { deleteItem, getItem, setItem };

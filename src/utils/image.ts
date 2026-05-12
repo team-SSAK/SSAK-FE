@@ -1,9 +1,4 @@
-import Constants from "expo-constants";
-
-const API_BASE =
-  (process.env.EXPO_PUBLIC_API_BASE_URL as string | undefined) ??
-  (process.env.API_BASE_URL as string | undefined) ??
-  (Constants as any)?.manifest?.extra?.API_BASE_URL;
+import { API_BASE_URL as API_BASE } from "../lib/runtime-config";
 
 const BASE64_CHARS = /^[A-Za-z0-9+/=\r\n]+$/;
 

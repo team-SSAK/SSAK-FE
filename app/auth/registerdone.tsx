@@ -219,7 +219,7 @@ export default function RegisterDone() {
                 });
               }
               await clearSocialLoginPending();
-              router.replace("/auth/landing");
+              router.replace(isSocialLogin ? "/home/home" : "/auth/landing");
             } catch (e) {
               console.log("가입 실패", e);
               const err = e as {

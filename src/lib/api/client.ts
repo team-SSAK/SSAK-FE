@@ -1,5 +1,4 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
-import Constants from "expo-constants";
 import {
   deleteAccessToken,
   deleteRefreshToken,
@@ -8,12 +7,10 @@ import {
   setAccessToken,
   setRefreshToken,
 } from "../../utils/storage";
+import { API_BASE_URL } from "../runtime-config";
 import type { LoginResponse } from "./types";
 
-const API_BASE =
-  (process.env.EXPO_PUBLIC_API_BASE_URL as string | undefined) ??
-  (process.env.API_BASE_URL as string | undefined) ??
-  (Constants as any)?.manifest?.extra?.API_BASE_URL;
+const API_BASE = API_BASE_URL ?? undefined;
 
 if (!API_BASE) {
   console.warn(

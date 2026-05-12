@@ -10,7 +10,7 @@ import {
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
-import PopUp from "../../components/popup";
+import PopUp from "../../components/PopUp";
 import StepIndicator from "../../components/stepindicator";
 import { resetpw } from "../../src/services/auth/resetpw.service";
 
