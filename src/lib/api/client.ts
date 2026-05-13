@@ -1,5 +1,8 @@
-import axios, { AxiosError, AxiosRequestConfig } from "axios";
+import axios, { AxiosError, AxiosHeaders, AxiosRequestConfig } from "axios";
+import { router } from "expo-router";
 import {
+  clearOAuthRedirectPending,
+  clearSocialLoginPending,
   deleteAccessToken,
   deleteRefreshToken,
   getAccessToken,
@@ -11,6 +14,12 @@ import { API_BASE_URL } from "../runtime-config";
 import type { LoginResponse } from "./types";
 
 const API_BASE = API_BASE_URL ?? undefined;
+const AUTH_REFRESH_PATH = "/api/auth/refresh";
+const AUTH_EXCLUDED_REFRESH_PATHS = new Set([
+  "/api/auth/login",
+  "/api/auth/token",
+  AUTH_REFRESH_PATH,
+]);
 
 if (!API_BASE) {
   console.warn(
@@ -26,6 +35,74 @@ const client = axios.create({
 const SHOULD_LOG =
   process.env.API_LOG === "true" || (typeof __DEV__ !== "undefined" && __DEV__);
 
+type RetryableAxiosConfig = AxiosRequestConfig & {
+  _retry?: boolean;
+};
+
+const normalizeToken = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const isRefreshExcludedRequest = (config: AxiosRequestConfig | undefined) => {
+  const url = config?.url;
+
+  return typeof url === "string" && AUTH_EXCLUDED_REFRESH_PATHS.has(url);
+};
+
+const redirectToLogin = async () => {
+  await clearOAuthRedirectPending();
+  await clearSocialLoginPending();
+
+  try {
+    router.replace("/auth/landing");
+  } catch (error) {
+    console.warn("[API] Failed to redirect to login after refresh failure.", {
+      error,
+    });
+  }
+};
+
+const clearAuthAndRedirect = async () => {
+  await deleteAccessToken();
+  await deleteRefreshToken();
+  await redirectToLogin();
+};
+
+const persistRefreshedTokens = async (
+  response: LoginResponse,
+  currentRefreshToken: string,
+) => {
+  const nextAccessToken = normalizeToken(response.accessToken);
+  const nextRefreshToken =
+    normalizeToken(response.refreshToken) ?? currentRefreshToken;
+
+  if (!nextAccessToken) {
+    throw new Error("리프레시 응답에 access token이 없습니다.");
+  }
+
+  await setAccessToken(nextAccessToken);
+  await setRefreshToken(nextRefreshToken);
+
+  return {
+    accessToken: nextAccessToken,
+    refreshToken: nextRefreshToken,
+  };
+};
+
+const setAuthorizationHeader = (
+  config: AxiosRequestConfig | RetryableAxiosConfig,
+  token: string,
+) => {
+  const headers = AxiosHeaders.from(config.headers as any);
+  headers.set("Authorization", `Bearer ${token}`);
+  config.headers = headers;
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 // REQUEST INTERCEPTOR
 ////////////////////////////////////////////////////////////////////////////////
@@ -33,8 +110,8 @@ const SHOULD_LOG =
 client.interceptors.request.use(async (config) => {
   const token = await getAccessToken();
 
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    setAuthorizationHeader(config, token);
   }
 
   if (SHOULD_LOG) {
@@ -60,7 +137,7 @@ let isRefreshing = false;
 let failedQueue: {
   resolve: (value?: any) => void;
   reject: (err: any) => void;
-  config: AxiosRequestConfig;
+  config: RetryableAxiosConfig;
 }[] = [];
 
 const processQueue = (error: any, token: string | null = null) => {
@@ -68,8 +145,8 @@ const processQueue = (error: any, token: string | null = null) => {
     if (error) {
       p.reject(error);
     } else {
-      if (token && p.config.headers) {
-        p.config.headers.Authorization = `Bearer ${token}`;
+      if (token) {
+        setAuthorizationHeader(p.config, token);
       }
       p.resolve(client(p.config));
     }
@@ -112,12 +189,13 @@ client.interceptors.response.use(
       console.log("================================");
     }
 
-    const originalConfig = error.config;
+    const originalConfig = error.config as RetryableAxiosConfig | undefined;
 
     if (
       error.response?.status === 401 &&
       originalConfig &&
-      !(originalConfig as any)._retry
+      !originalConfig._retry &&
+      !isRefreshExcludedRequest(originalConfig)
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -125,28 +203,41 @@ client.interceptors.response.use(
         });
       }
 
-      (originalConfig as any)._retry = true;
+      originalConfig._retry = true;
       isRefreshing = true;
 
       try {
         const refreshToken = await getRefreshToken();
         if (!refreshToken) throw error;
 
-        const r = await refreshClient.post<LoginResponse>("/api/auth/refresh", {
+        const r = await refreshClient.post<LoginResponse>(
+          AUTH_REFRESH_PATH,
+          undefined,
+          {
+            headers: {
+              "Refresh-Token": refreshToken,
+            },
+          },
+        );
+
+        const refreshedTokens = await persistRefreshedTokens(
+          r.data,
           refreshToken,
-        });
+        );
 
-        await setAccessToken(r.data.accessToken);
-
-        if (r.data.refreshToken) {
-          await setRefreshToken(r.data.refreshToken);
+        if (SHOULD_LOG) {
+          console.log("[API] Refresh token rotation succeeded.", {
+            hasAccessToken: Boolean(refreshedTokens.accessToken),
+            hasRefreshToken: Boolean(refreshedTokens.refreshToken),
+          });
         }
 
-        processQueue(null, r.data.accessToken);
+        setAuthorizationHeader(originalConfig, refreshedTokens.accessToken);
+
+        processQueue(null, refreshedTokens.accessToken);
         return client(originalConfig);
       } catch (err) {
-        await deleteAccessToken();
-        await deleteRefreshToken();
+        await clearAuthAndRedirect();
         processQueue(err, null);
         throw err;
       } finally {
