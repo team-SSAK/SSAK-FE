@@ -50,6 +50,9 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
+    "locales": {
+      "en": "./locales/en.json"
+    },
     "extra": {
       "API_BASE_URL": "https://seederslab.n-e.kr",
       "router": {},

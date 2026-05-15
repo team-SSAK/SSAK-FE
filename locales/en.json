@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSPhotoLibraryUsageDescription": "Photo Library access is required to set your profile image. Images you select from your library can be used as your profile photo.",
+    "NSLocationWhenInUseUsageDescription": "Location access is required to check your current location and the locations of partner restaurants on the map. For example, it is used to show your location on the map.",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "Location access is required to check your current location and the locations of partner restaurants on the map. For example, it is used to show your location on the map.",
+    "NSLocationAlwaysUsageDescription": "Location access is required to check your current location and the locations of partner restaurants on the map. For example, it is used to show your location on the map.",
+    "NSCameraUsageDescription": "Camera access is required to recognize leftover food. It is used to take a photo of the remaining food after a meal and check the amount of leftovers."
+  }
+}
