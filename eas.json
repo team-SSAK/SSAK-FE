@@ -20,6 +20,11 @@
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleId": "vneld0383@naver.com",
+        "appleTeamId": "ZAFW89T487",
+        "ascAppId": "6763580770"
+      },
       "android": {
         "releaseStatus": "draft"
       }

@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import Avatar from "../../assets/images/avatar.svg";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
-import EditBtn from "../../assets/images/editbtn.svg";
 import AlertPopup from "../../components/alertpopup";
 import TextInput from "../../components/input/textinput";
 import { useMe } from "../../src/hooks/useMe";
@@ -133,12 +132,14 @@ export default function EditProfile() {
             ) : (
               <Avatar width={160} height={160} />
             )}
+            {/*
             <TouchableOpacity
               className="absolute bottom-0 right-0"
               onPress={handlePickProfileImage}
             >
               <EditBtn />
             </TouchableOpacity>
+            */}
           </View>
         </View>
 

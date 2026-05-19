@@ -11,6 +11,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ssak.seederslab",
+      "appleId": "vneld0383@naver.com",
+      "appleTeamId": "ZAFW89T487",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "프로필 이미지를 설정하기 위해 사진 보관함 접근 권한이 필요합니다. 사진첩에서 선택한 이미지를 프로필 사진으로 사용할 수 있습니다.",

@@ -1,11 +1,9 @@
-import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
-import Map from "../../assets/images/map.svg";
 
 import { mockrestaurent } from "../../components/mockrestaurent";
 import SearchInput from "../../components/searchinput";
@@ -129,18 +127,18 @@ export default function Restaurant() {
     lon: number;
   } | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const loc = await Location.getCurrentPositionAsync({});
-        setUserLocation({
-          lat: loc.coords.latitude,
-          lon: loc.coords.longitude,
-        });
-      }
-    })();
-  }, []);
+  // useEffect(() => {
+  //   (async () => {
+  //     const { status } = await Location.requestForegroundPermissionsAsync();
+  //     if (status === "granted") {
+  //       const loc = await Location.getCurrentPositionAsync({});
+  //       setUserLocation({
+  //         lat: loc.coords.latitude,
+  //         lon: loc.coords.longitude,
+  //       });
+  //     }
+  //   })();
+  // }, []);
 
   const restaurants = useMemo(() => {
     const source = data.length === 0 ? mockrestaurent : data;
@@ -282,9 +280,11 @@ export default function Restaurant() {
             식당 선택하기
           </Text>
         </View>
-        <TouchableOpacity onPress={() => router.push("/home/location")}>
+        {/*
+        <TouchableOpacity onPress={() => router.push("/home/location")}> 
           <Map />
         </TouchableOpacity>
+        */}
       </View>
 
       <SearchInput

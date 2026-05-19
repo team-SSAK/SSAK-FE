@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Image from "../../assets/images/image.svg";
 import PostGradient from "../../assets/images/PostGradient.svg";
 import X from "../../assets/images/x.svg";
 import AlertPopup from "../../components/alertpopup";
@@ -462,7 +461,7 @@ export default function WritePost() {
 
           {/* 하단 바 */}
           <View className="border-t border-slate-100 flex flex-row justify-between items-center py-2 mb-14">
-            {/* 이미지 버튼 */}
+            {/* 이미지 버튼
             <TouchableOpacity
               onPress={pickImage}
               className="flex flex-row items-center gap-1"
@@ -472,6 +471,7 @@ export default function WritePost() {
                 이미지
               </Text>
             </TouchableOpacity>
+            */}
 
             {/* 공개/비공개 라디오 */}
             <View className="flex flex-row items-center gap-2.5">
