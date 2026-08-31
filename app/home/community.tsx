@@ -111,7 +111,8 @@ export default function Community() {
     left: 0,
   });
   const [showOutOfRangeModal, setShowOutOfRangeModal] = useState(false);
-  const { data: restaurantDetail } = useRestaurantDetail(Number(restaurantId ?? "0"));
+  const parsedRestaurantId = Number(restaurantId ?? "0");
+  const { data: restaurantDetail } = useRestaurantDetail(parsedRestaurantId > 0 ? parsedRestaurantId : NaN);
 
   const formatPostDate = (isoDate: string) => {
     const date = new Date(isoDate);
