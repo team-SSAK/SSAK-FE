@@ -1,12 +1,11 @@
 import * as Location from "expo-location";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import LocationPermissionModal from "../../components/locationpermissionmodal";
 import RestaurantLocationMap from "../../components/restaurant-location-map";
 import { useRestaurant } from "../../src/hooks/useRestaurant";
-import { getRestaurantById } from "../../src/services/home/restaurent.service";
 
 const CAMPUS_CENTER = {
   latitude: 37.5615,
@@ -16,35 +15,19 @@ const CAMPUS_CENTER = {
 export default function LocationScreen() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [restaurantMarkers, setRestaurantMarkers] = useState<Array<{ id: number; latitude: number; longitude: number; title: string }>>([]);
   const { data: restaurants = [] } = useRestaurant();
 
-  useEffect(() => {
-    if (restaurants.length === 0) return;
-    const fetchCoords = async () => {
-      const results = await Promise.allSettled(
-        restaurants.map((r) => getRestaurantById(r.restaurantId))
-      );
-      const markers: Array<{ id: number; latitude: number; longitude: number; title: string }> = [];
-      results.forEach((result, i) => {
-        if (result.status === "fulfilled") {
-          const d = result.value;
-          const lat = Number(d?.latitude ?? d?.restaurantCoord?.y);
-          const lon = Number(d?.longitude ?? d?.restaurantCoord?.x);
-          if (Number.isFinite(lat) && Number.isFinite(lon) && lat !== 0 && lon !== 0) {
-            markers.push({
-              id: restaurants[i].restaurantId,
-              latitude: lat,
-              longitude: lon,
-              title: restaurants[i].restaurantName,
-            });
-          }
-        }
-      });
-      setRestaurantMarkers(markers);
-    };
-    fetchCoords();
-  }, [restaurants]);
+  const restaurantMarkers = useMemo(() =>
+    restaurants
+      .filter((r) => r.latitude !== null && r.longitude !== null)
+      .map((r) => ({
+        id: r.restaurantId,
+        latitude: r.latitude as number,
+        longitude: r.longitude as number,
+        title: r.restaurantName,
+      })),
+    [restaurants],
+  );
 
   const handleCurrentLocation = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
