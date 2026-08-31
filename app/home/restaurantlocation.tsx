@@ -1,7 +1,9 @@
+import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import OutOfRangeModal from "../../components/outofrangemodal";
 import PopUp from "../../components/popup";
 import RestaurantLocationMap from "../../components/restaurant-location-map";
 import { useRestaurantDetail } from "../../src/hooks/useRestaurant";
@@ -28,6 +30,7 @@ export default function RestaurantLoacation() {
   const [limitPopupTitle, setLimitPopupTitle] = useState("");
   const [limitPopupMessage, setLimitPopupMessage] = useState("");
   const [displayTime, setDisplayTime] = useState<string | null>(null);
+  const [showOutOfRangeModal, setShowOutOfRangeModal] = useState(false);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const MEASUREMENT_LIMIT_KEY = "MEASUREMENT_LIMIT";
@@ -249,6 +252,23 @@ export default function RestaurantLoacation() {
               setShowLimitPopup(true);
               return;
             }
+            const coord = restaurantDetail?.restaurantCoord;
+            if (coord) {
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              if (status === "granted") {
+                const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                const R = 6371000;
+                const toRad = (d: number) => (d * Math.PI) / 180;
+                const dLat = toRad(coord.lat - pos.coords.latitude);
+                const dLon = toRad(coord.lon - pos.coords.longitude);
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(pos.coords.latitude)) * Math.cos(toRad(coord.lat)) * Math.sin(dLon / 2) ** 2;
+                const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                if (dist > 100) {
+                  setShowOutOfRangeModal(true);
+                  return;
+                }
+              }
+            }
             router.push("/home/camera");
           }}
         >
@@ -271,6 +291,11 @@ export default function RestaurantLoacation() {
           onClose={() => setShowLimitPopup(false)}
         />
       )}
+
+      <OutOfRangeModal
+        visible={showOutOfRangeModal}
+        onConfirm={() => setShowOutOfRangeModal(false)}
+      />
     </View>
   );
 }
