@@ -31,6 +31,7 @@ export default function RestaurantLoacation() {
   const [limitPopupMessage, setLimitPopupMessage] = useState("");
   const [displayTime, setDisplayTime] = useState<string | null>(null);
   const [showOutOfRangeModal, setShowOutOfRangeModal] = useState(false);
+  const [showGpsFailModal, setShowGpsFailModal] = useState(false);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const MEASUREMENT_LIMIT_KEY = "MEASUREMENT_LIMIT";
@@ -256,7 +257,13 @@ export default function RestaurantLoacation() {
             if (coord) {
               const { status } = await Location.requestForegroundPermissionsAsync();
               if (status === "granted") {
-                const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                let pos: Location.LocationObject;
+                try {
+                  pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                } catch {
+                  setShowGpsFailModal(true);
+                  return;
+                }
                 const R = 6371000;
                 const toRad = (d: number) => (d * Math.PI) / 180;
                 const dLat = toRad(coord.lat - pos.coords.latitude);
@@ -295,6 +302,14 @@ export default function RestaurantLoacation() {
       <OutOfRangeModal
         visible={showOutOfRangeModal}
         onConfirm={() => setShowOutOfRangeModal(false)}
+        title="식당에 도착한 후 인증할 수 있어요"
+        description="선택한 식당에서 100m 이내일 때 잔반 인증이 가능해요."
+      />
+      <OutOfRangeModal
+        visible={showGpsFailModal}
+        onConfirm={() => setShowGpsFailModal(false)}
+        title="위치를 확인하지 못했어요"
+        description="실내나 지하에서는 위치가 정확하게 확인되지 않을 수 있어요. 잠시 후 다시 시도해 주세요."
       />
     </View>
   );

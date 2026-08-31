@@ -8,7 +8,7 @@ interface OwnerBadgeProps {
 export default function OwnerBadge({ onPress }: OwnerBadgeProps) {
   return (
     <TouchableOpacity onPress={onPress} disabled={!onPress}>
-      <CheckCircle2 size={16} color="#22C55E" />
+      <CheckCircle2 size={16} color="#3CB221" />
     </TouchableOpacity>
   );
 }

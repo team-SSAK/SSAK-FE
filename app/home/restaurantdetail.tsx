@@ -47,12 +47,12 @@ function Popup({
         className="flex-1 justify-center items-center"
         style={{ backgroundColor: "rgba(0,0,0,0.1)" }}
       >
-        <View className="w-72 p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
+        <View className="w-[284px] p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
           <View className="self-stretch flex-col justify-start items-start gap-1">
-            <Text className="self-stretch text-slate-800 text-lg font-semibold leading-7">
+            <Text className="self-stretch text-gray-900 text-lg font-semibold leading-7">
               {title}
             </Text>
-            <Text className="self-stretch text-slate-500 text-sm font-medium leading-6">
+            <Text className="self-stretch text-gray-600 text-sm font-medium leading-[22px]">
               {description}
             </Text>
           </View>
@@ -158,6 +158,7 @@ export default function RestaurantDetail() {
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [showOutOfRangeModal, setShowOutOfRangeModal] = useState(false);
+  const [showGpsFailModal, setShowGpsFailModal] = useState(false);
   const [showLimitPopup, setShowLimitPopup] = useState(false);
   const [limitPopupTitle, setLimitPopupTitle] = useState("");
   const [limitPopupMessage, setLimitPopupMessage] = useState("");
@@ -544,7 +545,13 @@ export default function RestaurantDetail() {
             if (coord) {
               const { status } = await Location.requestForegroundPermissionsAsync();
               if (status === "granted") {
-                const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                let pos: Location.LocationObject;
+                try {
+                  pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                } catch {
+                  setShowGpsFailModal(true);
+                  return;
+                }
                 const R = 6371000;
                 const toRad = (d: number) => (d * Math.PI) / 180;
                 const dLat = toRad(coord.lat - pos.coords.latitude);
@@ -622,6 +629,14 @@ export default function RestaurantDetail() {
       <OutOfRangeModal
         visible={showOutOfRangeModal}
         onConfirm={() => setShowOutOfRangeModal(false)}
+        title="식당에 도착한 후 인증할 수 있어요"
+        description="선택한 식당에서 100m 이내일 때 잔반 인증이 가능해요."
+      />
+      <OutOfRangeModal
+        visible={showGpsFailModal}
+        onConfirm={() => setShowGpsFailModal(false)}
+        title="위치를 확인하지 못했어요"
+        description="실내나 지하에서는 위치가 정확하게 확인되지 않을 수 있어요. 잠시 후 다시 시도해 주세요."
       />
     </View>
   );
