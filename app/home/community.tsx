@@ -1,3 +1,4 @@
+import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -17,6 +18,7 @@ import Post from "@/components/post";
 import SearchInput from "@/components/searchinput";
 import AlertPopup from "../../components/alertpopup";
 import AlertPopupRadio from "../../components/alertpopupradio";
+import OutOfRangeModal from "../../components/outofrangemodal";
 
 import ChevronDown from "../../assets/images/chevron-down.svg";
 
@@ -25,6 +27,7 @@ import SearchB from "../../assets/images/searchB.svg";
 import { useCommunity, useDeleteCommunity } from "../../src/hooks/useCommunity";
 import { useMe } from "../../src/hooks/useMe";
 import { useReport } from "../../src/hooks/useReport";
+import { useRestaurantDetail } from "../../src/hooks/useRestaurant";
 
 function Popup({
   title = "이미 신고된 글입니다",
@@ -72,6 +75,17 @@ function Popup({
 // 페이지
 //////////////////////////////////////////////////////
 
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function Community() {
   const { restaurantId } = useLocalSearchParams<{ restaurantId?: string }>();
   const [postFilter, setPostFilter] = useState<"all" | "mine">("all");
@@ -96,6 +110,8 @@ export default function Community() {
     top: 0,
     left: 0,
   });
+  const [showOutOfRangeModal, setShowOutOfRangeModal] = useState(false);
+  const { data: restaurantDetail } = useRestaurantDetail(Number(restaurantId ?? "0"));
 
   const formatPostDate = (isoDate: string) => {
     const date = new Date(isoDate);
@@ -204,6 +220,22 @@ export default function Community() {
     return trimmed.length > 0 ? trimmed : "탈퇴한 사용자";
   };
 
+  const handleWritePress = async () => {
+    const coord = restaurantDetail?.restaurantCoord;
+    if (coord) {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const dist = haversineDistance(pos.coords.latitude, pos.coords.longitude, coord.lat, coord.lon);
+        if (dist > 100) {
+          setShowOutOfRangeModal(true);
+          return;
+        }
+      }
+    }
+    router.push({ pathname: "/home/writepost", params: { restaurantId } });
+  };
+
   return (
     <View className="flex-1 bg-white">
       <ScrollView
@@ -241,16 +273,11 @@ export default function Community() {
               <TouchableOpacity onPress={() => setIsSearchMode(true)}>
                 <SearchB />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: "/home/writepost",
-                    params: { restaurantId },
-                  })
-                }
-              >
-                <Pen />
-              </TouchableOpacity>
+              {me?.userRole !== "OWNER" && (
+                <TouchableOpacity onPress={handleWritePress}>
+                  <Pen />
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -300,6 +327,7 @@ export default function Community() {
             badge="비공개"
             author={getAuthorDisplayName(post.nickname)}
             authorImage={post.authorProfileImg ?? undefined}
+            isOwner={post.isOwner}
             title={post.postTitle}
             content={post.postContent}
             images={post.imageUrls}
@@ -455,6 +483,11 @@ export default function Community() {
         title="신고가 완료되었습니다"
         description="빠르게 검토 후 조치하겠습니다"
         onConfirm={() => setShowReportConfirm(false)}
+      />
+
+      <OutOfRangeModal
+        visible={showOutOfRangeModal}
+        onConfirm={() => setShowOutOfRangeModal(false)}
       />
 
       {/* 하단 그라디언트 */}

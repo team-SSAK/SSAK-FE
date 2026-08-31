@@ -17,12 +17,14 @@ import { usePost } from "../src/hooks/usePost";
 import { useIsPostLiked, usePostWish } from "../src/hooks/useWish";
 import { resolveImageUri } from "../src/utils/image";
 import ActionPopup from "./actionpopup";
+import OwnerBadge from "./ownerbadge";
 
 interface MockPostProps {
   showBadge?: boolean;
   badge?: string;
   author?: string;
   authorImage?: string;
+  isOwner?: boolean;
   title?: string;
   content?: string;
   image?: string;
@@ -44,6 +46,7 @@ export default function Post({
   badge = "비공개",
   author = "화여니",
   authorImage,
+  isOwner = false,
   title = "오늘의 메뉴!",
   content = "오늘 식당 메뉴 최고네요! 넘 맛있어요!",
   image,
@@ -193,6 +196,7 @@ export default function Post({
             <Text className="text-gray-700 text-base font-semibold leading-6">
               {author}
             </Text>
+            {isOwner && <OwnerBadge />}
           </View>
 
           {/* 더보기 버튼 */}
