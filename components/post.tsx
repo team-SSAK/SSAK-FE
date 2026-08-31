@@ -17,12 +17,15 @@ import { usePost } from "../src/hooks/usePost";
 import { useIsPostLiked, usePostWish } from "../src/hooks/useWish";
 import { resolveImageUri } from "../src/utils/image";
 import ActionPopup from "./actionpopup";
+import OwnerBadge from "./ownerbadge";
+import OwnerBadgeModal from "./ownerbadgemodal";
 
 interface MockPostProps {
   showBadge?: boolean;
   badge?: string;
   author?: string;
   authorImage?: string;
+  isOwner?: boolean;
   title?: string;
   content?: string;
   image?: string;
@@ -44,6 +47,7 @@ export default function Post({
   badge = "비공개",
   author = "화여니",
   authorImage,
+  isOwner = false,
   title = "오늘의 메뉴!",
   content = "오늘 식당 메뉴 최고네요! 넘 맛있어요!",
   image,
@@ -62,6 +66,7 @@ export default function Post({
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [suppressCardPress, setSuppressCardPress] = useState(false);
+  const [showOwnerModal, setShowOwnerModal] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
   const [isImageLoadFailed, setIsImageLoadFailed] = useState(false);
   const isLiked = useIsPostLiked(likedPostId);
@@ -193,6 +198,7 @@ export default function Post({
             <Text className="text-gray-700 text-base font-semibold leading-6">
               {author}
             </Text>
+            {isOwner && <OwnerBadge onPress={() => setShowOwnerModal(true)} />}
           </View>
 
           {/* 더보기 버튼 */}
@@ -328,6 +334,11 @@ export default function Post({
           </View>
         </Pressable>
       </Modal>
+
+      <OwnerBadgeModal
+        visible={showOwnerModal}
+        onConfirm={() => setShowOwnerModal(false)}
+      />
     </TouchableOpacity>
   );
 }

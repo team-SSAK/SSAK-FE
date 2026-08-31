@@ -13,6 +13,7 @@ export interface CommunityItem {
   postVisibility: boolean;
   nickname: string;
   authorProfileImg?: string | null;
+  isOwner?: boolean;
   postCreateTime: string;
   postLikeCnt: number;
   postCommentCnt: number;
@@ -150,6 +151,7 @@ const normalizeCommunity = (res: unknown): CommunityItem[] => {
           typeof rawAuthorProfile === "string"
             ? resolveImageOrNull(rawAuthorProfile)
             : null,
+        isOwner: item.isOwner === true,
         postCreateTime:
           typeof item.postCreateTime === "string" ? item.postCreateTime : "",
         postLikeCnt:
