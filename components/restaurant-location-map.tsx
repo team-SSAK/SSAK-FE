@@ -1,10 +1,19 @@
 import { Text, View } from "react-native";
 
+interface RestaurantMarker {
+  id: number;
+  latitude: number;
+  longitude: number;
+  title: string;
+}
+
 interface RestaurantLocationMapProps {
   latitude: number;
   longitude: number;
   title: string;
   description: string;
+  restaurantMarkers?: RestaurantMarker[];
+  userLocation?: { latitude: number; longitude: number };
 }
 
 export default function RestaurantLocationMap(_: RestaurantLocationMapProps) {
