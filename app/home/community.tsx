@@ -337,7 +337,7 @@ export default function Community() {
             likeCount={post.postLikeCnt}
             commentCount={post.postCommentCnt}
             date={formatPostDate(post.postCreateTime)}
-            isMine={post.nickname.trim() === (me?.userNm ?? "").trim()}
+            isMine={post.nickname.trim() === (me?.userNm ?? "").trim() || me?.userRole === "ADMIN"}
             onDeletePress={() => {
               setShowDeletePopup(true);
               setPendingDeletePostId(post.postId);
