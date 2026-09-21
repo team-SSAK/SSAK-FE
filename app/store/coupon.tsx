@@ -286,59 +286,103 @@ export default function Coupon() {
         onRequestClose={() => setShowExchangeSheet(false)}
       >
         <TouchableOpacity
-          className="flex-1 bg-black/40"
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }}
           activeOpacity={1}
           onPress={() => setShowExchangeSheet(false)}
         />
-        <View className="bg-white rounded-t-3xl px-5 pt-5 pb-10">
-          <View className="w-10 h-1 bg-slate-200 rounded-full self-center mb-5" />
-          <Text className="text-gray-800 text-lg font-semibold mb-5">
-            쿠폰 교환
-          </Text>
-
-          {/* 쿠폰 정보 */}
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-gray-700 text-base font-medium" numberOfLines={1} style={{ flex: 1, marginRight: 8 }}>
-              {couponTitle}
-            </Text>
-            <Text className="text-gray-900 text-base font-bold">{couponPrice}</Text>
+        <View style={{ backgroundColor: "#FFFFFF", borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
+          {/* 핸들 바 */}
+          <View style={{ height: 27, alignItems: "center", justifyContent: "center", paddingVertical: 10 }}>
+            <View style={{ width: 45, height: 6, backgroundColor: "#E2E8F0", borderRadius: 20 }} />
           </View>
 
-          <View className="h-px bg-slate-100 mb-4" />
-
-          {/* 포인트 정보 */}
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-gray-500 text-sm font-medium">보유중인 포인트</Text>
-            <Text className="text-gray-800 text-sm font-semibold">{currentPoint}P</Text>
-          </View>
-          <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-gray-500 text-sm font-medium">
-              {hasEnoughPoint ? "사용 후 포인트" : "부족한 포인트"}
-            </Text>
-            <Text
-              className={`text-sm font-semibold ${hasEnoughPoint ? "text-green-500" : "text-red-500"}`}
-            >
-              {hasEnoughPoint ? `${afterPoint}P` : `${Math.abs(afterPoint)}P 부족`}
-            </Text>
-          </View>
-
-          {/* 버튼 */}
-          <View className="flex-row gap-3">
-            <TouchableOpacity
-              className="flex-1 h-[52px] bg-slate-100 rounded-xl justify-center items-center"
-              onPress={() => setShowExchangeSheet(false)}
-            >
-              <Text className="text-gray-700 text-base font-medium">취소</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className={`flex-1 h-[52px] rounded-xl justify-center items-center ${hasEnoughPoint ? "bg-green-400" : "bg-slate-200"}`}
-              onPress={handleExchangeConfirm}
-              disabled={!hasEnoughPoint || isExchanging}
-            >
-              <Text className={`text-base font-medium ${hasEnoughPoint ? "text-white" : "text-slate-400"}`}>
-                교환하기
+          {/* 콘텐츠 */}
+          <View style={{ paddingTop: 40, paddingHorizontal: 16, gap: 30 }}>
+            {/* 쿠폰 정보 */}
+            <View style={{ gap: 0 }}>
+              <Text style={{ color: "#64758B", fontSize: 14, fontWeight: "500", lineHeight: 14 * 1.6 }}>
+                {couponStoreName}
               </Text>
-            </TouchableOpacity>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text
+                  style={{ flex: 1, color: "#000000", fontSize: 20, fontWeight: "600", lineHeight: 20 * 1.6 }}
+                  numberOfLines={1}
+                >
+                  {couponTitle}
+                </Text>
+                <Text style={{ color: "#000000", fontSize: 20, fontWeight: "600", lineHeight: 20 * 1.6 }}>
+                  {couponPrice}
+                </Text>
+              </View>
+            </View>
+
+            {/* 포인트 정보 */}
+            <View style={{ gap: 16 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={{ flex: 1, color: "#94A3B8", fontSize: 16, fontWeight: "500", lineHeight: 16 * 1.6 }}>
+                  보유중인 포인트
+                </Text>
+                <Text style={{ color: "#000000", fontSize: 16, fontWeight: "600", lineHeight: 16 * 1.6 }}>
+                  {currentPoint}P
+                </Text>
+              </View>
+
+              <View style={{ height: 1, backgroundColor: "#E2E8F0" }} />
+
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={{ flex: 1, color: hasEnoughPoint ? "#45B310" : "#EA4444", fontSize: 16, fontWeight: "500", lineHeight: 16 * 1.6 }}>
+                  {hasEnoughPoint ? "사용 후 포인트" : "부족한 포인트"}
+                </Text>
+                <Text style={{ color: hasEnoughPoint ? "#45B310" : "#EA4444", fontSize: 16, fontWeight: "600", lineHeight: 16 * 1.6 }}>
+                  {hasEnoughPoint ? `${afterPoint}P` : `${Math.abs(afterPoint)}P`}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* 버튼 영역 */}
+          <View style={{ paddingTop: 60, alignItems: "center", gap: 10 }}>
+            <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, width: "100%" }}>
+              <TouchableOpacity
+                onPress={() => setShowExchangeSheet(false)}
+                style={{
+                  width: 90,
+                  height: 52,
+                  padding: 12,
+                  backgroundColor: "#F1F5F9",
+                  borderRadius: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: "#0E172A", fontSize: 18, fontWeight: "500", lineHeight: 18 * 1.6 }}>
+                  취소
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleExchangeConfirm}
+                disabled={!hasEnoughPoint || isExchanging}
+                style={{
+                  flex: 1,
+                  height: 52,
+                  padding: 12,
+                  backgroundColor: hasEnoughPoint ? "#45B310" : "#94A3B8",
+                  opacity: hasEnoughPoint ? 1 : 0.5,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "500", lineHeight: 18 * 1.6 }}>
+                  교환하기
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Home indicator */}
+            <View style={{ paddingVertical: 8, alignItems: "center", width: "100%" }}>
+              <View style={{ width: 140, height: 5, backgroundColor: "#000000", borderRadius: 64 }} />
+            </View>
           </View>
         </View>
       </Modal>

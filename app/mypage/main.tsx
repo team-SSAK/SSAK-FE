@@ -180,18 +180,18 @@ export default function Main() {
         </View>
 
         {/* 프로필 */}
-        <View className="flex-row items-center mt-2.5 mb-[18px]">
+        <View className="flex-row items-center gap-[14px] mt-[10px] mb-[18px]">
           {resolvedProfileImageUri ? (
             <Image
               source={{ uri: resolvedProfileImageUri }}
-              className="w-20 h-20 rounded-full"
+              style={{ width: 58, height: 58, borderRadius: 999 }}
               resizeMode="cover"
             />
           ) : (
-            <Avatar />
+            <Avatar width={58} height={58} />
           )}
 
-          <View className="flex-1 flex-row items-end gap-1 ml-3.5">
+          <View className="flex-1 flex-row items-center gap-[2px]">
             <Text className="text-2xl font-semibold text-black">
               {me?.userNm ?? ""}
             </Text>
@@ -216,9 +216,9 @@ export default function Main() {
         {/* 포인트 */}
         <View className="mb-[38px]">
           <TouchableOpacity onPress={() => router.push("/mypage/point")}>
-            <View className="px-4 py-3.5 bg-green-300 rounded-xl">
+            <View style={{ backgroundColor: "#78D462", borderRadius: 12, paddingHorizontal: 18, paddingVertical: 14 }}>
               <Text className="text-white text-sm font-medium">내 포인트</Text>
-              <View className="flex-row items-center">
+              <View className="flex-row items-center gap-[2px]">
                 {isPointLoading ? (
                   <ActivityIndicator color="#ffffff" size="small" />
                 ) : (
@@ -238,8 +238,8 @@ export default function Main() {
             onPress={() => router.push("/mypage/coupon")}
             activeOpacity={0.7}
           >
-            <View className="flex-row justify-between items-center w-full">
-              <Text className="text-gray-800 text-lg font-semibold">
+            <View className="flex-row justify-between items-center w-full pt-[38px]">
+              <Text style={{ color: "#1E293B", fontSize: 18, fontWeight: "600" }}>
                 내 쿠폰
               </Text>
               <ChevronRightG />
@@ -303,8 +303,8 @@ export default function Main() {
             onPress={() => router.push("/mypage/restaurant")}
             activeOpacity={0.7}
           >
-            <View className="flex-row justify-between items-center w-full">
-              <Text className="text-gray-800 text-lg font-semibold">
+            <View className="flex-row justify-between items-center w-full pt-[48px]">
+              <Text style={{ color: "#1E293B", fontSize: 18, fontWeight: "600" }}>
                 내 식당
               </Text>
               <ChevronRightG />
