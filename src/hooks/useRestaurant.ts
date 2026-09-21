@@ -15,26 +15,9 @@ export interface Restaurant {
   restaurantImgUrl: string;
   restaurantType: RestaurantType;
   wished: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
-
-const isRestaurant = (value: unknown): value is Restaurant => {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const item = value as Record<string, unknown>;
-
-  return (
-    typeof item.restaurantId === "number" &&
-    typeof item.restaurantName === "string" &&
-    typeof item.restaurantLocation === "string" &&
-    typeof item.restaurantImgUrl === "string" &&
-    (item.restaurantType === undefined ||
-      typeof item.restaurantType === "string" ||
-      item.restaurantType === null) &&
-    typeof item.wished === "boolean"
-  );
-};
 
 const normalizeRestaurants = (res: unknown): Restaurant[] => {
   const wrapped =
@@ -48,7 +31,26 @@ const normalizeRestaurants = (res: unknown): Restaurant[] => {
       ? wrapped.data
       : [];
 
-  return list.filter(isRestaurant);
+  return list
+    .filter(
+      (value): value is Record<string, unknown> =>
+        typeof value === "object" && value !== null,
+    )
+    .map((item) => {
+      const lat = Number(item.latitude ?? item.lat);
+      const lon = Number(item.longitude ?? item.lng ?? item.lon);
+      return {
+        restaurantId: Number(item.restaurantId),
+        restaurantName: typeof item.restaurantName === "string" ? item.restaurantName : "",
+        restaurantLocation: typeof item.restaurantLocation === "string" ? item.restaurantLocation : "",
+        restaurantImgUrl: typeof item.restaurantImgUrl === "string" ? item.restaurantImgUrl : "",
+        restaurantType: (typeof item.restaurantType === "string" ? item.restaurantType : null) as RestaurantType,
+        wished: item.wished === true || item.isWished === true,
+        latitude: Number.isFinite(lat) && lat !== 0 ? lat : null,
+        longitude: Number.isFinite(lon) && lon !== 0 ? lon : null,
+      };
+    })
+    .filter((r) => r.restaurantId > 0);
 };
 
 export const useRestaurant = () =>

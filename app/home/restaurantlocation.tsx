@@ -1,7 +1,9 @@
+import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
+import OutOfRangeModal from "../../components/outofrangemodal";
 import PopUp from "../../components/popup";
 import RestaurantLocationMap from "../../components/restaurant-location-map";
 import { useRestaurantDetail } from "../../src/hooks/useRestaurant";
@@ -28,6 +30,8 @@ export default function RestaurantLoacation() {
   const [limitPopupTitle, setLimitPopupTitle] = useState("");
   const [limitPopupMessage, setLimitPopupMessage] = useState("");
   const [displayTime, setDisplayTime] = useState<string | null>(null);
+  const [showOutOfRangeModal, setShowOutOfRangeModal] = useState(false);
+  const [showGpsFailModal, setShowGpsFailModal] = useState(false);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const MEASUREMENT_LIMIT_KEY = "MEASUREMENT_LIMIT";
@@ -249,6 +253,29 @@ export default function RestaurantLoacation() {
               setShowLimitPopup(true);
               return;
             }
+            const coord = restaurantDetail?.restaurantCoord;
+            if (coord) {
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              if (status === "granted") {
+                let pos: Location.LocationObject;
+                try {
+                  pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                } catch {
+                  setShowGpsFailModal(true);
+                  return;
+                }
+                const R = 6371000;
+                const toRad = (d: number) => (d * Math.PI) / 180;
+                const dLat = toRad(coord.lat - pos.coords.latitude);
+                const dLon = toRad(coord.lon - pos.coords.longitude);
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(pos.coords.latitude)) * Math.cos(toRad(coord.lat)) * Math.sin(dLon / 2) ** 2;
+                const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                if (dist > 100) {
+                  setShowOutOfRangeModal(true);
+                  return;
+                }
+              }
+            }
             router.push("/home/camera");
           }}
         >
@@ -271,6 +298,19 @@ export default function RestaurantLoacation() {
           onClose={() => setShowLimitPopup(false)}
         />
       )}
+
+      <OutOfRangeModal
+        visible={showOutOfRangeModal}
+        onConfirm={() => setShowOutOfRangeModal(false)}
+        title="식당에 도착한 후 인증할 수 있어요"
+        description="선택한 식당에서 100m 이내일 때 잔반 인증이 가능해요."
+      />
+      <OutOfRangeModal
+        visible={showGpsFailModal}
+        onConfirm={() => setShowGpsFailModal(false)}
+        title="위치를 확인하지 못했어요"
+        description="실내나 지하에서는 위치가 정확하게 확인되지 않을 수 있어요. 잠시 후 다시 시도해 주세요."
+      />
     </View>
   );
 }

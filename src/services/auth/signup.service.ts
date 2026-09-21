@@ -27,6 +27,18 @@ export const signup = async (request: SignupRequest): Promise<void> => {
  * 소셜 로그인 회원 추가 정보 등록 API
  * POST /api/users/create-details
  */
+export interface OwnerSignupRequest {
+  userEmail: string;
+  userPw: string;
+  userNm: string;
+  restaurantId: number;
+  marketingAgreeYn: boolean;
+}
+
+export const ownerSignup = async (request: OwnerSignupRequest): Promise<void> => {
+  await client.post("/api/auth/owner-signup", request);
+};
+
 export const createSocialUserDetails = async (
   userNm: string,
   marketingAgreeYn: boolean,

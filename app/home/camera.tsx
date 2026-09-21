@@ -480,25 +480,30 @@ export default function Camera() {
               });
             } catch (e) {
               console.error("잔반 인식 실패:", e);
+              setIsGuideVisible(true);
             }
           }}
         >
           <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center flex-row gap-2">
-            {isPending ? (
-              <>
-                <ActivityIndicator color="#f9fafb" />
-                <Text className="text-center text-gray-50 text-lg font-medium leading-7">
-                  인식 중입니다
-                </Text>
-              </>
-            ) : (
-              <Text className="text-center text-gray-50 text-lg font-medium leading-7">
-                잔반 인식하기
-              </Text>
-            )}
+            <Text className="text-center text-gray-50 text-lg font-medium leading-7">
+              잔반 인식하기
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
+
+      {/* 잔반 분석 중 전체화면 로딩 */}
+      {isPending && (
+        <View className="absolute inset-0 bg-black/60 justify-center items-center gap-4">
+          <ActivityIndicator color="#78D462" size="large" />
+          <Text className="text-white text-base font-semibold">
+            잔반을 분석하고 있어요
+          </Text>
+          <Text className="text-white/70 text-sm font-medium">
+            잠시만 기다려주세요
+          </Text>
+        </View>
+      )}
 
       {isGuideVisible && (
         <Pressable

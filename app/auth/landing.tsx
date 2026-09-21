@@ -332,20 +332,17 @@ export default function Landing() {
 
   const onOwnerSignupPress = async () => {
     await clearSocialLoginPending();
-    await setOwnerSignupClicked(true);
-    router.push("/auth/registeremail");
+    router.push({ pathname: "/auth/registeremail", params: { isOwner: "true" } });
   };
 
   const onUserSignupPress = async () => {
     await clearSocialLoginPending();
-    await setOwnerSignupClicked(false);
     router.push("/auth/registeremail");
   };
   /* ======================================== */
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-center p-4">
-      {/* 사장님 로그인 -> 진입 못하게 주석 처리
       <View className="absolute left-4 right-4 top-[72px]">
         <Text className="text-right text-gray-500 text-sm font-medium leading-6">
           식당의 사장님이신가요?
@@ -356,7 +353,6 @@ export default function Landing() {
           </Text>
         </TouchableOpacity>
       </View>
-     */}
 
       <View className="flex flex-col gap-3 justify-center items-center mb-[64.5px]">
         <Text className="text-green-400 text-sm font-medium leading-6">

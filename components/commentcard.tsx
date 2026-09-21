@@ -16,6 +16,7 @@ interface CommentCardProps {
   date?: string;
   isLiked?: boolean;
   isMine?: boolean;
+  showReply?: boolean;
   onMenuPress?: (event: GestureResponderEvent) => void;
   onReplyPress?: () => void;
   onLikePress?: () => void;
@@ -27,6 +28,7 @@ export default function CommentCard({
   likeCount = 0,
   date = "25.11.14",
   isLiked = false,
+  showReply = true,
   onMenuPress,
   onReplyPress,
   onLikePress,
@@ -63,15 +65,17 @@ export default function CommentCard({
         <View className="flex-row items-center gap-2">
           <View className="flex-row items-center gap-2">
             {/* 답글달기 */}
-            <TouchableOpacity
-              onPress={onReplyPress}
-              className="flex-row items-center gap-0.5"
-            >
-              <Message width="20px" height="20px" />
-              <Text className="text-gray-500 text-sm font-medium leading-6">
-                답글달기
-              </Text>
-            </TouchableOpacity>
+            {showReply && (
+              <TouchableOpacity
+                onPress={onReplyPress}
+                className="flex-row items-center gap-0.5"
+              >
+                <Message width="20px" height="20px" />
+                <Text className="text-gray-500 text-sm font-medium leading-6">
+                  답글달기
+                </Text>
+              </TouchableOpacity>
+            )}
             {/* 좋아요 */}
             <TouchableOpacity
               onPress={onLikePress}

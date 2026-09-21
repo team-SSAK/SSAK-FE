@@ -1,10 +1,19 @@
 import MapView, { Marker } from "react-native-maps";
 
+interface RestaurantMarker {
+  id: number;
+  latitude: number;
+  longitude: number;
+  title: string;
+}
+
 interface RestaurantLocationMapProps {
   latitude: number;
   longitude: number;
   title: string;
   description: string;
+  restaurantMarkers?: RestaurantMarker[];
+  userLocation?: { latitude: number; longitude: number };
 }
 
 export default function RestaurantLocationMap({
@@ -12,6 +21,8 @@ export default function RestaurantLocationMap({
   longitude,
   title,
   description,
+  restaurantMarkers,
+  userLocation,
 }: RestaurantLocationMapProps) {
   return (
     <MapView
@@ -34,6 +45,23 @@ export default function RestaurantLocationMap({
         title={title}
         description={description}
       />
+
+      {restaurantMarkers?.map((marker) => (
+        <Marker
+          key={marker.id}
+          coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
+          title={marker.title}
+          pinColor="green"
+        />
+      ))}
+
+      {userLocation && (
+        <Marker
+          coordinate={userLocation}
+          title="내 위치"
+          pinColor="blue"
+        />
+      )}
     </MapView>
   );
 }

@@ -11,7 +11,6 @@ import ChevronLeft from "../../assets/images/chevron-left.svg";
 import EyeOff from "../../assets/images/eye-slash.svg";
 import Eye from "../../assets/images/eye.svg";
 import StepIndicator from "../../components/stepindicator";
-import { getOwnerSignupClicked } from "../../src/utils/storage";
 
 interface PWInputProps {
   placeholder: string;
@@ -64,7 +63,7 @@ export default function RegisterPW() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const { email } = useLocalSearchParams<{ email: string }>();
+  const { email, isOwner } = useLocalSearchParams<{ email: string; isOwner?: string }>();
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -77,7 +76,7 @@ export default function RegisterPW() {
             회원가입
           </Text>
         </View>
-        <StepIndicator currentStep={2} />
+        <StepIndicator currentStep={2} totalSteps={isOwner === "true" ? 5 : 4} />
         <Text className="text-green-900 text-2xl font-semibold leading-10 my-3.5">
           비밀번호를 입력해주세요
         </Text>
@@ -113,6 +112,7 @@ export default function RegisterPW() {
               params: {
                 email: email || "test@test.com",
                 password: password || "testpass",
+                isOwner,
               },
             })
           }
