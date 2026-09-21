@@ -5,7 +5,8 @@ export interface Me {
   userNm: string;
   userEmail: string;
   userProfileImg?: string | null;
-  userRole?: "USER" | "OWNER" | "ADMIN" | null;
+  userRole?: "USER" | "MEMBER" | "OWNER" | "ADMIN" | null;
+  ownedRestaurantId?: number | null;
 }
 
 const pickFirstString = (...values: unknown[]): string | undefined => {
@@ -38,11 +39,14 @@ const normalizeMeCandidate = (value: unknown): Me | null => {
   }
 
   const userRole =
-    item.userRole === "USER" || item.userRole === "OWNER" || item.userRole === "ADMIN"
-      ? (item.userRole as "USER" | "OWNER" | "ADMIN")
+    item.userRole === "USER" || item.userRole === "MEMBER" || item.userRole === "OWNER" || item.userRole === "ADMIN"
+      ? (item.userRole as "USER" | "MEMBER" | "OWNER" | "ADMIN")
       : null;
 
-  return { userNm, userEmail, userProfileImg, userRole };
+  const ownedRestaurantId =
+    typeof item.ownedRestaurantId === "number" ? item.ownedRestaurantId : null;
+
+  return { userNm, userEmail, userProfileImg, userRole, ownedRestaurantId };
 };
 
 const isMe = (value: unknown): value is Me => {

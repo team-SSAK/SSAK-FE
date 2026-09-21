@@ -2,12 +2,13 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
 import mockdiscription from "../../assets/images/mockdiscription.png";
 import AlertPopup from "../../components/alertpopup";
+import { usePoint } from "../../src/hooks/usePoint";
 import { useStoreCouponDetail } from "../../src/hooks/useStoreCoupons";
 import { postCouponWish } from "../../src/services/mypage/coupons.service";
 import { postCouponExchange } from "../../src/services/store/coupons.service";
@@ -55,9 +56,11 @@ const TabBar = ({ activeTab, onTabChange }: TabBarProps) => {
 export default function Coupon() {
   const { couponId } = useLocalSearchParams<{ couponId?: string }>();
   const [activeTab, setActiveTab] = useState<TabType>("상품설명");
-  const [showExchangePopup, setShowExchangePopup] = useState(false);
+  const [showExchangeSheet, setShowExchangeSheet] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [isExchanging, setIsExchanging] = useState(false);
   const [isWished, setIsWished] = useState(false);
+  const { point: currentPoint } = usePoint();
 
   const couponIdValue = useMemo(() => {
     const rawCouponId = Array.isArray(couponId) ? couponId[0] : couponId;
@@ -68,7 +71,10 @@ export default function Coupon() {
   const couponImage = coupon?.couponImgUrl ?? "";
   const couponStoreName = coupon?.couponStore ?? "가게이름";
   const couponTitle = coupon?.couponName ?? "쿠폰 제목";
-  const couponPrice = coupon ? `${coupon.couponPoint}P` : "0P";
+  const couponPointValue = coupon?.couponPoint ?? 0;
+  const couponPrice = `${couponPointValue}P`;
+  const afterPoint = currentPoint - couponPointValue;
+  const hasEnoughPoint = afterPoint >= 0;
 
   useFocusEffect(
     useCallback(() => {
@@ -115,18 +121,15 @@ export default function Coupon() {
   };
 
   const handleExchangeConfirm = async () => {
-    if (!safeCouponId || isExchanging) {
+    if (!safeCouponId || isExchanging || !hasEnoughPoint) {
       return;
     }
 
     try {
       setIsExchanging(true);
       await postCouponExchange(couponIdValue);
-      setShowExchangePopup(false);
-      router.push({
-        pathname: "/store/mycoupon",
-        params: { couponId: String(couponIdValue) },
-      });
+      setShowExchangeSheet(false);
+      setShowSuccessPopup(true);
     } catch (error) {
       console.error("쿠폰 교환 실패:", error);
     } finally {
@@ -264,7 +267,7 @@ export default function Coupon() {
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-1"
-            onPress={() => setShowExchangePopup(true)}
+            onPress={() => setShowExchangeSheet(true)}
           >
             <View className="w-full h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
               <Text className="text-center text-gray-50 text-lg font-medium leading-7">
@@ -275,14 +278,83 @@ export default function Coupon() {
         </View>
       </View>
 
+      {/* 쿠폰 교환 바텀시트 */}
+      <Modal
+        visible={showExchangeSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowExchangeSheet(false)}
+      >
+        <TouchableOpacity
+          className="flex-1 bg-black/40"
+          activeOpacity={1}
+          onPress={() => setShowExchangeSheet(false)}
+        />
+        <View className="bg-white rounded-t-3xl px-5 pt-5 pb-10">
+          <View className="w-10 h-1 bg-slate-200 rounded-full self-center mb-5" />
+          <Text className="text-gray-800 text-lg font-semibold mb-5">
+            쿠폰 교환
+          </Text>
+
+          {/* 쿠폰 정보 */}
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-gray-700 text-base font-medium" numberOfLines={1} style={{ flex: 1, marginRight: 8 }}>
+              {couponTitle}
+            </Text>
+            <Text className="text-gray-900 text-base font-bold">{couponPrice}</Text>
+          </View>
+
+          <View className="h-px bg-slate-100 mb-4" />
+
+          {/* 포인트 정보 */}
+          <View className="flex-row justify-between items-center mb-2">
+            <Text className="text-gray-500 text-sm font-medium">보유중인 포인트</Text>
+            <Text className="text-gray-800 text-sm font-semibold">{currentPoint}P</Text>
+          </View>
+          <View className="flex-row justify-between items-center mb-6">
+            <Text className="text-gray-500 text-sm font-medium">
+              {hasEnoughPoint ? "사용 후 포인트" : "부족한 포인트"}
+            </Text>
+            <Text
+              className={`text-sm font-semibold ${hasEnoughPoint ? "text-green-500" : "text-red-500"}`}
+            >
+              {hasEnoughPoint ? `${afterPoint}P` : `${Math.abs(afterPoint)}P 부족`}
+            </Text>
+          </View>
+
+          {/* 버튼 */}
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              className="flex-1 h-[52px] bg-slate-100 rounded-xl justify-center items-center"
+              onPress={() => setShowExchangeSheet(false)}
+            >
+              <Text className="text-gray-700 text-base font-medium">취소</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className={`flex-1 h-[52px] rounded-xl justify-center items-center ${hasEnoughPoint ? "bg-green-400" : "bg-slate-200"}`}
+              onPress={handleExchangeConfirm}
+              disabled={!hasEnoughPoint || isExchanging}
+            >
+              <Text className={`text-base font-medium ${hasEnoughPoint ? "text-white" : "text-slate-400"}`}>
+                교환하기
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 교환 완료 팝업 */}
       <AlertPopup
-        visible={showExchangePopup}
-        title="쿠폰을 교환할까요 ?"
-        description={`${couponTitle} 을 ${couponPrice} 와 교환할까요 ?`}
-        onCancel={() => setShowExchangePopup(false)}
-        onConfirm={handleExchangeConfirm}
-        cancelText="아니요"
-        confirmText="네"
+        visible={showSuccessPopup}
+        title="교환 완료"
+        description="교환을 완료했습니다! 내 쿠폰으로 이동할까요?"
+        onCancel={() => setShowSuccessPopup(false)}
+        onConfirm={() => {
+          setShowSuccessPopup(false);
+          router.push("/store/mycoupon");
+        }}
+        cancelText="취소"
+        confirmText="이동"
       />
     </View>
   );

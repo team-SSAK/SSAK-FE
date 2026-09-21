@@ -10,11 +10,14 @@ export default function RegisterName() {
   const [name, setName] = useState("");
   const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
 
-  const { email, password, socialLogin } = useLocalSearchParams<{
+  const { email, password, socialLogin, isOwner } = useLocalSearchParams<{
     email: string;
     password: string;
     socialLogin?: string;
+    isOwner?: string;
   }>();
+
+  const ownerFlow = isOwner === "true";
 
   useEffect(() => {
     getSocialLoginPending()
@@ -35,7 +38,7 @@ export default function RegisterName() {
             회원가입
           </Text>
         </View>
-        <StepIndicator currentStep={3} />
+        <StepIndicator currentStep={3} totalSteps={ownerFlow ? 5 : 4} />
         <Text className="text-green-900 text-2xl font-semibold leading-10 my-3.5">
           사용할 닉네임을 입력해주세요
         </Text>
@@ -62,15 +65,22 @@ export default function RegisterName() {
         <TouchableOpacity
           className="flex-1 h-[52px] rounded-xl items-center justify-center bg-[#45B310]"
           onPress={() =>
-            router.push({
-              pathname: "/auth/registerdone",
-              params: {
-                email,
-                password,
-                name,
-                socialLogin: isSocialLogin ? "true" : undefined,
-              },
-            })
+            router.push(
+              ownerFlow
+                ? {
+                    pathname: "/auth/registerrestaurant",
+                    params: { email, password, name },
+                  }
+                : {
+                    pathname: "/auth/registerdone",
+                    params: {
+                      email,
+                      password,
+                      name,
+                      socialLogin: isSocialLogin ? "true" : undefined,
+                    },
+                  },
+            )
           }
         >
           <Text className="text-white text-lg font-medium">다음</Text>

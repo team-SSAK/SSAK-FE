@@ -18,9 +18,12 @@ import Logo from "../../assets/images/logo_green.svg";
 import Setting from "../../assets/images/setting.svg";
 
 import { BottomNav } from "../../components/bottomnav";
+import OwnerBadge from "../../components/ownerbadge";
+import OwnerBadgeModal from "../../components/ownerbadgemodal";
 import { useCoupons } from "../../src/hooks/useCoupons";
 import { useMe } from "../../src/hooks/useMe";
 import { usePoint } from "../../src/hooks/usePoint";
+import { useRestaurantDetail } from "../../src/hooks/useRestaurant";
 import { useRestaurantWish } from "../../src/hooks/useRestaurantWish";
 
 //////////////////////////////////////////////////////
@@ -127,6 +130,12 @@ export default function Main() {
   const { coupons, isLoading: isCouponsLoading } = useCoupons("ISSUED");
   const { data: restaurants = [], isLoading: isRestaurantsLoading } =
     useRestaurantWish();
+
+  const isOwner = me?.userRole === "OWNER";
+  const [showOwnerModal, setShowOwnerModal] = useState(false);
+  const { data: ownedRestaurant } = useRestaurantDetail(
+    isOwner && me?.ownedRestaurantId ? me.ownedRestaurantId : 0,
+  );
   const restaurantBanners = restaurants.map((item) => ({
     id: item.restaurantId,
     name: item.restaurantName,
@@ -182,11 +191,15 @@ export default function Main() {
             <Avatar />
           )}
 
-          <View className="flex-1 flex-row items-end gap-0.5 ml-3.5">
+          <View className="flex-1 flex-row items-end gap-1 ml-3.5">
             <Text className="text-2xl font-semibold text-black">
               {me?.userNm ?? ""}
             </Text>
-            <Text className="text-base font-semibold text-black">님</Text>
+            {isOwner ? (
+              <OwnerBadge onPress={() => setShowOwnerModal(true)} />
+            ) : (
+              <Text className="text-base font-semibold text-black">님</Text>
+            )}
           </View>
 
           {/* 수정 버튼 */}
@@ -348,6 +361,12 @@ export default function Main() {
       </ScrollView>
 
       <BottomNav />
+
+      <OwnerBadgeModal
+        visible={showOwnerModal}
+        restaurantName={ownedRestaurant?.restaurantName}
+        onConfirm={() => setShowOwnerModal(false)}
+      />
     </View>
   );
 }

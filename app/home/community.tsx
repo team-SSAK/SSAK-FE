@@ -274,7 +274,7 @@ export default function Community() {
               <TouchableOpacity onPress={() => setIsSearchMode(true)}>
                 <SearchB />
               </TouchableOpacity>
-              {me?.userRole !== "OWNER" && (
+              {(me?.userRole !== "OWNER" || me?.ownedRestaurantId === Number(restaurantId)) && (
                 <TouchableOpacity onPress={handleWritePress}>
                   <Pen />
                 </TouchableOpacity>

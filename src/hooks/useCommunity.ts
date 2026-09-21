@@ -151,7 +151,7 @@ const normalizeCommunity = (res: unknown): CommunityItem[] => {
           typeof rawAuthorProfile === "string"
             ? resolveImageOrNull(rawAuthorProfile)
             : null,
-        isOwner: item.isOwner === true,
+        isOwner: item.isOwner === true || item.ownerPost === true,
         postCreateTime:
           typeof item.postCreateTime === "string" ? item.postCreateTime : "",
         postLikeCnt:
