@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -35,6 +35,11 @@ const MEASUREMENT_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4시간
 const MEASUREMENTS_PER_DAY = 3;
 
 export default function Camera() {
+  const { restaurantId, latitude, longitude } = useLocalSearchParams<{
+    restaurantId?: string;
+    latitude?: string;
+    longitude?: string;
+  }>();
   const cameraRef = useRef<any>(null);
   const { mutateAsync: measure, isPending } = useMeasure();
   const [permission, requestPermission] = useCameraPermissions();
@@ -463,7 +468,12 @@ export default function Camera() {
                 quality: 0.8,
                 skipProcessing: false,
               });
-              const result = await measure(photo.uri);
+              const result = await measure({
+                imageUri: photo.uri,
+                restaurantId: restaurantId ? Number(restaurantId) : undefined,
+                latitude: latitude ? Number(latitude) : undefined,
+                longitude: longitude ? Number(longitude) : undefined,
+              });
               const r = result as {
                 addedPoint?: number;
                 currentPoint?: number;

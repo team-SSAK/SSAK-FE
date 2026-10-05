@@ -78,6 +78,7 @@ export default function LocationScreen() {
       <LocationPermissionModal
         visible={showLocationModal}
         onCancel={() => setShowLocationModal(false)}
+        description="내 주변 식당을 보려면 설정에서 위치 접근을 허용해 주세요."
       />
     </View>
   );

@@ -4,18 +4,19 @@ import AlertPopup from "./alertpopup";
 interface LocationPermissionModalProps {
   visible: boolean;
   onCancel: () => void;
+  description?: string;
 }
 
-export default function LocationPermissionModal({ visible, onCancel }: LocationPermissionModalProps) {
+export default function LocationPermissionModal({ visible, onCancel, description }: LocationPermissionModalProps) {
   return (
     <AlertPopup
       visible={visible}
-      title="위치 권한이 필요합니다"
-      description="지도에서 현재 위치를 사용하려면 위치 권한을 허용해 주세요."
+      title="위치 권한이 필요해요"
+      description={description ?? "위치 접근을 허용해 주세요."}
       onCancel={onCancel}
       onConfirm={() => Linking.openSettings()}
       cancelText="취소"
-      confirmText="설정으로 이동"
+      confirmText="설정하기"
     />
   );
 }
