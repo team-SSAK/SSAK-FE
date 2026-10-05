@@ -15,6 +15,7 @@ import Map from "../../assets/images/map.svg";
 
 import AlertPopupRadio from "@/components/alertpopupradio";
 import AlertPopup from "../../components/alertpopup";
+import LocationPermissionModal from "../../components/locationpermissionmodal";
 import OutOfRangeModal from "../../components/outofrangemodal";
 import PopUp from "../../components/popup";
 import Post from "../../components/post";
@@ -157,6 +158,7 @@ export default function RestaurantDetail() {
   const { me } = useMe();
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [showLocationPermissionModal, setShowLocationPermissionModal] = useState(false);
   const [showOutOfRangeModal, setShowOutOfRangeModal] = useState(false);
   const [showGpsFailModal, setShowGpsFailModal] = useState(false);
   const [showLimitPopup, setShowLimitPopup] = useState(false);
@@ -544,27 +546,41 @@ export default function RestaurantDetail() {
             const coord = restaurantDetail?.restaurantCoord;
             if (coord) {
               const { status } = await Location.requestForegroundPermissionsAsync();
-              if (status === "granted") {
-                let pos: Location.LocationObject;
-                try {
-                  pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                } catch {
-                  setShowGpsFailModal(true);
-                  return;
-                }
-                const R = 6371000;
-                const toRad = (d: number) => (d * Math.PI) / 180;
-                const dLat = toRad(coord.lat - pos.coords.latitude);
-                const dLon = toRad(coord.lon - pos.coords.longitude);
-                const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(pos.coords.latitude)) * Math.cos(toRad(coord.lat)) * Math.sin(dLon / 2) ** 2;
-                const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                if (dist > 100) {
-                  setShowOutOfRangeModal(true);
-                  return;
-                }
+              if (status !== "granted") {
+                setShowLocationPermissionModal(true);
+                return;
               }
+              let pos: Location.LocationObject;
+              try {
+                pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+              } catch {
+                setShowGpsFailModal(true);
+                return;
+              }
+              const R = 6371000;
+              const toRad = (d: number) => (d * Math.PI) / 180;
+              const dLat = toRad(coord.lat - pos.coords.latitude);
+              const dLon = toRad(coord.lon - pos.coords.longitude);
+              const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(pos.coords.latitude)) * Math.cos(toRad(coord.lat)) * Math.sin(dLon / 2) ** 2;
+              const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+              if (dist > 100) {
+                setShowOutOfRangeModal(true);
+                return;
+              }
+              router.push({
+                pathname: "/home/camera",
+                params: {
+                  restaurantId: String(restaurantId ?? ""),
+                  latitude: String(pos.coords.latitude),
+                  longitude: String(pos.coords.longitude),
+                },
+              });
+              return;
             }
-            router.push("/home/camera");
+            router.push({
+              pathname: "/home/camera",
+              params: { restaurantId: String(restaurantId ?? "") },
+            });
           }}
         >
           <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
@@ -626,6 +642,11 @@ export default function RestaurantDetail() {
         />
       )}
 
+      <LocationPermissionModal
+        visible={showLocationPermissionModal}
+        onCancel={() => setShowLocationPermissionModal(false)}
+        description="잔반 인증을 하려면 설정에서 위치 접근을 허용해 주세요."
+      />
       <OutOfRangeModal
         visible={showOutOfRangeModal}
         onConfirm={() => setShowOutOfRangeModal(false)}
