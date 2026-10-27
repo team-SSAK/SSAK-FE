@@ -8,5 +8,7 @@ export const mockrestaurent: Restaurant[] = [
     restaurantImgUrl: "",
     restaurantType: "FOODCOURT",
     wished: true,
+    latitude: null,
+    longitude: null,
   },
 ];

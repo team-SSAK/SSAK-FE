@@ -6,6 +6,7 @@ import RadioButton from "../../assets/images/radio-button.svg";
 import TickCircle from "../../assets/images/tick-circle.svg";
 import {
   createSocialUserDetails,
+  ownerSignup,
   signup,
 } from "../../src/services/auth/signup.service";
 import {
@@ -19,6 +20,8 @@ export default function RegisterDone() {
   const email = typeof params.email === "string" ? params.email : "";
   const password = typeof params.password === "string" ? params.password : "";
   const name = typeof params.name === "string" ? params.name : "";
+  const restaurantId = typeof params.restaurantId === "string" ? Number(params.restaurantId) : null;
+  const isOwnerFlow = params.isOwner === "true" && restaurantId !== null;
   const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
   const isSocialLogin = params.socialLogin === "true" || isStoredSocialLogin;
   const [errorMsg, setErrorMsg] = useState("");
@@ -203,6 +206,14 @@ export default function RegisterDone() {
                   return;
                 }
                 await createSocialUserDetails(name, agreeMarketing);
+              } else if (isOwnerFlow && restaurantId) {
+                await ownerSignup({
+                  userEmail: email,
+                  userPw: password,
+                  userNm: name,
+                  restaurantId,
+                  marketingAgreeYn: agreeMarketing,
+                });
               } else {
                 if (!email.trim() || !password.trim() || !name.trim()) {
                   setErrorMsg(

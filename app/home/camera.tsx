@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -35,6 +35,11 @@ const MEASUREMENT_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4시간
 const MEASUREMENTS_PER_DAY = 3;
 
 export default function Camera() {
+  const { restaurantId, latitude, longitude } = useLocalSearchParams<{
+    restaurantId?: string;
+    latitude?: string;
+    longitude?: string;
+  }>();
   const cameraRef = useRef<any>(null);
   const { mutateAsync: measure, isPending } = useMeasure();
   const [permission, requestPermission] = useCameraPermissions();
@@ -463,7 +468,12 @@ export default function Camera() {
                 quality: 0.8,
                 skipProcessing: false,
               });
-              const result = await measure(photo.uri);
+              const result = await measure({
+                imageUri: photo.uri,
+                restaurantId: restaurantId ? Number(restaurantId) : undefined,
+                latitude: latitude ? Number(latitude) : undefined,
+                longitude: longitude ? Number(longitude) : undefined,
+              });
               const r = result as {
                 addedPoint?: number;
                 currentPoint?: number;
@@ -480,25 +490,30 @@ export default function Camera() {
               });
             } catch (e) {
               console.error("잔반 인식 실패:", e);
+              setIsGuideVisible(true);
             }
           }}
         >
           <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center flex-row gap-2">
-            {isPending ? (
-              <>
-                <ActivityIndicator color="#f9fafb" />
-                <Text className="text-center text-gray-50 text-lg font-medium leading-7">
-                  인식 중입니다
-                </Text>
-              </>
-            ) : (
-              <Text className="text-center text-gray-50 text-lg font-medium leading-7">
-                잔반 인식하기
-              </Text>
-            )}
+            <Text className="text-center text-gray-50 text-lg font-medium leading-7">
+              잔반 인식하기
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
+
+      {/* 잔반 분석 중 전체화면 로딩 */}
+      {isPending && (
+        <View className="absolute inset-0 bg-black/60 justify-center items-center gap-4">
+          <ActivityIndicator color="#78D462" size="large" />
+          <Text className="text-white text-base font-semibold">
+            잔반을 분석하고 있어요
+          </Text>
+          <Text className="text-white/70 text-sm font-medium">
+            잠시만 기다려주세요
+          </Text>
+        </View>
+      )}
 
       {isGuideVisible && (
         <Pressable

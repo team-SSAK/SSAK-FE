@@ -64,7 +64,7 @@ export default function RegisterPW() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const { email } = useLocalSearchParams<{ email: string }>();
+  const { email, isOwner } = useLocalSearchParams<{ email: string; isOwner?: string }>();
   const isNextEnabled =
     password.trim().length > 0 &&
     confirmPassword.trim().length > 0 &&
@@ -81,7 +81,7 @@ export default function RegisterPW() {
             회원가입
           </Text>
         </View>
-        <StepIndicator currentStep={2} />
+        <StepIndicator currentStep={2} totalSteps={isOwner === "true" ? 5 : 4} />
         <Text className="text-green-900 text-2xl font-semibold leading-10 my-3.5">
           비밀번호를 입력해주세요
         </Text>
@@ -143,6 +143,7 @@ export default function RegisterPW() {
               params: {
                 email: email.trim(),
                 password,
+                isOwner,
               },
             });
           }}

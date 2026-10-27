@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
@@ -8,6 +8,7 @@ import { useSendEmail } from "../../src/hooks/useSendEmail";
 
 export default function RegisterEmail() {
   const [email, setEmail] = useState("");
+  const { isOwner } = useLocalSearchParams<{ isOwner?: string }>();
   const { mutate: sendEmail, isPending } = useSendEmail();
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -22,7 +23,7 @@ export default function RegisterEmail() {
             회원가입
           </Text>
         </View>
-        <StepIndicator currentStep={0} />
+        <StepIndicator currentStep={0} totalSteps={isOwner === "true" ? 5 : 4} />
         <Text className="text-green-900 text-2xl font-semibold leading-10 my-3.5">
           이메일을 입력해주세요
         </Text>
@@ -48,7 +49,7 @@ export default function RegisterEmail() {
               onSuccess: () => {
                 router.push({
                   pathname: "/auth/registerverification",
-                  params: { email: email.trim() },
+                  params: { email: email.trim(), isOwner },
                 });
               },
               onError: (error: any) => {

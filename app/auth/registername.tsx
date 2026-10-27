@@ -11,11 +11,14 @@ export default function RegisterName() {
   const [isStoredSocialLogin, setIsStoredSocialLogin] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const { email, password, socialLogin } = useLocalSearchParams<{
+  const { email, password, socialLogin, isOwner } = useLocalSearchParams<{
     email: string;
     password: string;
     socialLogin?: string;
+    isOwner?: string;
   }>();
+
+  const ownerFlow = isOwner === "true";
 
   useEffect(() => {
     getSocialLoginPending()
@@ -37,7 +40,7 @@ export default function RegisterName() {
             회원가입
           </Text>
         </View>
-        <StepIndicator currentStep={3} />
+        <StepIndicator currentStep={3} totalSteps={ownerFlow ? 5 : 4} />
         <Text className="text-green-900 text-2xl font-semibold leading-10 my-3.5">
           사용할 닉네임을 입력해주세요
         </Text>
@@ -80,15 +83,22 @@ export default function RegisterName() {
               return;
             }
 
-            router.push({
-              pathname: "/auth/registerdone",
-              params: {
-                email,
-                password,
-                name: trimmedName,
-                socialLogin: isSocialLogin ? "true" : undefined,
-              },
-            });
+            router.push(
+              ownerFlow
+                ? {
+                    pathname: "/auth/registerrestaurant",
+                    params: { email, password, name: trimmedName },
+                  }
+                : {
+                    pathname: "/auth/registerdone",
+                    params: {
+                      email,
+                      password,
+                      name: trimmedName,
+                      socialLogin: isSocialLogin ? "true" : undefined,
+                    },
+                  },
+            );
           }}
         >
           <Text className="text-white text-lg font-medium">다음</Text>

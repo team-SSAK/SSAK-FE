@@ -13,7 +13,6 @@ import {
   usePostRestaurantWish,
   useRestaurant,
 } from "../../src/hooks/useRestaurant";
-import { getRestaurantById } from "../../src/services/home/restaurent.service";
 
 function haversineDistance(
   lat1: number,
@@ -121,9 +120,6 @@ export default function Restaurant() {
   const [searchText, setSearchText] = useState("");
   const { data = [] } = useRestaurant();
   const { mutateAsync: postRestaurantWish } = usePostRestaurantWish();
-  const [coordsMap, setCoordsMap] = useState<
-    Record<number, { lat: number; lon: number }>
-  >({});
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lon: number;
@@ -152,44 +148,10 @@ export default function Restaurant() {
       image: item.restaurantImgUrl,
       type: item.restaurantType ?? null,
       wished: item.wished,
+      lat: item.latitude ?? null,
+      lon: item.longitude ?? null,
     }));
   }, [data]);
-
-  // 식당 좌표 일괄 fetch
-  useEffect(() => {
-    if (restaurants.length === 0) return;
-    const fetchCoords = async () => {
-      const results = await Promise.allSettled(
-        restaurants.map((r) => getRestaurantById(r.id)),
-      );
-      const map: Record<number, { lat: number; lon: number }> = {};
-      results.forEach((result, i) => {
-        if (result.status === "fulfilled") {
-          const coord = result.value?.restaurantCoord;
-          if (
-            coord &&
-            typeof coord.x === "number" &&
-            typeof coord.y === "number"
-          ) {
-            // JTS Point: x = 경도(longitude), y = 위도(latitude)
-            map[restaurants[i].id] = { lat: coord.y, lon: coord.x };
-            return;
-          }
-
-          const lat = Number(result.value?.latitude ?? result.value?.lat);
-          const lon = Number(
-            result.value?.longitude ?? result.value?.lng ?? result.value?.lon,
-          );
-
-          if (Number.isFinite(lat) && Number.isFinite(lon)) {
-            map[restaurants[i].id] = { lat, lon };
-          }
-        }
-      });
-      setCoordsMap(map);
-    };
-    fetchCoords();
-  }, [restaurants]);
 
   // 기본값: 전부 채워진 하트
   const [selectedRestaurants, setSelectedRestaurants] = useState<
@@ -233,23 +195,10 @@ export default function Restaurant() {
     if (activeTab === "nearby") {
       if (!userLocation) return restaurants;
       return [...restaurants].sort((a, b) => {
-        const coordA = coordsMap[a.id];
-        const coordB = coordsMap[b.id];
-        if (!coordA && !coordB) return 0;
-        if (!coordA) return 1;
-        if (!coordB) return -1;
-        const distA = haversineDistance(
-          userLocation.lat,
-          userLocation.lon,
-          coordA.lat,
-          coordA.lon,
-        );
-        const distB = haversineDistance(
-          userLocation.lat,
-          userLocation.lon,
-          coordB.lat,
-          coordB.lon,
-        );
+        if (!a.lat || !a.lon) return 1;
+        if (!b.lat || !b.lon) return -1;
+        const distA = haversineDistance(userLocation.lat, userLocation.lon, a.lat, a.lon);
+        const distB = haversineDistance(userLocation.lat, userLocation.lon, b.lat, b.lon);
         return distA - distB;
       });
     }
@@ -260,7 +209,7 @@ export default function Restaurant() {
 
       return isMyRestaurant;
     });
-  }, [activeTab, restaurants, selectedRestaurants, coordsMap, userLocation]);
+  }, [activeTab, restaurants, selectedRestaurants, userLocation]);
 
   const filteredRestaurants = useMemo(() => {
     return tabRestaurants.filter(

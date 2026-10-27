@@ -1,9 +1,11 @@
 import StepIndicator from "@/components/stepindicator";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  Image,
+  ActivityIndicator,
   TextInput as RNTextInput,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -11,232 +13,247 @@ import {
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import Search from "../../assets/images/search.svg";
 import AlertPopup from "../../components/alertpopup";
+import { useRestaurant } from "../../src/hooks/useRestaurant";
 
-type MockRestaurant = {
-  id: number;
+interface RestaurantCardProps {
   name: string;
   address: string;
-  image: string;
-};
-
-const MOCK_RESTAURANTS: MockRestaurant[] = [
-  {
-    id: 1,
-    name: "싹싹한식당",
-    address: "서울시 강남구 테헤란로 123",
-    image: "https://picsum.photos/seed/ssak-1/160/160",
-  },
-  {
-    id: 2,
-    name: "그린키친",
-    address: "서울시 송파구 올림픽로 55",
-    image: "https://picsum.photos/seed/ssak-2/160/160",
-  },
-  {
-    id: 3,
-    name: "바른도시락",
-    address: "서울시 마포구 월드컵북로 88",
-    image: "https://picsum.photos/seed/ssak-3/160/160",
-  },
-];
-
-interface MockRestaurantCardProps {
-  item: MockRestaurant;
+  image?: string;
   selected: boolean;
   onPress: () => void;
 }
 
-function MockRestaurantCard({
-  item,
-  selected,
-  onPress,
-}: MockRestaurantCardProps) {
+function RestaurantCard({ name, address, image, selected, onPress }: RestaurantCardProps) {
   return (
-    <View
-      className={`self-stretch h-28 p-4 rounded-[10px] flex-col justify-start items-start ${selected ? "bg-slate-200" : "bg-slate-100"}`}
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={{
+        backgroundColor: selected ? "#E2E8F0" : "#F5F7FA",
+        height: 120,
+        padding: 16,
+        borderRadius: 10,
+        flexDirection: "row",
+        gap: 16,
+        alignItems: "flex-start",
+      }}
     >
-      <View className="self-stretch flex-row justify-start items-start gap-4">
-        <TouchableOpacity
-          onPress={onPress}
-          className="flex-1 flex-row gap-4"
-          activeOpacity={0.8}
+      {image ? (
+        <Image
+          source={image}
+          style={{ width: 87, height: 87, borderRadius: 8 }}
+          contentFit="cover"
+        />
+      ) : (
+        <View style={{ width: 87, height: 87, borderRadius: 8, backgroundColor: "#E2E8F0" }} />
+      )}
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text
+          style={{ color: "#0E172A", fontSize: 16, fontWeight: "600", lineHeight: 25.6 }}
+          numberOfLines={1}
         >
-          {item.image ? (
-            <Image
-              source={{ uri: item.image }}
-              className="w-20 h-20 rounded-lg"
-              resizeMode="cover"
-            />
-          ) : (
-            <View className="w-20 h-20 rounded-lg bg-slate-200" />
-          )}
-
-          <View className="flex-1 flex-col gap-0.5">
-            <Text
-              className="text-slate-900 text-base font-semibold"
-              numberOfLines={1}
-            >
-              {item.name}
-            </Text>
-            <Text
-              className="text-slate-400 text-xs font-semibold"
-              numberOfLines={2}
-            >
-              {item.address}
-            </Text>
-          </View>
-        </TouchableOpacity>
+          {name}
+        </Text>
+        <Text
+          style={{ color: "#94A3B8", fontSize: 12, fontWeight: "600", lineHeight: 19.2 }}
+          numberOfLines={2}
+        >
+          {address}
+        </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 export default function RegisterRestaurant() {
-  const [name, setName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [restaurants, setRestaurants] = useState<MockRestaurant[]>([]);
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<
-    number | null
-  >(null);
-  const [isConfirmPopupVisible, setIsConfirmPopupVisible] = useState(false);
-
-  const isButtonEnabled = selectedRestaurantId !== null;
-
-  useLocalSearchParams<{
+  const { email, password, name } = useLocalSearchParams<{
     email: string;
     password: string;
+    name: string;
   }>();
 
-  const handleSearchTextChange = (text: string) => {
-    setName(text);
-    setSelectedRestaurantId(null);
-  };
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const selectedRestaurantName =
-    restaurants.find((item) => item.id === selectedRestaurantId)?.name ?? name;
+  const { data: allRestaurants = [], isLoading, isError, refetch } = useRestaurant();
 
-  useEffect(() => {
-    const keyword = name.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    if (!keyword) return allRestaurants;
+    return allRestaurants.filter(
+      (r) =>
+        r.restaurantName.toLowerCase().includes(keyword) ||
+        r.restaurantLocation.toLowerCase().includes(keyword),
+    );
+  }, [query, allRestaurants]);
 
-    if (!keyword) {
-      setHasSearched(false);
-      setRestaurants([]);
-      setIsLoading(false);
-      return;
-    }
+  const selectedName =
+    allRestaurants.find((r) => r.restaurantId === selectedId)?.restaurantName ?? query;
 
-    setHasSearched(true);
-    setIsLoading(true);
-
-    // 실시간 검색처럼 보이도록 짧은 지연 후 결과를 반영한다.
-    const timer = setTimeout(() => {
-      const next = MOCK_RESTAURANTS.filter((item) =>
-        `${item.name} ${item.address}`.toLowerCase().includes(keyword),
-      );
-
-      setRestaurants(next);
-      setIsLoading(false);
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [name]);
+  const isEnabled = selectedId !== null;
 
   return (
-    <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
-      <View className="flex flex-col">
-        <View className="py-4 flex-row gap-2 justify-start items-center mb-10">
-          <TouchableOpacity onPress={() => router.push("/auth/landing")}>
-            <ChevronLeft />
-          </TouchableOpacity>
-          <Text className="self-stretch text-gray-800 text-xl font-semibold leading-8">
-            회원가입
-          </Text>
-        </View>
-        <StepIndicator currentStep={3} />
-        <Text className="text-green-900 text-2xl font-semibold leading-10 my-3.5">
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF", paddingTop: 56 }}>
+      {/* 헤더 */}
+      <View style={{ paddingHorizontal: 16, paddingVertical: 18, flexDirection: "row", gap: 8, alignItems: "center" }}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <ChevronLeft />
+        </TouchableOpacity>
+        <Text style={{ color: "#1E293B", fontSize: 20, fontWeight: "600", lineHeight: 32 }}>
+          회원가입
+        </Text>
+      </View>
+
+      {/* 타이틀 영역 */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 40, gap: 14 }}>
+        <StepIndicator currentStep={4} totalSteps={5} />
+        <Text style={{ color: "#001402", fontSize: 24, fontWeight: "600", lineHeight: 38.4 }}>
           현재 운영중인 식당을 선택해주세요
         </Text>
-        <View className="w-full relative">
-          <View className="self-stretch p-4 bg-gray-100 rounded-lg justify-start">
+
+        {/* 검색창 */}
+        <View style={{ height: 58, justifyContent: "center" }}>
+          <View
+            style={{
+              backgroundColor: "#F5F7FA",
+              borderRadius: 12,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+              gap: 10,
+            }}
+          >
             <RNTextInput
               placeholder="식당 이름을 검색해주세요"
-              placeholderTextColor="#6B7280"
-              className="text-gray-900 font-medium leading-6 pr-8"
-              onChangeText={handleSearchTextChange}
-              value={name}
+              placeholderTextColor="#94A3B8"
+              style={{ flex: 1, fontSize: 16, fontWeight: "500", color: "#0E172A" }}
+              onChangeText={(text) => {
+                setQuery(text);
+                setSelectedId(null);
+              }}
+              value={query}
             />
+            <Search width={24} height={24} />
           </View>
-          <View className="absolute right-4 top-0 bottom-0 justify-center pointer-events-none">
-            <Search width={20} height={20} />
-          </View>
-        </View>
-
-        <View className="mt-[10px] gap-2">
-          {hasSearched && !isLoading && restaurants.length > 0
-            ? restaurants.map((item) => (
-                <MockRestaurantCard
-                  key={item.id}
-                  item={item}
-                  selected={selectedRestaurantId === item.id}
-                  onPress={() => {
-                    if (selectedRestaurantId === item.id) {
-                      setSelectedRestaurantId(null);
-                      setName("");
-                      return;
-                    }
-
-                    setSelectedRestaurantId(item.id);
-                    setName(item.name);
-                  }}
-                />
-              ))
-            : null}
         </View>
       </View>
 
-      <View className="w-full flex-row gap-2.5 px-4 py-2.5">
-        {/* 이전: 고정폭 */}
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="h-[52px] px-9 rounded-xl bg-slate-100 items-center justify-center"
-        >
-          <Text className="text-slate-900 text-lg font-medium">이전</Text>
-        </TouchableOpacity>
+      {/* 목록 */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 11, paddingBottom: 160 }}
+      >
+        {isLoading ? (
+          <ActivityIndicator style={{ marginTop: 32 }} />
+        ) : isError ? (
+          <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 32, alignItems: "center" }}>
+            <Text style={{ textAlign: "center", color: "#94A3B8", fontSize: 14 }}>
+              식당 목록을 불러오지 못했습니다{"\n"}탭해서 다시 시도
+            </Text>
+          </TouchableOpacity>
+        ) : filtered.length === 0 ? (
+          <Text style={{ textAlign: "center", color: "#94A3B8", fontSize: 14, marginTop: 32 }}>
+            {query ? "검색 결과가 없습니다" : "등록된 식당이 없습니다"}
+          </Text>
+        ) : (
+          filtered.map((r) => (
+            <RestaurantCard
+              key={r.restaurantId}
+              name={r.restaurantName}
+              address={r.restaurantLocation}
+              image={r.restaurantImgUrl || undefined}
+              selected={selectedId === r.restaurantId}
+              onPress={() => {
+                if (selectedId === r.restaurantId) {
+                  setSelectedId(null);
+                  setQuery("");
+                } else {
+                  setSelectedId(r.restaurantId);
+                  setQuery(r.restaurantName);
+                }
+              }}
+            />
+          ))
+        )}
+      </ScrollView>
 
-        {/* 다음: flex-1 */}
-        <TouchableOpacity
-          disabled={!isButtonEnabled}
-          className="flex-1 h-[52px] rounded-xl items-center justify-center"
-          style={{
-            backgroundColor: isButtonEnabled ? "#45B310" : "#94A3B8",
-            opacity: isButtonEnabled ? 1 : 0.5,
-          }}
-          onPress={() => setIsConfirmPopupVisible(true)}
+      {/* 하단 그라디언트 + 버튼 */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+        }}
+      >
+        <View
+          style={{ flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingVertical: 10 }}
         >
-          <Text className="text-white text-lg font-medium">완료</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              height: 52,
+              paddingHorizontal: 36,
+              paddingVertical: 12,
+              backgroundColor: "#F1F5F9",
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ color: "#0E172A", fontSize: 18, fontWeight: "500", lineHeight: 28.8 }}>
+              이전
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            disabled={!isEnabled}
+            onPress={() => setShowConfirm(true)}
+            style={{
+              flex: 1,
+              height: 52,
+              padding: 12,
+              backgroundColor: isEnabled ? "#45B310" : "#94A3B8",
+              opacity: isEnabled ? 1 : 0.5,
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "500", lineHeight: 28.8 }}>
+              완료
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ height: 34 }} />
       </View>
 
       <AlertPopup
-        visible={isConfirmPopupVisible}
+        visible={showConfirm}
         title={
-          <Text className="text-slate-800 text-lg font-semibold leading-7">
-            <Text className="text-green-400">
-              {"'"}
-              {selectedRestaurantName}
-              {"'"}
-            </Text>
-            의 사장님으로 회원가입 할까요 ?
+          <Text style={{ color: "#1E293B", fontSize: 18, fontWeight: "600", lineHeight: 28.8 }}>
+            <Text style={{ color: "#4ADE80" }}>'{selectedName}'</Text>의 사장님으로{"\n"}회원가입 할까요?
           </Text>
         }
         description="현재 운영 중인 식당만 가입할 수 있어요"
         cancelText="취소"
         confirmText="네"
-        onCancel={() => setIsConfirmPopupVisible(false)}
+        onCancel={() => setShowConfirm(false)}
         onConfirm={() => {
-          setIsConfirmPopupVisible(false);
-          router.replace("/auth/landing");
+          setShowConfirm(false);
+          router.push({
+            pathname: "/auth/registerdone",
+            params: {
+              email,
+              password,
+              name,
+              restaurantId: String(selectedId),
+              isOwner: "true",
+            },
+          });
         }}
       />
     </View>

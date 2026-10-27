@@ -7,7 +7,7 @@ import ChevronLeft from "../../assets/images/chevron-left.svg";
 import { useVerifyEmail } from "../../src/hooks/useVerifyEmail";
 
 export default function RegisterVerification() {
-  const { email } = useLocalSearchParams<{ email: string }>();
+  const { email, isOwner } = useLocalSearchParams<{ email: string; isOwner?: string }>();
 
   const [verificationCode, setVerificationCode] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -23,7 +23,7 @@ export default function RegisterVerification() {
           <Text className="text-gray-800 text-xl font-semibold">회원가입</Text>
         </View>
 
-        <StepIndicator currentStep={1} />
+        <StepIndicator currentStep={1} totalSteps={isOwner === "true" ? 5 : 4} />
 
         <Text className="text-green-900 text-2xl font-semibold my-3.5">
           메일로 온 인증번호를 입력해주세요
@@ -76,7 +76,7 @@ export default function RegisterVerification() {
                 onSuccess: () => {
                   router.push({
                     pathname: "/auth/registerpw",
-                    params: { email: email.trim() },
+                    params: { email: email.trim(), isOwner },
                   });
                 },
                 onError: (error: any) => {

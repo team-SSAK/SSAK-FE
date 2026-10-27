@@ -15,6 +15,7 @@ import HeartFilled from "../../assets/images/heart-filled.svg";
 import Heart from "../../assets/images/heart.svg";
 import mockdiscription from "../../assets/images/mockdiscription.png";
 import AlertPopup from "../../components/alertpopup";
+import { usePoint } from "../../src/hooks/usePoint";
 import { useStoreCouponDetail } from "../../src/hooks/useStoreCoupons";
 import {
   postCouponExchange,
@@ -138,12 +139,14 @@ export default function Coupon() {
   }>();
   const [activeTab, setActiveTab] = useState<TabType>("상품설명");
   const [showExchangePopup, setShowExchangePopup] = useState(false);
+  const [showExchangeSheet, setShowExchangeSheet] = useState(false);
   const [showExchangeDonePopup, setShowExchangeDonePopup] = useState(false);
   const [showVerificationPopup, setShowVerificationPopup] = useState(false);
   const [showUseDonePopup, setShowUseDonePopup] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [isExchanging, setIsExchanging] = useState(false);
   const [isUsing, setIsUsing] = useState(false);
+  const { point: currentPoint } = usePoint();
   const {
     isWished: getIsWished,
     toggle: toggleWish,
@@ -173,7 +176,10 @@ export default function Coupon() {
     couponDescriptionImage || couponImage || mockdiscription;
   const couponStoreName = coupon?.couponStore ?? "가게이름";
   const couponTitle = coupon?.couponName ?? "쿠폰 제목";
-  const couponPrice = coupon ? `${coupon.couponPoint}P` : "0P";
+  const couponPointValue = coupon?.couponPoint ?? 0;
+  const couponPrice = `${couponPointValue}P`;
+  const afterPoint = currentPoint - couponPointValue;
+  const hasEnoughPoint = afterPoint >= 0;
 
   useFocusEffect(
     useCallback(() => {
@@ -211,14 +217,14 @@ export default function Coupon() {
   };
 
   const handleExchangeConfirm = async () => {
-    if (!safeCouponId || isExchanging) {
+    if (!safeCouponId || isExchanging || !hasEnoughPoint) {
       return;
     }
 
     try {
       setIsExchanging(true);
       await postCouponExchange(couponIdValue);
-      setShowExchangePopup(false);
+      setShowExchangeSheet(false);
       setShowExchangeDonePopup(true);
     } catch (error) {
       console.error("쿠폰 교환 실패:", error);
@@ -372,7 +378,9 @@ export default function Coupon() {
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-1"
-            onPress={() => setShowExchangePopup(true)}
+            onPress={() =>
+              isMyMode ? setShowExchangePopup(true) : setShowExchangeSheet(true)
+            }
           >
             <View className="w-full h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
               <Text className="text-center text-gray-50 text-lg font-medium leading-7">
@@ -385,24 +393,125 @@ export default function Coupon() {
 
       <AlertPopup
         visible={showExchangePopup}
-        title={isMyMode ? "쿠폰을 사용하시겠습니까?" : "쿠폰을 교환할까요 ?"}
-        description={
-          isMyMode
-            ? "사용 시 쿠폰은 소멸됩니다"
-            : `${couponTitle} 을 ${couponPrice} 와 교환할까요 ?`
-        }
+        title="쿠폰을 사용하시겠습니까?"
+        description="사용 시 쿠폰은 소멸됩니다"
         onCancel={() => setShowExchangePopup(false)}
         onConfirm={() => {
-          if (isMyMode) {
-            setShowExchangePopup(false);
-            setTimeout(() => setShowVerificationPopup(true), 150);
-          } else {
-            handleExchangeConfirm();
-          }
+          setShowExchangePopup(false);
+          setTimeout(() => setShowVerificationPopup(true), 150);
         }}
         cancelText="취소"
-        confirmText={isMyMode ? "사용하기" : "네"}
+        confirmText="사용하기"
       />
+
+      {/* 쿠폰 교환 바텀시트 */}
+      <Modal
+        visible={showExchangeSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowExchangeSheet(false)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }}
+          activeOpacity={1}
+          onPress={() => setShowExchangeSheet(false)}
+        />
+        <View style={{ backgroundColor: "#FFFFFF", borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
+          {/* 핸들 바 */}
+          <View style={{ height: 27, alignItems: "center", justifyContent: "center", paddingVertical: 10 }}>
+            <View style={{ width: 45, height: 6, backgroundColor: "#E2E8F0", borderRadius: 20 }} />
+          </View>
+
+          {/* 콘텐츠 */}
+          <View style={{ paddingTop: 40, paddingHorizontal: 16, gap: 30 }}>
+            {/* 쿠폰 정보 */}
+            <View style={{ gap: 0 }}>
+              <Text style={{ color: "#64758B", fontSize: 14, fontWeight: "500", lineHeight: 14 * 1.6 }}>
+                {couponStoreName}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text
+                  style={{ flex: 1, color: "#000000", fontSize: 20, fontWeight: "600", lineHeight: 20 * 1.6 }}
+                  numberOfLines={1}
+                >
+                  {couponTitle}
+                </Text>
+                <Text style={{ color: "#000000", fontSize: 20, fontWeight: "600", lineHeight: 20 * 1.6 }}>
+                  {couponPrice}
+                </Text>
+              </View>
+            </View>
+
+            {/* 포인트 정보 */}
+            <View style={{ gap: 16 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={{ flex: 1, color: "#94A3B8", fontSize: 16, fontWeight: "500", lineHeight: 16 * 1.6 }}>
+                  보유중인 포인트
+                </Text>
+                <Text style={{ color: "#000000", fontSize: 16, fontWeight: "600", lineHeight: 16 * 1.6 }}>
+                  {currentPoint}P
+                </Text>
+              </View>
+
+              <View style={{ height: 1, backgroundColor: "#E2E8F0" }} />
+
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={{ flex: 1, color: hasEnoughPoint ? "#45B310" : "#EA4444", fontSize: 16, fontWeight: "500", lineHeight: 16 * 1.6 }}>
+                  {hasEnoughPoint ? "사용 후 포인트" : "부족한 포인트"}
+                </Text>
+                <Text style={{ color: hasEnoughPoint ? "#45B310" : "#EA4444", fontSize: 16, fontWeight: "600", lineHeight: 16 * 1.6 }}>
+                  {hasEnoughPoint ? `${afterPoint}P` : `${Math.abs(afterPoint)}P`}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* 버튼 영역 */}
+          <View style={{ paddingTop: 60, alignItems: "center", gap: 10 }}>
+            <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, width: "100%" }}>
+              <TouchableOpacity
+                onPress={() => setShowExchangeSheet(false)}
+                style={{
+                  width: 90,
+                  height: 52,
+                  padding: 12,
+                  backgroundColor: "#F1F5F9",
+                  borderRadius: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: "#0E172A", fontSize: 18, fontWeight: "500", lineHeight: 18 * 1.6 }}>
+                  취소
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleExchangeConfirm}
+                disabled={!hasEnoughPoint || isExchanging}
+                style={{
+                  flex: 1,
+                  height: 52,
+                  padding: 12,
+                  backgroundColor: hasEnoughPoint ? "#45B310" : "#94A3B8",
+                  opacity: hasEnoughPoint ? 1 : 0.5,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "500", lineHeight: 18 * 1.6 }}>
+                  교환하기
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Home indicator */}
+            <View style={{ paddingVertical: 8, alignItems: "center", width: "100%" }}>
+              <View style={{ width: 140, height: 5, backgroundColor: "#000000", borderRadius: 64 }} />
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <VerificationCodePopup
         visible={showVerificationPopup}

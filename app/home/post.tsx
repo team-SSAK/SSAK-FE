@@ -336,6 +336,8 @@ export default function Post() {
   const currentAuthor = (post?.nickname ?? nickname ?? "").trim();
   const myNickname = (me?.userNm ?? "").trim();
   const isMine = myNickname.length > 0 && currentAuthor === myNickname;
+  const isOwnerOfOtherRestaurant =
+    me?.userRole === "OWNER" && me?.ownedRestaurantId !== Number(restaurantId);
   const displayedLikeCount = post?.postLikeCnt ?? 0;
 
   useEffect(() => {
@@ -596,6 +598,7 @@ export default function Post() {
                 date={commentDate}
                 isLiked={likedCommentIds.includes(String(comment.commentId))}
                 isMine={isMyComment}
+                showReply={!isOwnerOfOtherRestaurant}
                 onLikePress={() => handleCommentLikePress(comment.commentId)}
                 onMenuPress={(event) =>
                   onOpenCommentMenuPopup(event, {
@@ -873,32 +876,34 @@ export default function Post() {
         </Pressable>
       </Modal>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
-        className="absolute bottom-0 left-0 right-0"
-      >
-        <View
-          className="bg-white"
-          style={{
-            paddingTop: isKeyboardVisible ? 0 : 12,
-            paddingBottom: isKeyboardVisible ? 0 : 32,
-          }}
+      {!(me?.userRole === "OWNER" && me?.ownedRestaurantId !== Number(restaurantId)) && (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={0}
+          className="absolute bottom-0 left-0 right-0"
         >
-          <ReplyInput
-            value={commentText}
-            onChangeText={setCommentText}
-            onSubmit={onSubmitComment}
-            placeholder={
-              editingCommentId !== null
-                ? "댓글을 수정해주세요."
-                : replyTargetAuthor
-                  ? `${replyTargetAuthor}님께 답글 작성...`
-                  : "댓글을 작성해주세요."
-            }
-          />
-        </View>
-      </KeyboardAvoidingView>
+          <View
+            className="bg-white"
+            style={{
+              paddingTop: isKeyboardVisible ? 0 : 12,
+              paddingBottom: isKeyboardVisible ? 0 : 32,
+            }}
+          >
+            <ReplyInput
+              value={commentText}
+              onChangeText={setCommentText}
+              onSubmit={onSubmitComment}
+              placeholder={
+                editingCommentId !== null
+                  ? "댓글을 수정해주세요."
+                  : replyTargetAuthor
+                    ? `${replyTargetAuthor}님께 답글 작성...`
+                    : "댓글을 작성해주세요."
+              }
+            />
+          </View>
+        </KeyboardAvoidingView>
+      )}
 
       {/* 하단 그라디언트 */}
       <View

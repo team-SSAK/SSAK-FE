@@ -1,3 +1,4 @@
+import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -14,6 +15,8 @@ import Map from "../../assets/images/map.svg";
 
 import AlertPopupRadio from "@/components/alertpopupradio";
 import AlertPopup from "../../components/alertpopup";
+import LocationPermissionModal from "../../components/locationpermissionmodal";
+import OutOfRangeModal from "../../components/outofrangemodal";
 import PopUp from "../../components/popup";
 import Post from "../../components/post";
 
@@ -45,12 +48,12 @@ function Popup({
         className="flex-1 justify-center items-center"
         style={{ backgroundColor: "rgba(0,0,0,0.1)" }}
       >
-        <View className="w-72 p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
+        <View className="w-[284px] p-5 bg-white rounded-[20px] flex-col justify-center items-center gap-4">
           <View className="self-stretch flex-col justify-start items-start gap-1">
-            <Text className="self-stretch text-slate-800 text-lg font-semibold leading-7">
+            <Text className="self-stretch text-gray-900 text-lg font-semibold leading-7">
               {title}
             </Text>
-            <Text className="self-stretch text-slate-500 text-sm font-medium leading-6">
+            <Text className="self-stretch text-gray-600 text-sm font-medium leading-[22px]">
               {description}
             </Text>
           </View>
@@ -95,7 +98,7 @@ export default function RestaurantDetail() {
       ? "자율배식형"
       : restaurantDetail?.restaurantType === "FOODCOURT"
         ? "푸드코트형"
-        : (restaurantDetail?.restaurantType ?? "자율배식형");
+        : null; // UNKNOWN 등 미분류 유형은 뱃지를 숨김
 
   const formatTime = (time: unknown): string | null => {
     if (typeof time === "string") {
@@ -155,6 +158,9 @@ export default function RestaurantDetail() {
   const { me } = useMe();
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [showLocationPermissionModal, setShowLocationPermissionModal] = useState(false);
+  const [showOutOfRangeModal, setShowOutOfRangeModal] = useState(false);
+  const [showGpsFailModal, setShowGpsFailModal] = useState(false);
   const [showLimitPopup, setShowLimitPopup] = useState(false);
   const [limitPopupTitle, setLimitPopupTitle] = useState("");
   const [limitPopupMessage, setLimitPopupMessage] = useState("");
@@ -346,11 +352,13 @@ export default function RestaurantDetail() {
         )}
 
         <View className="pt-4 flex flex-col">
-          <View className="self-start px-2.5 py-0.5 bg-green-300 rounded-md justify-center items-center mb-1 ">
-            <Text className="text-white text-xs font-semibold leading-5">
-              {restaurantTypeLabel}
-            </Text>
-          </View>
+          {restaurantTypeLabel && (
+            <View className="self-start px-2.5 py-0.5 bg-green-300 rounded-md justify-center items-center mb-1 ">
+              <Text className="text-white text-xs font-semibold leading-5">
+                {restaurantTypeLabel}
+              </Text>
+            </View>
+          )}
           <Text className="justify-start text-gray-800 text-xl font-semibold leading-8">
             {typeof restaurantDetail?.restaurantName === "string" &&
             restaurantDetail.restaurantName.length > 0
@@ -537,7 +545,44 @@ export default function RestaurantDetail() {
               setShowLimitPopup(true);
               return;
             }
-            router.push("/home/camera");
+            const coord = restaurantDetail?.restaurantCoord;
+            if (coord) {
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              if (status !== "granted") {
+                setShowLocationPermissionModal(true);
+                return;
+              }
+              let pos: Location.LocationObject;
+              try {
+                pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+              } catch {
+                setShowGpsFailModal(true);
+                return;
+              }
+              const R = 6371000;
+              const toRad = (d: number) => (d * Math.PI) / 180;
+              const dLat = toRad(coord.lat - pos.coords.latitude);
+              const dLon = toRad(coord.lon - pos.coords.longitude);
+              const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(pos.coords.latitude)) * Math.cos(toRad(coord.lat)) * Math.sin(dLon / 2) ** 2;
+              const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+              if (dist > 100) {
+                setShowOutOfRangeModal(true);
+                return;
+              }
+              router.push({
+                pathname: "/home/camera",
+                params: {
+                  restaurantId: String(restaurantId ?? ""),
+                  latitude: String(pos.coords.latitude),
+                  longitude: String(pos.coords.longitude),
+                },
+              });
+              return;
+            }
+            router.push({
+              pathname: "/home/camera",
+              params: { restaurantId: String(restaurantId ?? "") },
+            });
           }}
         >
           <View className="h-[52px] p-3 bg-green-400 rounded-xl justify-center items-center">
@@ -598,6 +643,24 @@ export default function RestaurantDetail() {
           onClose={() => setShowLimitPopup(false)}
         />
       )}
+
+      <LocationPermissionModal
+        visible={showLocationPermissionModal}
+        onCancel={() => setShowLocationPermissionModal(false)}
+        description="잔반 인증을 하려면 설정에서 위치 접근을 허용해 주세요."
+      />
+      <OutOfRangeModal
+        visible={showOutOfRangeModal}
+        onConfirm={() => setShowOutOfRangeModal(false)}
+        title="식당에 도착한 후 인증할 수 있어요"
+        description="선택한 식당에서 100m 이내일 때 잔반 인증이 가능해요."
+      />
+      <OutOfRangeModal
+        visible={showGpsFailModal}
+        onConfirm={() => setShowGpsFailModal(false)}
+        title="위치를 확인하지 못했어요"
+        description="실내나 지하에서는 위치가 정확하게 확인되지 않을 수 있어요. 잠시 후 다시 시도해 주세요."
+      />
     </View>
   );
 }
