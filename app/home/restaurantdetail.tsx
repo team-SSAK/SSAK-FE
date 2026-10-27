@@ -98,7 +98,7 @@ export default function RestaurantDetail() {
       ? "자율배식형"
       : restaurantDetail?.restaurantType === "FOODCOURT"
         ? "푸드코트형"
-        : (restaurantDetail?.restaurantType ?? "자율배식형");
+        : null; // UNKNOWN 등 미분류 유형은 뱃지를 숨김
 
   const formatTime = (time: unknown): string | null => {
     if (typeof time === "string") {
@@ -352,11 +352,13 @@ export default function RestaurantDetail() {
         )}
 
         <View className="pt-4 flex flex-col">
-          <View className="self-start px-2.5 py-0.5 bg-green-300 rounded-md justify-center items-center mb-1 ">
-            <Text className="text-white text-xs font-semibold leading-5">
-              {restaurantTypeLabel}
-            </Text>
-          </View>
+          {restaurantTypeLabel && (
+            <View className="self-start px-2.5 py-0.5 bg-green-300 rounded-md justify-center items-center mb-1 ">
+              <Text className="text-white text-xs font-semibold leading-5">
+                {restaurantTypeLabel}
+              </Text>
+            </View>
+          )}
           <Text className="justify-start text-gray-800 text-xl font-semibold leading-8">
             {typeof restaurantDetail?.restaurantName === "string" &&
             restaurantDetail.restaurantName.length > 0

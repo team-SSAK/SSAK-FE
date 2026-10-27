@@ -76,7 +76,7 @@ export default function RegisterRestaurant() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const { data: allRestaurants = [], isLoading } = useRestaurant();
+  const { data: allRestaurants = [], isLoading, isError, refetch } = useRestaurant();
 
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -148,6 +148,12 @@ export default function RegisterRestaurant() {
       >
         {isLoading ? (
           <ActivityIndicator style={{ marginTop: 32 }} />
+        ) : isError ? (
+          <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 32, alignItems: "center" }}>
+            <Text style={{ textAlign: "center", color: "#94A3B8", fontSize: 14 }}>
+              식당 목록을 불러오지 못했습니다{"\n"}탭해서 다시 시도
+            </Text>
+          </TouchableOpacity>
         ) : filtered.length === 0 ? (
           <Text style={{ textAlign: "center", color: "#94A3B8", fontSize: 14, marginTop: 32 }}>
             {query ? "검색 결과가 없습니다" : "등록된 식당이 없습니다"}
