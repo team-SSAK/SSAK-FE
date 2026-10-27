@@ -7,7 +7,7 @@ export const useLogout = () => {
 
   return useMutation({
     mutationFn: postLogout,
-    onSuccess: async () => {
+    onSettled: async () => {
       await clearAll();
       queryClient.removeQueries({ queryKey: ["me"] });
       queryClient.removeQueries({ queryKey: ["liked-post-ids"] });

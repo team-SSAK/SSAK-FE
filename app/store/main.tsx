@@ -21,13 +21,8 @@ import { BottomNav } from "../../components/bottomnav";
 import SearchInput from "../../components/searchinput";
 
 import { useStoreCoupons } from "@/src/hooks/useStoreCoupons";
-import { postCouponWish } from "../../src/services/mypage/coupons.service";
 import { StoreCouponType } from "../../src/services/store/coupons.service";
-import {
-  addWishedCouponId,
-  getWishedCouponIds,
-  removeWishedCouponId,
-} from "../../src/utils/storage";
+import { useCouponWishStore } from "../../src/store/couponWishStore";
 
 import ChevronDown from "../../assets/images/chevron-down.svg";
 
@@ -45,6 +40,7 @@ interface CouponCardProps {
   image?: string;
   onToggle?: () => void;
   onPress?: () => void;
+  toggleDisabled?: boolean;
 }
 
 const CouponCard = ({
@@ -55,6 +51,7 @@ const CouponCard = ({
   image,
   onToggle,
   onPress,
+  toggleDisabled = false,
 }: CouponCardProps) => {
   return (
     <TouchableOpacity
@@ -77,7 +74,11 @@ const CouponCard = ({
 
         <TouchableOpacity
           className="absolute right-3.5 bottom-3.5"
-          onPress={onToggle}
+          disabled={toggleDisabled}
+          onPress={(event: any) => {
+            event.stopPropagation();
+            onToggle?.();
+          }}
         >
           {selected ? <HeartFilled /> : <Heart />}
         </TouchableOpacity>
@@ -114,41 +115,15 @@ export default function Main() {
     null,
   );
 
-  const [selectedCoupons, setSelectedCoupons] = useState<
-    Record<number, boolean>
-  >({});
-
+  const wishedIds = useCouponWishStore((state) => state.wishedIds);
+  const toggleWish = useCouponWishStore((state) => state.toggle);
+  const loadWishes = useCouponWishStore((state) => state.load);
   const { coupons, loading } = useStoreCoupons(selectedFilter);
 
   useFocusEffect(
     useCallback(() => {
-      let isMounted = true;
-
-      const loadWishedCoupons = async () => {
-        try {
-          const wishedIds = await getWishedCouponIds();
-
-          if (!isMounted) {
-            return;
-          }
-
-          const wishedMap: Record<number, boolean> = {};
-          wishedIds.forEach((id) => {
-            wishedMap[id] = true;
-          });
-
-          setSelectedCoupons(wishedMap);
-        } catch (error) {
-          console.error("찜한 쿠폰 로컬 조회 실패:", error);
-        }
-      };
-
-      loadWishedCoupons();
-
-      return () => {
-        isMounted = false;
-      };
-    }, []),
+      loadWishes();
+    }, [loadWishes]),
   );
 
   const filteredCoupons = useMemo(() => {
@@ -158,34 +133,17 @@ export default function Main() {
       return coupons;
     }
 
-    return coupons.filter((coupon) =>
-      coupon.title.toLowerCase().includes(query),
-    );
+    return coupons.filter((coupon) => {
+      const normalizedTitle = coupon.title.toLowerCase();
+      const normalizedStoreName = coupon.storeName.toLowerCase();
+
+      return (
+        normalizedTitle.includes(query) || normalizedStoreName.includes(query)
+      );
+    });
   }, [coupons, searchQuery]);
 
-  const toggleCouponWish = async (id: number) => {
-    if (id <= 0) {
-      console.log("쿠폰 id가 없어 찜하기를 수행할 수 없습니다.");
-      return;
-    }
-
-    const isCurrentlySelected = !!selectedCoupons[id];
-
-    if (!isCurrentlySelected) {
-      // 찜하기 추가
-      try {
-        await postCouponWish(id);
-        setSelectedCoupons((prev) => ({ ...prev, [id]: true }));
-        await addWishedCouponId(id);
-      } catch (error) {
-        console.error("쿠폰 찜하기 실패:", error);
-      }
-    } else {
-      // 찜하기 해제 (로컬에서만 처리)
-      setSelectedCoupons((prev) => ({ ...prev, [id]: false }));
-      await removeWishedCouponId(id);
-    }
-  };
+  const toggleCouponWish = (couponId: number) => toggleWish(couponId);
 
   const [sortLabel, setSortLabel] = useState("최신순");
   const [showSortPopup, setShowSortPopup] = useState(false);
@@ -213,7 +171,7 @@ export default function Main() {
           {isSearchMode ? (
             <View className="flex-1">
               <SearchInput
-                placeholder="쿠폰명을 검색해주세요."
+                placeholder="쿠폰명 또는 매장명을 검색해주세요."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoFocus
@@ -315,26 +273,39 @@ export default function Main() {
             </View>
           ) : (
             <View className="flex-row flex-wrap justify-between gap-y-[18px]">
-              {filteredCoupons.map((coupon) => (
-                <View key={coupon.id} className="w-[48%]">
-                  <CouponCard
-                    storeName={coupon.storeName}
-                    title={coupon.title}
-                    price={coupon.price}
-                    selected={!!selectedCoupons[coupon.id]}
-                    image={coupon.image}
-                    onToggle={() => toggleCouponWish(coupon.id)}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/store/coupon",
-                        params: {
-                          couponId: String(coupon.id),
-                        },
-                      })
-                    }
-                  />
-                </View>
-              ))}
+              {filteredCoupons.map((coupon) => {
+                const couponId =
+                  Number.isFinite(coupon.couponId) && (coupon.couponId ?? 0) > 0
+                    ? (coupon.couponId as number)
+                    : null;
+
+                return (
+                  <View key={coupon.id} className="w-[48%]">
+                    <CouponCard
+                      storeName={coupon.storeName}
+                      title={coupon.title}
+                      price={coupon.price}
+                      selected={couponId ? wishedIds.has(couponId) : false}
+                      image={coupon.image}
+                      toggleDisabled={!couponId}
+                      onToggle={() => {
+                        if (!couponId) return;
+                        toggleCouponWish(couponId);
+                      }}
+                      onPress={() =>
+                        couponId
+                          ? router.push({
+                              pathname: "/store/coupon",
+                              params: {
+                                couponId: String(couponId),
+                              },
+                            })
+                          : undefined
+                      }
+                    />
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>

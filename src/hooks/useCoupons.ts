@@ -7,19 +7,26 @@ import {
 } from "../services/mypage/coupons.service";
 
 interface CouponApiResponse {
-  couponHistId: number;
+  couponId?: number;
+  couponHistId?: number;
+  couponWishId?: number;
   couponNm: string;
   couponStore: string;
   couponPoint: number;
   couponImgUrl: string;
+  couponWished?: boolean;
 }
 
 export interface CouponItem {
   id: number;
+  couponId: number;
+  couponHistId?: number;
+  couponWishId?: number;
   storeName: string;
   title: string;
   price: string;
   image?: string;
+  wished?: boolean;
 }
 
 export function useCoupons(status: CouponOption = "ISSUED") {
@@ -33,12 +40,16 @@ export function useCoupons(status: CouponOption = "ISSUED") {
         const list = Array.isArray(data) ? data : (data?.data ?? []);
 
         const transformed: CouponItem[] = list.map(
-          (item: CouponApiResponse) => ({
-            id: item.couponHistId,
+          (item: CouponApiResponse, index: number) => ({
+            id: item.couponHistId ?? -(index + 1),
+            couponId: item.couponId ?? 0,
+            couponHistId: item.couponHistId,
+            couponWishId: item.couponWishId,
             storeName: item.couponStore,
             title: item.couponNm,
             price: item.couponPoint + "P",
             image: item.couponImgUrl,
+            wished: item.couponWished,
           }),
         );
 
@@ -78,12 +89,20 @@ export function useCouponWishes() {
         const list = Array.isArray(data) ? data : (data?.data ?? []);
 
         const transformed: CouponItem[] = list.map(
-          (item: CouponApiResponse) => ({
-            id: item.couponHistId,
+          (item: CouponApiResponse, index: number) => ({
+            id:
+              item.couponWishId ??
+              item.couponHistId ??
+              item.couponId ??
+              -(index + 1),
+            couponId: item.couponId ?? 0,
+            couponHistId: item.couponHistId,
+            couponWishId: item.couponWishId,
             storeName: item.couponStore,
             title: item.couponNm,
             price: item.couponPoint + "P",
             image: item.couponImgUrl,
+            wished: item.couponWished,
           }),
         );
 
@@ -105,13 +124,23 @@ export function useCouponWishes() {
       const data = await getCouponWishes();
       const list = Array.isArray(data) ? data : (data?.data ?? []);
 
-      const transformed: CouponItem[] = list.map((item: CouponApiResponse) => ({
-        id: item.couponHistId,
-        storeName: item.couponStore,
-        title: item.couponNm,
-        price: item.couponPoint + "P",
-        image: item.couponImgUrl,
-      }));
+      const transformed: CouponItem[] = list.map(
+        (item: CouponApiResponse, index: number) => ({
+          id:
+            item.couponWishId ??
+            item.couponHistId ??
+            item.couponId ??
+            -(index + 1),
+          couponId: item.couponId ?? 0,
+          couponHistId: item.couponHistId,
+          couponWishId: item.couponWishId,
+          storeName: item.couponStore,
+          title: item.couponNm,
+          price: item.couponPoint + "P",
+          image: item.couponImgUrl,
+          wished: item.couponWished,
+        }),
+      );
 
       setWishCoupons(transformed);
     } catch (e) {

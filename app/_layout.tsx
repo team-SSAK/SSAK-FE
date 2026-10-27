@@ -17,12 +17,14 @@ function applyGlobalTypographyDefaults() {
   const textDefaults = (Text as any).defaultProps || {};
   (Text as any).defaultProps = {
     ...textDefaults,
+    allowFontScaling: true,
     style: [textDefaults.style, { fontFamily: "Pretendard-Variable" }],
   };
 
   const textInputDefaults = (TextInput as any).defaultProps || {};
   (TextInput as any).defaultProps = {
     ...textInputDefaults,
+    allowFontScaling: true,
     style: [textInputDefaults.style, { fontFamily: "Pretendard-Variable" }],
   };
 }

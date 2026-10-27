@@ -1,13 +1,16 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import ChevronLeft from "../../assets/images/chevron-left.svg";
 import TextInput from "../../components/input/textinput";
 import StepIndicator from "../../components/stepindicator";
+import { useSendEmail } from "../../src/hooks/useSendEmail";
 
 export default function RegisterEmail() {
   const [email, setEmail] = useState("");
   const { isOwner } = useLocalSearchParams<{ isOwner?: string }>();
+  const { mutate: sendEmail, isPending } = useSendEmail();
+  const [errorMsg, setErrorMsg] = useState("");
 
   return (
     <View className="flex-1 bg-[#ffffff] justify-between px-4 py-[56px]">
@@ -26,23 +29,57 @@ export default function RegisterEmail() {
         </Text>
         <TextInput
           placeholder="이메일을 입력해주세요"
-          onChangeText={setEmail}
+          onChangeText={(text) => {
+            setEmail(text);
+            setErrorMsg("");
+          }}
           value={email}
         />
       </View>
       <TouchableOpacity
-        onPress={() =>
-          router.push({
-            pathname: "/auth/registerverification",
-            params: { email: email || "test@test.com", isOwner },
-          })
-        }
-        className="h-[52px] rounded-xl justify-center items-center bg-[#45B310]"
+        onPress={() => {
+          if (!email.trim()) {
+            setErrorMsg("이메일을 입력해주세요");
+            return;
+          }
+
+          sendEmail(
+            { email: email.trim(), type: "SIGNUP" },
+            {
+              onSuccess: () => {
+                router.push({
+                  pathname: "/auth/registerverification",
+                  params: { email: email.trim(), isOwner },
+                });
+              },
+              onError: (error: any) => {
+                const message =
+                  error?.response?.data?.message ||
+                  error?.message ||
+                  "이메일 발송에 실패했습니다";
+                setErrorMsg(message);
+              },
+            },
+          );
+        }}
+        disabled={isPending}
+        className={`h-[52px] rounded-xl justify-center items-center ${
+          isPending ? "bg-slate-300" : "bg-[#45B310]"
+        }`}
       >
-        <Text className="text-center text-white text-lg font-medium leading-7">
-          인증 요청
-        </Text>
+        {isPending ? (
+          <ActivityIndicator color="#ffffff" />
+        ) : (
+          <Text className="text-center text-white text-lg font-medium leading-7">
+            인증 요청
+          </Text>
+        )}
       </TouchableOpacity>
+      {errorMsg && (
+        <Text className="text-red-500 text-sm font-medium mt-2">
+          {errorMsg}
+        </Text>
+      )}
     </View>
   );
 }

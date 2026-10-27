@@ -1,6 +1,8 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import Constants from "expo-constants";
 import {
+  deleteAccessToken,
+  deleteRefreshToken,
   getAccessToken,
   getRefreshToken,
   setAccessToken,
@@ -133,7 +135,7 @@ client.interceptors.response.use(
         const refreshToken = await getRefreshToken();
         if (!refreshToken) throw error;
 
-        const r = await refreshClient.post<LoginResponse>("/auth/refresh", {
+        const r = await refreshClient.post<LoginResponse>("/api/auth/refresh", {
           refreshToken,
         });
 
@@ -146,6 +148,8 @@ client.interceptors.response.use(
         processQueue(null, r.data.accessToken);
         return client(originalConfig);
       } catch (err) {
+        await deleteAccessToken();
+        await deleteRefreshToken();
         processQueue(err, null);
         throw err;
       } finally {
